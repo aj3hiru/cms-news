@@ -2,16 +2,27 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
-import { FloatingMenu, BubbleMenu } from "@tiptap/react/menus";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
-import { TableKit } from "@tiptap/extension-table";
+import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
 import { MediaLibraryModal, type MediaLibraryItem } from "../MediaLibraryModal";
 import { uploadImageFast } from "@/lib/clientUpload";
 import { useAdminDialogs } from "../AdminDialogProvider";
 import { ButtonBlock, CalloutBlock, EmbedBlock } from "./blocks";
+import { TableDialog } from "./TableDialog";
+
+/** Tables keep a style class (is-style-stripes / bordered / minimal) like WP table block styles. */
+const StyledTable = Table.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: { default: null, parseHTML: (el) => el.getAttribute("class"), renderHTML: (a) => (a.class ? { class: a.class } : {}) },
+    };
+  },
+});
 
 function Btn({ on, active, title, icon, label }: { on: () => void; active?: boolean; title: string; icon?: string; label?: string }) {
   return (
@@ -48,7 +59,21 @@ export function BlockEditor({
   const [inserter, setInserter] = useState<{ open: boolean; query: string; slash: boolean }>({ open: false, query: "", slash: false });
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [tableOpen, setTableOpen] = useState(false);
   const [, force] = useState(0);
+  const slashRef = useRef(false);
+  const [floatTop, setFloatTop] = useState<number | null>(null);
+
+  // The "+" beside an empty line (like the WordPress block editor).
+  function placeFloat(ed: Editor) {
+    const { $from, empty } = ed.state.selection;
+    if (!ed.isFocused || !empty || $from.depth !== 1 || $from.parent.type.name !== "paragraph" || $from.parent.content.size !== 0 || !wrapRef.current) {
+      setFloatTop(null);
+      return;
+    }
+    const c = ed.view.coordsAtPos($from.pos);
+    setFloatTop(c.top - wrapRef.current.getBoundingClientRect().top + (c.bottom - c.top) / 2 - 15);
+  }
   const fileRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const { notice } = useAdminDialogs();
@@ -59,7 +84,10 @@ export function BlockEditor({
       StarterKit.configure({ heading: { levels: [2, 3, 4, 5, 6] }, link: { openOnClick: false, autolink: true } }),
       Image.configure({ inline: false, allowBase64: false }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      TableKit.configure({ table: { resizable: false } }),
+      StyledTable.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Placeholder.configure({ placeholder, includeChildren: false }),
       ButtonBlock,
       CalloutBlock,
@@ -70,22 +98,33 @@ export function BlockEditor({
     onUpdate: ({ editor }) => {
       const next = editor.getHTML();
       setHtml(next);
+      placeFloat(editor);
       onChange?.(next);
       // "/" at the start of an empty paragraph opens the block picker.
       const { $from, empty } = editor.state.selection;
       const text = $from.parent.textContent;
       if (empty && $from.parent.type.name === "paragraph" && text.startsWith("/") && !text.includes(" ")) {
+        slashRef.current = true;
         setInserter({ open: true, query: text.slice(1), slash: true });
-      } else if (inserter.slash) {
+      } else if (slashRef.current) {
+        slashRef.current = false;
         setInserter({ open: false, query: "", slash: false });
       }
     },
-    onSelectionUpdate: () => force((n) => n + 1),
+    onSelectionUpdate: ({ editor }) => {
+      force((n) => n + 1);
+      placeFloat(editor);
+    },
+    onFocus: ({ editor }) => placeFloat(editor),
+    onBlur: () => setFloatTop(null),
   });
 
   useEffect(() => {
     function close(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setInserter((s) => (s.open ? { open: false, query: "", slash: false } : s));
+      const t = e.target as HTMLElement;
+      if (t.closest?.(".be-inserter, .be-add, .be-float-add")) return;
+      slashRef.current = false;
+      setInserter((s) => (s.open ? { open: false, query: "", slash: false } : s));
     }
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -114,7 +153,7 @@ export function BlockEditor({
         label: "Table",
         icon: "fa-table",
         keywords: "table grid rows columns",
-        run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+        run: () => setTableOpen(true),
       },
       {
         id: "callout",
@@ -137,6 +176,7 @@ export function BlockEditor({
       const { $from } = editor.state.selection;
       editor.chain().focus().deleteRange({ from: $from.start(), to: $from.end() }).run();
     }
+    slashRef.current = false;
     setInserter({ open: false, query: "", slash: false });
     b.run(editor);
   }
@@ -182,10 +222,27 @@ export function BlockEditor({
 
   return (
     <div className="be-wrap rte-wrap" ref={wrapRef}>
+      <div className="be-tabs">
+        <span className="be-tabs-label">
+          <i className="fas fa-pen-to-square" /> Content
+        </span>
+        <div className="be-mode">
+          <button type="button" className={mode === "visual" ? "is-active" : ""} onClick={() => setMode("visual")}>
+            Visual
+          </button>
+          <button
+            type="button"
+            className={mode === "html" ? "is-active" : ""}
+            onClick={() => {
+              setHtml(editor.getHTML());
+              setMode("html");
+            }}
+          >
+            HTML
+          </button>
+        </div>
+      </div>
       <div className="rte-toolbar be-toolbar">
-        <button type="button" className="be-add" title="Add block" onClick={() => setInserter((s) => ({ open: !s.open, query: "", slash: false }))}>
-          <i className="fas fa-plus" />
-        </button>
         <select
           className="be-type"
           value={blockType}
@@ -204,6 +261,9 @@ export function BlockEditor({
           <option value="5">Heading 5</option>
           <option value="6">Heading 6</option>
         </select>
+        <button type="button" className="be-add" title="Add block" onClick={() => setInserter((s) => ({ open: !s.open, query: "", slash: false }))}>
+          <i className="fas fa-plus" />
+        </button>
         <span className="rte-sep" />
         <Btn on={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon="fa-bold" />
         <Btn on={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon="fa-italic" />
@@ -220,24 +280,9 @@ export function BlockEditor({
         <Btn on={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Align right" icon="fa-align-right" />
         <span className="rte-sep" />
         <Btn on={() => fileRef.current?.click()} title="Upload image" icon="fa-image" />
-        <Btn on={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insert table" icon="fa-table" />
+        <Btn on={() => setTableOpen(true)} title="Insert table" icon="fa-table" />
         <Btn on={() => editor.chain().focus().undo().run()} title="Undo" icon="fa-rotate-left" />
         <Btn on={() => editor.chain().focus().redo().run()} title="Redo" icon="fa-rotate-right" />
-        <div className="be-mode">
-          <button type="button" className={mode === "visual" ? "is-active" : ""} onClick={() => setMode("visual")}>
-            Visual
-          </button>
-          <button
-            type="button"
-            className={mode === "html" ? "is-active" : ""}
-            onClick={() => {
-              setHtml(editor.getHTML());
-              setMode("html");
-            }}
-          >
-            HTML
-          </button>
-        </div>
       </div>
 
       {inTable && mode === "visual" && (
@@ -248,6 +293,17 @@ export function BlockEditor({
           <button type="button" onClick={() => editor.chain().focus().deleteRow().run()}>− Row</button>
           <button type="button" onClick={() => editor.chain().focus().deleteColumn().run()}>− Column</button>
           <button type="button" onClick={() => editor.chain().focus().toggleHeaderRow().run()}>Header row</button>
+          <button type="button" onClick={() => editor.chain().focus().toggleHeaderColumn().run()}>Header column</button>
+          <select
+            value={((editor.getAttributes("table").class as string | null) ?? "").replace("is-style-", "") || "default"}
+            onChange={(e) => editor.chain().focus().updateAttributes("table", { class: e.target.value === "default" ? null : `is-style-${e.target.value}` }).run()}
+            title="Table style"
+          >
+            <option value="default">Style: Default</option>
+            <option value="stripes">Style: Stripes</option>
+            <option value="bordered">Style: Bordered</option>
+            <option value="minimal">Style: Minimal</option>
+          </select>
           <button type="button" onClick={() => editor.chain().focus().mergeOrSplit().run()}>Merge / split</button>
           <button type="button" className="danger" onClick={() => editor.chain().focus().deleteTable().run()}>Delete table</button>
         </div>
@@ -274,14 +330,11 @@ export function BlockEditor({
       {uploading && <div className="be-uploading">Uploading image…</div>}
 
       <div style={{ display: mode === "visual" ? "block" : "none" }}>
-        <FloatingMenu editor={editor} className="be-float" shouldShow={({ state }) => {
-          const { $from, empty } = state.selection;
-          return empty && $from.parent.type.name === "paragraph" && $from.parent.content.size === 0 && $from.depth === 1;
-        }}>
-          <button type="button" className="be-float-add" title="Add block" onClick={() => setInserter({ open: true, query: "", slash: false })}>
+        {floatTop !== null && !inserter.open && (
+          <button type="button" className="be-float-add" style={{ top: floatTop }} title="Add block" onMouseDown={(e) => e.preventDefault()} onClick={() => setInserter({ open: true, query: "", slash: false })}>
             <i className="fas fa-plus" />
           </button>
-        </FloatingMenu>
+        )}
         <BubbleMenu editor={editor} className="be-bubble" shouldShow={({ editor: ed, state }) => !state.selection.empty && !ed.isActive("image") && !ed.isActive("buttonBlock") && !ed.isActive("embed")}>
           <Btn on={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon="fa-bold" />
           <Btn on={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon="fa-italic" />
@@ -315,6 +368,15 @@ export function BlockEditor({
       </div>
       <input type="hidden" name={name} value={mode === "html" ? html : editor.getHTML()} />
 
+      {tableOpen && (
+        <TableDialog
+          onClose={() => setTableOpen(false)}
+          onInsert={(tableHtml) => {
+            setTableOpen(false);
+            editor.chain().focus().insertContent(tableHtml).run();
+          }}
+        />
+      )}
       <MediaLibraryModal
         open={libraryOpen}
         onClose={() => setLibraryOpen(false)}

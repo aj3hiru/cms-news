@@ -11,15 +11,16 @@ import { ProgressLog, useProgressLog, formatMB } from "./ProgressLog";
  * + manifest.json, importable here or on another StoryTimes site. Shows the
  * download as a live log with a real percentage.
  */
-export function ExportPanel() {
-  const [categories, setCategories] = useState<CategoryExportStat[] | null>(null);
-  const [total, setTotal] = useState(0);
+export function ExportPanel({ initial }: { initial?: { categories: CategoryExportStat[]; total: number } }) {
+  const [categories, setCategories] = useState<CategoryExportStat[] | null>(initial?.categories ?? null);
+  const [total, setTotal] = useState(initial?.total ?? 0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState<"posts" | "pages" | null>(null);
   const [title, setTitle] = useState("Export");
   const log = useProgressLog();
 
   useEffect(() => {
+    if (initial) return;
     getCategoryExportStats()
       .then((r) => {
         setCategories(r.categories);

@@ -182,6 +182,8 @@ export interface PostTemplate {
   pill_follow_label: string;
   pill_follow_url: string;
   pill_preferred_source: boolean;
+  /** Card design: Google News icon box next to the preferred-source button (links to the Follow URL). */
+  card_gn_box: boolean;
   featured_image: boolean;
   featured_caption: boolean;
   summary: boolean;
@@ -400,6 +402,7 @@ export const DEFAULT_POST_TEMPLATE: PostTemplate = {
   pill_follow_label: "Follow Us",
   pill_follow_url: "https://news.google.com/home",
   pill_preferred_source: true,
+  card_gn_box: true,
   featured_image: true,
   featured_caption: true,
   summary: true,

@@ -40,11 +40,11 @@ function formatTtl(seconds: number): string {
 const HOMEPAGE_TTL_OPTIONS = [60, 300, 600, 1800, 3600];
 const POST_TTL_OPTIONS = [3600, 21600, 43200, 86400, 604800];
 
-export function CacheManagerClient({ isProduction }: { isProduction: boolean }) {
+export function CacheManagerClient({ isProduction, initial, initialFiles }: { isProduction: boolean; initial?: { overview: CacheOverviewStats; settings: CacheSettings }; initialFiles?: FileRow[] | null }) {
   const [tab, setTab] = useState<Tab>("overview");
-  const [overview, setOverview] = useState<CacheOverviewStats | null>(null);
-  const [settings, setSettings] = useState<CacheSettings | null>(null);
-  const [files, setFiles] = useState<FileRow[] | null>(null);
+  const [overview, setOverview] = useState<CacheOverviewStats | null>(initial?.overview ?? null);
+  const [settings, setSettings] = useState<CacheSettings | null>(initial?.settings ?? null);
+  const [files, setFiles] = useState<FileRow[] | null>(initialFiles ?? null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -71,9 +71,10 @@ export function CacheManagerClient({ isProduction }: { isProduction: boolean }) 
   }
 
   useEffect(() => {
+    if (initial) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
-  }, []);
+  }, [initial]);
 
   useEffect(() => {
     if (tab === "files" && files === null) {

@@ -105,11 +105,6 @@ function PreferredSourceButton({ host, compact = false }: { host: string; compac
         <span>Add as a preferred</span>
         <span>source on Google</span>
       </span>
-      {compact && (
-        <span className="nb-pref-gn">
-          <GoogleNewsIcon />
-        </span>
-      )}
     </a>
   );
 }
@@ -244,7 +239,16 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                         </div>
                       </div>
                     )}
-                    {pt.pill_preferred_source && <PreferredSourceButton host={host} compact />}
+                    {(pt.pill_preferred_source || (pt.card_gn_box && pt.pill_follow_url)) && (
+                      <div className="nb-head-actions">
+                        {pt.pill_preferred_source && <PreferredSourceButton host={host} compact />}
+                        {pt.card_gn_box && pt.pill_follow_url && (
+                          <a className="nb-gn-box" href={pt.pill_follow_url} target="_blank" rel="noopener nofollow" aria-label="Follow us on Google News" title="Follow us on Google News">
+                            <GoogleNewsIcon />
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </header>
               ) : (

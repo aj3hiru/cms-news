@@ -162,12 +162,6 @@ export function PostFormClient({
           </div>
 
           <div className="meta-panel">
-            <div className="meta-panel-body" style={{ padding: 0, gap: 0 }}>
-              <BlockEditor name="content" defaultValue={post?.content ?? ""} onChange={setContent} />
-            </div>
-          </div>
-
-          <div className="meta-panel">
             <div className="meta-panel-header">
               <span>
                 <i className="fas fa-align-left" /> Summary
@@ -184,6 +178,12 @@ export function PostFormClient({
                 placeholder="A short summary of the article, shown in a highlighted box at the top of the post (2–3 sentences)."
               />
               <span className="field-hint">Shown on the post below the featured image. Turn the box on/off in Customize → Post Template.</span>
+            </div>
+          </div>
+
+          <div className="meta-panel">
+            <div className="meta-panel-body" style={{ padding: 0, gap: 0 }}>
+              <BlockEditor name="content" defaultValue={post?.content ?? ""} onChange={setContent} />
             </div>
           </div>
 
@@ -236,16 +236,6 @@ export function PostFormClient({
             </div>
           </div>
 
-          <SeoBox
-            defaults={seoDefaults}
-            title={title}
-            slug={slug}
-            content={content}
-            metaDescription={metaDescription}
-            onMetaDescription={setMetaDescription}
-            initial={post?.seo}
-            hasFeaturedImage={Boolean(post?.featuredImagePath)}
-          />
           <input type="hidden" name="metaKeywords" value={post?.metaKeywords ?? ""} />
         </div>
 
@@ -360,6 +350,16 @@ export function PostFormClient({
             </div>
           </div>
 
+          <SeoBox
+            defaults={seoDefaults}
+            title={title}
+            slug={slug}
+            content={content}
+            metaDescription={metaDescription}
+            onMetaDescription={setMetaDescription}
+            initial={post?.seo}
+            hasFeaturedImage={Boolean(post?.featuredImagePath)}
+          />
           <div className="meta-panel">
             <div className="meta-panel-header">
               <span>Featured Image</span>

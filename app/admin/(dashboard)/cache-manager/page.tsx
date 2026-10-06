@@ -3,6 +3,8 @@ import "./cache-manager.css";
 import { CacheManagerClient } from "@/components/admin/CacheManagerClient";
 import { ViewCountAuditPanel } from "@/components/admin/ViewCountAuditPanel";
 import { requireUser } from "@/lib/auth";
+import { getCacheDashboardData, getCacheFilesList } from "@/lib/cacheManagerAdmin";
+import { getTrafficSummary } from "@/lib/viewCountAudit";
 
 export default async function CacheManagerPage() {
   // Direct-URL access guard — see lib/pageGuard.tsx.
@@ -10,6 +12,11 @@ export default async function CacheManagerPage() {
   if (denied) return denied;
 
   const user = await requireUser();
+  const [initial, summary, files] = await Promise.all([
+    getCacheDashboardData().catch(() => undefined),
+    user?.role === "admin" ? getTrafficSummary().catch(() => null) : Promise.resolve(null),
+    getCacheFilesList().catch(() => null),
+  ]);
 
   return (
     <div>
@@ -19,7 +26,7 @@ export default async function CacheManagerPage() {
           process.env.NODE_ENV directly from client code is unreliable
           across bundlers/deploy setups even though Next.js's own
           bundler typically inlines it safely. */}
-      <CacheManagerClient isProduction={process.env.NODE_ENV === "production"} />
+      <CacheManagerClient isProduction={process.env.NODE_ENV === "production"} initial={initial} initialFiles={files} />
 
       {/* Admin-only, deliberately: this tool WRITES corrective rows into
           the stats tables, and its server actions enforce admin in their
@@ -30,7 +37,7 @@ export default async function CacheManagerPage() {
           repairing site-wide analytics data. */}
       {user?.role === "admin" && (
         <div style={{ marginTop: "1.5rem" }}>
-          <ViewCountAuditPanel />
+          <ViewCountAuditPanel initialSummary={summary} />
         </div>
       )}
     </div>

@@ -16,7 +16,7 @@ import { useAdminDialogs } from "./AdminDialogProvider";
  * a concrete, visible result to act on — no blind "fix everything"
  * button that acts on numbers nobody has seen.
  */
-export function ViewCountAuditPanel() {
+export function ViewCountAuditPanel({ initialSummary }: { initialSummary?: Awaited<ReturnType<typeof getTrafficSummary>> | null }) {
   const { notice, confirm } = useAdminDialogs();
   const [result, setResult] = useState<ViewCountAuditResult | null>(null);
   const [checking, setChecking] = useState(false);
@@ -60,11 +60,12 @@ export function ViewCountAuditPanel() {
     }
   }
 
-  const [summary, setSummary] = useState<Awaited<ReturnType<typeof getTrafficSummary>> | null>(null);
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof getTrafficSummary>> | null>(initialSummary ?? null);
   const [releasing, setReleasing] = useState(false);
   useEffect(() => {
+    if (initialSummary) return;
     getTrafficSummary().then(setSummary).catch(() => {});
-  }, []);
+  }, [initialSummary]);
 
   async function handleRelease() {
     setReleasing(true);
