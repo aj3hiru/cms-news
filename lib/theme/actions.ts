@@ -3,7 +3,8 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "../db";
 import { requireUser } from "../auth";
-import { THEME_KEY } from "./settings";
+import { THEME_DRAFT_KEY, THEME_KEY } from "./settings";
+import { categoryUrl, postUrl, staticPagePath, tagUrl } from "../urls";
 import { mergeTheme, type ThemeSettings } from "./types";
 
 export interface IdentityInput {
@@ -40,7 +41,71 @@ export async function publishTheme(theme: ThemeSettings, identity: IdentityInput
     upsertSetting("display_mode", identity.logo.trim() ? "logo" : "text"),
   ]);
 
+  await prisma.appConfig.deleteMany({ where: { configKey: THEME_DRAFT_KEY } });
   for (const tag of ["theme-settings", "app-config", "site-settings", "header-settings", "footer-settings"]) revalidateTag(tag, "max");
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/** Customizer: keeps the unpublished changes so the preview can show them. */
+export async function saveThemeDraft(theme: ThemeSettings, identity: IdentityInput): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  if (!user || user.role !== "admin") return { ok: false };
+  const json = JSON.stringify({ theme: mergeTheme(theme), identity });
+  if (json.length > 2_000_000) return { ok: false };
+  await upsertConfig(THEME_DRAFT_KEY, json);
+  return { ok: true };
+}
+
+export async function discardThemeDraft(): Promise<void> {
+  const user = await requireUser();
+  if (!user || user.role !== "admin") return;
+  await prisma.appConfig.deleteMany({ where: { configKey: THEME_DRAFT_KEY } });
+}
+
+export interface MenuSource {
+  label: string;
+  url: string;
+  kind: string;
+}
+
+/** Items for the Menus "Add Items" panel (pages, posts, categories, tags). */
+export async function getMenuSources(kind: "pages" | "posts" | "categories" | "tags", q = ""): Promise<MenuSource[]> {
+  const user = await requireUser();
+  if (!user || user.role !== "admin") return [];
+  const term = q.trim();
+  if (kind === "pages") {
+    const rows = await prisma.page.findMany({ where: { status: "published", ...(term ? { title: { contains: term } } : {}) }, orderBy: { title: "asc" }, take: 30, select: { title: true, slug: true } });
+    return [{ label: "Home", url: "/", kind: "Front Page" }, ...rows.map((r) => ({ label: r.title, url: staticPagePath(r.slug), kind: "Page" }))].filter((r) => !term || r.label.toLowerCase().includes(term.toLowerCase()));
+  }
+  if (kind === "posts") {
+    const rows = await prisma.post.findMany({ where: { status: "published", ...(term ? { title: { contains: term } } : {}) }, orderBy: { date: "desc" }, take: 20, select: { title: true, slug: true } });
+    return rows.map((r) => ({ label: r.title, url: postUrl(r.slug), kind: "Post" }));
+  }
+  if (kind === "categories") {
+    const rows = await prisma.category.findMany({ where: term ? { name: { contains: term } } : {}, orderBy: { name: "asc" }, take: 50, select: { name: true, slug: true } });
+    return [{ label: "All Categories", url: "/categories", kind: "Archive" }, ...rows.map((r) => ({ label: r.name, url: categoryUrl(r.slug), kind: "Category" }))];
+  }
+  const rows = await prisma.tag.findMany({ where: term ? { name: { contains: term } } : {}, orderBy: { name: "asc" }, take: 40, select: { id: true, name: true, slug: true } });
+  return rows.map((r) => ({ label: r.name, url: tagUrl(r.slug, Number(r.id)), kind: "Tag" }));
+}
+
+/** Posts for the Also Read "pick posts" search. */
+export async function searchPostsBrief(q: string): Promise<{ id: number; title: string; date: string | null }[]> {
+  const user = await requireUser();
+  if (!user || user.role !== "admin") return [];
+  const rows = await prisma.post.findMany({
+    where: { status: "published", ...(q.trim() ? { title: { contains: q.trim() } } : {}) },
+    orderBy: { date: "desc" },
+    take: 15,
+    select: { id: true, title: true, date: true },
+  });
+  return rows.map((r) => ({ id: r.id, title: r.title, date: r.date?.toISOString() ?? null }));
+}
+
+export async function getPostTitles(ids: number[]): Promise<Record<number, string>> {
+  const user = await requireUser();
+  if (!user || user.role !== "admin" || !ids.length) return {};
+  const rows = await prisma.post.findMany({ where: { id: { in: ids.slice(0, 100) } }, select: { id: true, title: true } });
+  return Object.fromEntries(rows.map((r) => [r.id, r.title]));
 }

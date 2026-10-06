@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "../db";
 import { getAppConfig, getSiteSettings, resolveSiteConfig } from "../config";
 import { resolveMediaUrl } from "../urls";
-import { getTheme } from "./settings";
+import { getTheme, getThemeDraft } from "./settings";
 import type { ShortcodeContext } from "../shortcodes";
 import type { ThemeSettings } from "./types";
 
@@ -32,14 +32,20 @@ const getCategoriesCached = unstable_cache(
 
 /** Everything the public header / footer / templates need, read once per request. */
 export const getSiteContext = cache(async (): Promise<SiteContext> => {
-  const [theme, cfg, settings, app, categories] = await Promise.all([
+  const [theme, cfg, settings, app, categories, draft] = await Promise.all([
     getTheme(),
     resolveSiteConfig(process.env.APP_URL?.trim() || ""),
     getSiteSettings(),
     getAppConfig(),
     getCategoriesCached(),
+    getThemeDraft(),
   ]);
-  const rawLogo = settings.site_logo?.trim() ?? "";
+  // Inside the Customizer preview the unsaved Site Identity is shown.
+  if (draft) {
+    cfg.siteName = draft.identity.siteTitle || cfg.siteName;
+    cfg.siteTagline = draft.identity.tagline;
+  }
+  const rawLogo = (draft ? draft.identity.logo : settings.site_logo)?.trim() ?? "";
   return {
     theme,
     siteName: cfg.siteName,

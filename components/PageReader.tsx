@@ -5,6 +5,7 @@ import { getSiteContext } from "@/lib/theme/site";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
 import { RichContent } from "@/components/shortcodes/RichContent";
+import { TrendingSidebar } from "@/components/theme/TrendingSidebar";
 import { resolveSiteConfig } from "@/lib/config";
 import { staticPagePath } from "@/lib/urls";
 import { ListingAds } from "@/components/shared/ListingAds";
@@ -31,8 +32,9 @@ export async function PageReader({ slug, preview = false }: { slug: string; prev
   if (!page) notFound();
   const ctx = await getSiteContext();
 
-  return (
-    <main className="nb-page">
+  const withSidebar = ctx.theme.sidebar.on_page;
+  const body = (
+    <>
       <ListingAds page="page" position="before_post" />
       {preview && (
         <div className="nb-preview-bar">Preview — this page is not live yet</div>
@@ -46,6 +48,16 @@ export async function PageReader({ slug, preview = false }: { slug: string; prev
       <ListingAds page="page" position="after_content" />
       <ListingAds page="page" position="after_post" />
       <ListingAds page="page" position="footer" />
+    </>
+  );
+  return withSidebar ? (
+    <main className="nb-archive">
+      <div className="nb-archive-layout">
+        <div className="nb-page nb-page--in-layout">{body}</div>
+        <TrendingSidebar />
+      </div>
     </main>
+  ) : (
+    <main className="nb-page">{body}</main>
   );
 }

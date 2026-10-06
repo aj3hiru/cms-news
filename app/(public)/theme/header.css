@@ -1,0 +1,159 @@
+/* Header additions: Log in / Subscribe, push bell, Racing Zone template,
+   menu-strip styles, mobile drawer extras, admin-bar offset. */
+
+/* ── Signed-in staff: the fixed admin bar (36px) sits above the sticky header ── */
+body:has(#site-admin-bar) .nb-header.is-sticky,
+body:has(#site-admin-bar) #site-navigation:not(.nb-not-sticky) { top: 36px; }
+body:has(#site-admin-bar) .mnav { top: 36px; }
+body:has(#site-admin-bar) .mnav-overlay { top: 36px; }
+html.nb-in-customizer body:has(#site-admin-bar) .nb-header { top: 0; }
+
+/* ── Bell ── */
+.nb-bell-wrap { position: relative; display: inline-flex; }
+.nb-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; min-width: 38px; padding: 0 6px; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.nb-bell svg { width: 22px; height: 22px; transform-origin: top center; animation: nbRing 2.4s ease-in-out 3; }
+.nb-bell.is-denied svg { animation: none; opacity: .8; }
+.nb-bell-dot { position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: #e53935; border: 2px solid var(--hd-bg, #0c6878); }
+.nb-h-racing .nb-bell-dot { border-color: #fff; }
+.nb-bell-label { font-size: 13px; font-weight: 600; }
+@keyframes nbRing { 0%, 60%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(14deg); } 20%, 40% { transform: rotate(-14deg); } }
+.nb-bell-help { position: absolute; top: 44px; right: -40px; z-index: 700; width: 260px; padding: 12px 30px 12px 12px; border-radius: 10px; background: #fff; color: #1f2937; box-shadow: 0 10px 30px rgba(0, 0, 0, .18); font-size: 13px; line-height: 1.45; display: flex; flex-direction: column; gap: 4px; }
+.nb-bell-help button { position: absolute; top: 4px; right: 6px; border: 0; background: none; font-size: 18px; cursor: pointer; color: #9ca3af; }
+.nb-push-toast { position: fixed; left: 50%; bottom: 24px; z-index: 10001; transform: translateX(-50%); padding: 11px 20px; border-radius: 999px; background: var(--gc-accent, #0c6878); color: #fff; font-weight: 700; font-size: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); animation: nbToast .3s ease; }
+@keyframes nbToast { from { opacity: 0; transform: translate(-50%, 12px); } }
+.main-navigation .menu-bar-item .nb-bell { color: var(--hd-text, #fff); height: var(--hd-h); }
+
+/* ── Classic header: Log in / Subscribe ── */
+.nb-hc-auth { display: flex; align-items: center; gap: 14px; margin-left: 14px; }
+.nb-hc-login { display: inline-flex; align-items: center; gap: 6px; color: var(--hd-text, #fff) !important; font-size: 14px; font-weight: 600; }
+.nb-hc-login svg { width: 18px; height: 18px; }
+.nb-hc-sub { display: inline-flex; align-items: center; height: 34px; padding: 0 16px; border-radius: 6px; background: #fff; color: var(--hd-bg, #0c6878) !important; font-size: 14px; font-weight: 700; transition: transform .18s, box-shadow .18s; white-space: nowrap; }
+.nb-hc-sub:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0, 0, 0, .2); }
+.nb-hc-burger { display: none !important; }
+.nb-hc-burger .menu-toggle { display: flex; align-items: center; color: var(--hd-text, #fff); background: none; border: 0; padding: 0 14px; height: var(--hd-h); cursor: pointer; }
+.main-navigation .menu-toggle:not(.nb-hc-burger .menu-toggle) { display: none !important; }
+@media (max-width: 980px) {
+  .nb-hc-burger { display: flex !important; }
+  .nb-hc-login { display: none !important; }
+  .nb-hc-auth { margin-left: 4px; }
+  .nb-hc-sub { height: 30px; padding: 0 12px; font-size: 13px; }
+  .main-navigation .menu-bar-items { margin-left: auto; }
+}
+@media (max-width: 560px) {
+  .nb-hc-sub { padding: 0 10px; font-size: 12.5px; }
+}
+.slideout-navigation, .slideout-overlay { display: none !important; }
+
+/* ── Racing Zone template (racingzone.fr) ── */
+.nb-h-racing { position: relative; z-index: 500; background: var(--t-header-racing-bg, #fff); border-bottom: 1px solid #e6e8ec; color: var(--t-header-racing-text, #1d2327); }
+.nb-h-racing.is-sticky { position: sticky; top: 0; }
+.nb-h-racing.is_stuck { box-shadow: 0 2px 10px rgba(0, 0, 0, .06); }
+.nb-h-racing * { box-sizing: border-box; }
+.nb-hr-top { max-width: var(--nb-container, 1200px); margin: 0 auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 14px 24px; }
+.nb-hr-soc { display: flex; gap: 18px; align-items: center; }
+.nb-hr-soc a { color: #26303a; display: inline-flex; transition: color .15s; }
+.nb-hr-soc a:hover { color: var(--gc-accent, #0c6878); }
+.nb-hr-soc-ico { width: 19px; height: 19px; }
+.nb-hr-brand { justify-self: center; text-align: center; }
+.nb-hr-brand .nb-brand-link { display: flex; align-items: center; gap: 10px; }
+.nb-h-racing .is-logo-image { max-height: var(--hd-h, 50px); width: auto; }
+.nb-h-racing .site-title { color: var(--gc-accent, #0c6878); font-size: 30px; font-weight: 800; letter-spacing: .08em; }
+.nb-h-racing .site-tagline { color: #454f5e; letter-spacing: .3em; font-size: 12px; text-transform: uppercase; }
+.nb-h-racing .nb-site-branding { align-items: center; }
+.nb-hr-act { justify-self: end; display: flex; align-items: center; gap: 12px; }
+.nb-hr-act .nb-bell, .nb-hr-act .nb-search-icon { color: #1d2327; height: 38px; display: inline-flex; align-items: center; padding: 0 4px; }
+.nb-hr-act .nb-search-icon svg { width: 18px; height: 18px; fill: currentColor; }
+.nb-hr-login { display: inline-flex; align-items: center; gap: 8px; padding: 8px 4px; color: #1d2327 !important; font-size: 15px; font-weight: 600; }
+.nb-hr-login:hover { color: var(--gc-accent, #0c6878) !important; }
+.nb-hr-login svg { width: 18px; height: 18px; }
+.nb-hr-div { width: 1px; height: 26px; background: #e6e8ec; }
+.nb-hr-sub { display: inline-flex; align-items: center; padding: 11px 22px; border-radius: 6px; background: var(--t-buttons-background, var(--gc-accent, #0c6878)); color: #fff !important; font-size: 15px; font-weight: 700; transition: background .18s, box-shadow .18s, transform .18s; white-space: nowrap; }
+.nb-hr-sub:hover { background: var(--t-buttons-background-hover, #095666); box-shadow: 0 6px 16px rgba(0, 0, 0, .18); transform: translateY(-1px); }
+.nb-burger { display: none; align-items: center; justify-content: center; padding: 6px; margin-left: 2px; border: 0; background: none; color: #1d2327; cursor: pointer; }
+.nb-hr-nav { border-top: 1px solid #e6e8ec; }
+.nb-h-racing .inb-scroll-menu { background: transparent; }
+.nb-h-racing .inb-scroll-menu-inner { justify-content: center; gap: 30px; padding: 0 24px; }
+.nb-h-racing .inb-scroll-menu a { position: relative; padding: 14px 2px; color: #1d2327; font-size: 15px; font-weight: 600; }
+.nb-h-racing .inb-scroll-menu a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 8px; height: 2px; background: var(--gc-accent, #0c6878); transform: scaleX(0); transition: transform .18s; }
+.nb-h-racing .inb-scroll-menu a:hover { color: var(--gc-accent, #0c6878); }
+.nb-h-racing .inb-scroll-menu a:hover::after { transform: scaleX(1); }
+@media (max-width: 980px) {
+  .nb-hr-top { grid-template-columns: auto 1fr auto; gap: 10px; padding: 10px 14px; }
+  .nb-hr-soc, .nb-hr-login, .nb-hr-div { display: none !important; }
+  .nb-hr-brand { justify-self: start; }
+  .nb-h-racing .site-title { font-size: 22px; letter-spacing: .06em; }
+  .nb-h-racing .site-tagline { font-size: 10px; letter-spacing: .2em; }
+  .nb-h-racing .is-logo-image { max-height: 40px; }
+  .nb-hr-act { gap: 6px; }
+  .nb-hr-sub { padding: 9px 14px; font-size: 14px; }
+  .nb-burger { display: inline-flex; }
+  .nb-h-racing .inb-scroll-menu-inner { justify-content: flex-start; gap: 22px; padding: 0 14px; }
+  .nb-h-racing .inb-scroll-menu a { padding: 11px 2px; font-size: 14px; }
+}
+@media (max-width: 400px) {
+  .nb-hr-sub { padding: 8px 10px; font-size: 13px; }
+  .nb-hr-act .nb-search-icon { display: none; }
+}
+
+/* ── Menu strip styles ── */
+.nb-strip--center .inb-scroll-menu-inner { justify-content: center; }
+.nb-strip--pills .inb-scroll-menu-inner { padding: 8px; gap: 8px; }
+.nb-strip--pills a { padding: 4px 14px !important; border-radius: 999px; background: rgba(255, 255, 255, .7); border: 1px solid rgba(0, 0, 0, .08); }
+.nb-strip--pills a:hover { background: var(--gc-accent, #0c6878); color: #fff !important; }
+.nb-strip--underline a { position: relative; padding-bottom: 4px !important; }
+.nb-strip--underline a::after { content: ""; position: absolute; left: 6px; right: 6px; bottom: 0; height: 2px; background: currentColor; transform: scaleX(0); transition: transform .18s; }
+.nb-strip--underline a:hover::after { transform: scaleX(1); }
+@media (max-width: 980px) {
+  .nb-strip--center .inb-scroll-menu-inner { justify-content: flex-start; }
+}
+
+/* ── Mobile drawer (sriandaltraders style) extras ── */
+.nb-drawer { --mnav-accent: var(--gc-accent, #0c6878); z-index: 100002; }
+.mnav-overlay { z-index: 100001; }
+.nb-drawer .mnav-brand img { max-height: 36px; width: auto; }
+.nb-drawer-name { font-size: 18px; font-weight: 800; color: var(--gc-accent, #0c6878); }
+.nb-drawer .mnav-dark.is-on .mnav-switch { background: var(--gc-accent, #0c6878); }
+.nb-drawer-follow { margin-top: auto; padding: 16px 18px 22px; border-top: 1px solid var(--mnav-line, #eaeaf2); background: var(--mnav-soft, #f8f9fe); }
+.nb-drawer-follow > span { display: block; font-size: 13px; color: var(--mnav-muted, #8b8ba3); margin-bottom: 10px; }
+.nb-drawer-follow > div { display: flex; flex-wrap: wrap; gap: 10px; }
+.nb-drawer-follow a { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--gc-accent, #0c6878); color: #fff !important; }
+.nb-drawer-ico { width: 18px; height: 18px; }
+.nb-drawer .mnav-foot + .nb-drawer-follow { margin-top: 0; }
+@media (min-width: 981px) { .nb-drawer, .nb-drawer + .mnav-overlay { display: none; } }
+
+/* Racing Zone uses the same #site-navigation id (for scripts / anchors) — undo the classic bar styles. */
+#site-navigation.nb-h-racing { background: var(--t-header-racing-bg, #fff); color: var(--t-header-racing-text, #1d2327); font-size: 15px; position: relative; }
+#site-navigation.nb-h-racing.is-sticky { position: sticky; top: 0; }
+body:has(#site-admin-bar) #site-navigation.nb-h-racing.is-sticky { top: 36px; }
+#site-navigation.nb-h-racing .site-title { color: var(--gc-accent, #0c6878); }
+#site-navigation.nb-h-racing .inb-scroll-menu { background: transparent; }
+#site-navigation.nb-h-racing .inb-scroll-menu a { color: var(--t-header-racing-text, #1d2327); }
+#site-navigation.nb-h-racing .inb-scroll-menu a:hover { color: var(--gc-accent, #0c6878); }
+
+/* Classic header: keep everything on one line; collapse the menu earlier when space runs out. */
+.nb-hc-auth a { flex-direction: row !important; white-space: nowrap; }
+.main-navigation .inside-navigation { flex-wrap: nowrap; }
+.main-navigation .main-nav ul { flex-wrap: nowrap; }
+.main-navigation .main-nav ul li a { white-space: nowrap; }
+@media (max-width: 1280px) and (min-width: 561px) {
+  .topbar-search { width: 190px; max-width: 190px; }
+}
+@media (max-width: 1140px) {
+  #site-navigation:not(.nb-h-racing) .main-nav { display: none; }
+  .nb-hc-burger { display: flex !important; }
+  .navigation-branding { margin-right: auto; }
+}
+@media (max-width: 1140px) and (min-width: 981px) {
+  .topbar-search { width: 220px; max-width: 220px; }
+}
+.main-navigation .menu-bar-item > a.nb-hc-login { display: inline-flex; align-items: center; gap: 6px; padding: 0; line-height: 1.2; height: auto; color: var(--hd-text, #fff); }
+.main-navigation .menu-bar-item > a.nb-hc-sub { display: inline-flex; align-items: center; height: 34px; padding: 0 16px; line-height: 1.2; color: var(--hd-bg, #0c6878); }
+@media (max-width: 980px) { .main-navigation .menu-bar-item > a.nb-hc-sub { height: 30px; padding: 0 12px; } }
+@media (max-width: 560px) { .main-navigation .menu-bar-item > a.nb-hc-sub { padding: 0 10px; } }
+.main-navigation .menu-bar-item > a.nb-search-icon { display: inline-flex; align-items: center; padding: 0 12px; }
+
+.navigation-branding { flex-shrink: 0; }
+@media (max-width: 560px) {
+  .navigation-branding .is-logo-image { max-width: 150px; height: auto; max-height: calc(var(--hd-h) - 12px); }
+  .main-navigation .menu-bar-items { gap: 0; }
+}

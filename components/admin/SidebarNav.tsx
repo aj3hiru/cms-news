@@ -137,7 +137,12 @@ export function SidebarNav({
               } as NavSubmenu,
             ]
           : []),
-        ...(isAdmin || role === "editor" ? [{ label: "Contact Messages", href: "/admin/contact-messages", icon: "fa-envelope" } as NavLink] : []),
+        ...(isAdmin || role === "editor"
+          ? [
+              { label: "Push Notifications", href: "/admin/push-notifications", icon: "fa-bell" } as NavLink,
+              { label: "Contact Messages", href: "/admin/contact-messages", icon: "fa-envelope" } as NavLink,
+            ]
+          : []),
         ...(can(permissions?.ads.manage_ads) ? [{ label: "Ad Inserter", href: "/admin/ad-inserter", icon: "fa-ad" } as NavLink] : []),
       ],
     },

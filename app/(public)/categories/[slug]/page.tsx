@@ -34,6 +34,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { posts, total, totalPages } = await getCardPosts({ kind: "category", id: cat.id }, page, Math.max(2, Math.min(50, theme.archive.per_page)));
   return (
     <ArchiveView
+        sidebarOn="category"
       adPage="category"
       posts={posts}
       page={page}

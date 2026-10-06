@@ -294,6 +294,6 @@ export const config = {
      * redirect rule could get redirected AWAY from an image entirely
      * instead of ever seeing it.
      */
-    "/((?!_next/static|_next/image|favicon.ico|assets/|icons/|uploads/|upload/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|assets/|icons/|uploads/|upload/).*)",
   ],
 };

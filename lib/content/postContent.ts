@@ -1,6 +1,7 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { postUrl, optimizedImage } from "../urls";
-import type { AlsoReadStyle } from "../theme/types";
+import type { AlsoReadGroup, AlsoReadStyle } from "../theme/types";
 
 export interface TocItem {
   id: string;
@@ -61,32 +62,55 @@ export interface AlsoReadPost {
   date: Date | null;
 }
 
-/** Posts for the in-article "Also Read" cards. */
-export async function getAlsoReadPosts(source: "category" | "latest", categoryId: number, excludeId: number, count: number): Promise<AlsoReadPost[]> {
-  const take = Math.max(1, Math.min(12, count));
+/** Posts for one "Also Read" group. `exclude` keeps groups from repeating each other. */
+export async function getAlsoReadPosts(
+  group: Pick<AlsoReadGroup, "source" | "count" | "post_ids">,
+  categoryId: number,
+  exclude: number[]
+): Promise<AlsoReadPost[]> {
+  const take = Math.max(1, Math.min(12, group.count));
+  const select: Prisma.PostSelect = {
+    id: true,
+    title: true,
+    slug: true,
+    date: true,
+    excerpt: true,
+    content: true,
+    featuredImage: { select: { filePath: true } },
+    postMeta: { where: { metaKey: { in: ["summary", "description"] } }, select: { metaKey: true, metaValue: true } },
+  };
+  if (group.source === "manual") {
+    const ids = group.post_ids.filter((id) => !exclude.includes(id)).slice(0, take);
+    if (!ids.length) return [];
+    const rows = await prisma.post.findMany({ where: { id: { in: ids }, status: "published" }, select });
+    const byId = new Map(rows.map((r) => [r.id, toAlso(r as unknown as AlsoRow)]));
+    return ids.map((id) => byId.get(id)).filter((x): x is AlsoReadPost => Boolean(x));
+  }
   const rows = await prisma.post.findMany({
-    where: { status: "published", id: { not: excludeId }, ...(source === "category" ? { categoryId } : {}) },
+    where: { status: "published", id: { notIn: exclude }, ...(group.source === "category" ? { categoryId } : {}) },
     orderBy: { date: "desc" },
     take,
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      date: true,
-      excerpt: true,
-      content: true,
-      featuredImage: { select: { filePath: true } },
-      postMeta: { where: { metaKey: { in: ["summary", "description"] } }, select: { metaKey: true, metaValue: true } },
-    },
+    select,
   });
-  if (source === "category" && rows.length < take) {
+  const out = rows.map((r) => toAlso(r as unknown as AlsoRow));
+  if (group.source === "category" && out.length < take) {
     // Not enough in this category: top up with the latest posts.
-    const more = await getAlsoReadPosts("latest", categoryId, excludeId, take + rows.length);
-    const seen = new Set(rows.map((r) => r.id));
-    return [...rows.map(toAlso), ...more.filter((m) => !seen.has(m.id))].slice(0, take);
+    const more = await getAlsoReadPosts({ source: "latest", count: take - out.length, post_ids: [] }, categoryId, [...exclude, ...out.map((o) => o.id)]);
+    out.push(...more);
   }
-  return rows.map(toAlso);
+  return out;
 }
+
+type AlsoRow = {
+  id: number;
+  title: string;
+  slug: string;
+  date: Date | null;
+  excerpt: string | null;
+  content: string;
+  featuredImage: { filePath: string } | null;
+  postMeta: { metaKey: string; metaValue: string | null }[];
+};
 
 function toAlso(r: {
   id: number;
@@ -105,26 +129,34 @@ function toAlso(r: {
 
 const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** One "Also Read" card as HTML (it is placed between paragraphs of the post body). */
-export function alsoReadHtml(p: AlsoReadPost, style: AlsoReadStyle, label: string, siteName: string): string {
-  const url = postUrl(p.slug);
-  const img = p.bannerPath ? optimizedImage(p.bannerPath, 640) : "";
-  const title = escHtml(p.title);
+/**
+ * One "Also Read" box: the label once at the top and every post inside the same
+ * container. The embed-card style becomes a swipe slider with a position bar
+ * (no arrows) when it holds more than one post.
+ */
+export function alsoReadGroupHtml(posts: AlsoReadPost[], style: AlsoReadStyle, label: string): string {
+  if (!posts.length) return "";
   const lbl = escHtml(label || "Also Read");
-  const excerpt = escHtml(p.excerpt.length >= 170 ? p.excerpt.replace(/\s+\S*$/, "") + " …" : p.excerpt);
-  switch (style) {
-    case "compact":
-      return `<aside class="nb-also nb-also--compact" aria-label="${lbl}"><a href="${url}">${img ? `<img src="${optimizedImage(p.bannerPath, 256)}" alt="" width="120" height="68" loading="lazy" decoding="async">` : ""}<span class="nb-also-body"><span class="nb-also-label">${lbl}</span><span class="nb-also-title">${title}</span></span></a></aside>`;
-    case "accent":
-      return `<aside class="nb-also nb-also--accent" aria-label="${lbl}"><span class="nb-also-label">${lbl}:</span> <a href="${url}" class="nb-also-title">${title}</a></aside>`;
-    case "minimal":
-      return `<aside class="nb-also nb-also--minimal" aria-label="${lbl}"><span class="nb-also-label">${lbl}</span><a href="${url}" class="nb-also-title">${title}</a><span class="nb-also-arrow" aria-hidden="true">→</span></aside>`;
-    default:
-      return `<figure class="nb-also nb-also--card wp-block-embed is-type-wp-embed"><div class="nb-also-label">${lbl}</div><a href="${url}" class="nb-also-link">${img ? `<span class="nb-also-img"><img src="${img}" alt="${title}" width="640" height="360" loading="lazy" decoding="async"></span>` : ""}<span class="nb-also-title">${title}</span>${excerpt ? `<span class="nb-also-excerpt">${excerpt} <span class="nb-also-more">Continue reading</span></span>` : ""}</a><div class="nb-also-foot"><span class="nb-also-site">${escHtml(siteName)}</span></div></figure>`;
+  if (style === "accent") {
+    return `<aside class="nb-also nb-also--accent" aria-label="${lbl}"><div class="nb-also-label">${lbl}</div><ul>${posts
+      .map((p) => `<li><a href="${postUrl(p.slug)}">${escHtml(p.title)}</a></li>`)
+      .join("")}</ul></aside>`;
   }
-}
-
-/** Paragraph numbers from a setting like "3, 7" (deduplicated, ascending). */
-export function parseParagraphList(v: string): number[] {
-  return [...new Set(String(v ?? "").split(/[^\d]+/).map((x) => parseInt(x, 10)).filter((n) => n > 0 && n < 200))].sort((a, b) => a - b);
+  if (style === "minimal") {
+    return `<aside class="nb-also nb-also--minimal" aria-label="${lbl}"><div class="nb-also-label">${lbl}</div><ul>${posts
+      .map((p) => `<li><a href="${postUrl(p.slug)}">${escHtml(p.title)}</a><span class="nb-also-arrow" aria-hidden="true">→</span></li>`)
+      .join("")}</ul></aside>`;
+  }
+  const cards = posts
+    .map((p) => {
+      const img = p.bannerPath ? optimizedImage(p.bannerPath, 640) : "";
+      const title = escHtml(p.title);
+      const excerpt = escHtml(p.excerpt.length >= 170 ? p.excerpt.replace(/\s+\S*$/, "") + " …" : p.excerpt);
+      return `<a href="${postUrl(p.slug)}" class="nb-also-slide">${img ? `<span class="nb-also-img"><img src="${img}" alt="${title}" width="640" height="360" loading="lazy" decoding="async"></span>` : ""}<span class="nb-also-title">${title}</span>${excerpt ? `<span class="nb-also-excerpt">${excerpt} <span class="nb-also-more">Continue reading</span></span>` : ""}</a>`;
+    })
+    .join("");
+  const many = posts.length > 1;
+  return `<figure class="nb-also nb-also--card${many ? " nb-also--slider" : ""}" aria-label="${lbl}"><div class="nb-also-label">${lbl}</div><div class="nb-also-track">${cards}</div>${
+    many ? `<div class="nb-also-bar" aria-hidden="true"><span style="width:${(100 / posts.length).toFixed(2)}%"></span></div><div class="nb-also-count" aria-hidden="true">1 / ${posts.length}</div>` : ""
+  }</figure>`;
 }

@@ -56,6 +56,7 @@ export default async function AuthorPage({ params, searchParams }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(person).replace(/</g, "\\u003c") }} />
       <ArchiveView
+        sidebarOn="author"
         adPage="category"
         posts={posts}
         page={page}

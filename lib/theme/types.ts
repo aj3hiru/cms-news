@@ -9,6 +9,7 @@ export type Responsive<T> = { d: T; t: T; m: T };
 export interface MenuLink {
   label: string;
   url: string;
+  newTab?: boolean;
   children?: MenuLink[];
 }
 
@@ -44,7 +45,7 @@ export const COLOR_GROUPS = {
   top_bar: { label: "Top Bar", fields: { background: "Background", text: "Text", link: "Link", link_hover: "Link Hover" } },
   header: {
     label: "Header",
-    fields: { background: "Background", text: "Text", link: "Link", link_hover: "Link Hover", site_title: "Site Title", tagline: "Tagline" },
+    fields: { background: "Background", text: "Text", link: "Link", link_hover: "Link Hover", site_title: "Site Title", tagline: "Tagline", racing_bg: "Racing Zone Header Background", racing_text: "Racing Zone Header Text" },
   },
   primary_nav: {
     label: "Primary Navigation",
@@ -167,7 +168,19 @@ export interface ThemeFont {
 /* ── Post template ─────────────────────────────────────────────── */
 
 export type PostDesign = "classic" | "card";
-export type AlsoReadStyle = "card" | "compact" | "accent" | "minimal";
+export type AlsoReadStyle = "card" | "accent" | "minimal";
+
+/** One "Also Read" box inside articles: placed after paragraph `after`, showing `count` posts. */
+export interface AlsoReadGroup {
+  id: string;
+  after: number;
+  count: number;
+  source: "category" | "latest" | "manual";
+  /** Hand-picked posts when source is "manual". */
+  post_ids: number[];
+  style: AlsoReadStyle;
+  label: string;
+}
 
 export interface PostTemplate {
   design: PostDesign;
@@ -205,21 +218,11 @@ export interface PostTemplate {
   faq: boolean;
   share_buttons: boolean;
   comments: boolean;
-  sidebar: boolean;
-  sidebar_title: string;
-  sidebar_count: number;
-  sidebar_source: "trending" | "latest";
-  sidebar_sticky: boolean;
   reading_progress: boolean;
   reading_progress_label: string;
   reading_progress_desktop: boolean;
   also_read: boolean;
-  also_read_label: string;
-  also_read_style: AlsoReadStyle;
-  also_read_source: "category" | "latest";
-  /** Paragraph numbers to place an "Also Read" card after, e.g. "3, 7". */
-  also_read_after: string;
-  also_read_count: number;
+  also_read_groups: AlsoReadGroup[];
   font_title: number;
   font_p: number;
 }
@@ -240,6 +243,8 @@ export interface ThemeSettings {
   font_display: "auto" | "swap" | "block" | "fallback" | "optional";
   typography: TypoRule[];
   header: {
+    /** "classic": teal bar (reference theme). "racing": white two-row header like racingzone.fr. */
+    template: "classic" | "racing";
     sticky: boolean;
     logo_height: number;
     menu: MenuLink[];
@@ -253,8 +258,35 @@ export interface ThemeSettings {
     top_bar: boolean;
     top_bar_html: string;
     strip: boolean;
+    /** "categories": every category automatically; "custom": the Menu Strip menu. */
+    strip_source: "categories" | "custom";
     strip_items: MenuLink[];
+    strip_style: "plain" | "pills" | "underline";
+    strip_align: "left" | "center";
     container: number;
+    show_login: boolean;
+    login_label: string;
+    login_url: string;
+    show_subscribe: boolean;
+    subscribe_label: string;
+    subscribe_url: string;
+    /** Racing template: social icons on the left of the top row. */
+    header_socials: boolean;
+    drawer_title: string;
+    drawer_text: string;
+  };
+  sidebar: {
+    on_home: boolean;
+    on_category: boolean;
+    on_tag: boolean;
+    on_author: boolean;
+    on_search: boolean;
+    on_post: boolean;
+    on_page: boolean;
+    sticky: boolean;
+    title: string;
+    source: "trending" | "latest";
+    count: number;
   };
   footer: {
     logo: string;
@@ -279,7 +311,6 @@ export interface ThemeSettings {
     show_author: boolean;
     show_date: boolean;
     show_excerpt: boolean;
-    sidebar: boolean;
     home_heading: string;
   };
 }
@@ -424,20 +455,11 @@ export const DEFAULT_POST_TEMPLATE: PostTemplate = {
   faq: true,
   share_buttons: false,
   comments: true,
-  sidebar: true,
-  sidebar_title: "ट्रेंडिंग ख़बरें",
-  sidebar_count: 8,
-  sidebar_source: "trending",
-  sidebar_sticky: true,
   reading_progress: true,
   reading_progress_label: "In this article",
   reading_progress_desktop: false,
   also_read: true,
-  also_read_label: "Also Read",
-  also_read_style: "card",
-  also_read_source: "category",
-  also_read_after: "3",
-  also_read_count: 1,
+  also_read_groups: [{ id: "ar1", after: 3, count: 3, source: "category", post_ids: [], style: "card", label: "Also Read" }],
   font_title: 30,
   font_p: 17,
 };
@@ -452,6 +474,7 @@ export const DEFAULT_THEME: ThemeSettings = {
     { ...newTypoRule("body"), id: "body", family: "Noto Sans Devanagari", weight: "500", size: R("17"), lineHeight: R("1.5"), marginBottom: R("1.5") },
   ],
   header: {
+    template: "classic",
     sticky: true,
     logo_height: 50,
     menu: [
@@ -469,9 +492,22 @@ export const DEFAULT_THEME: ThemeSettings = {
     top_bar: false,
     top_bar_html: "",
     strip: true,
+    strip_source: "categories",
     strip_items: [],
+    strip_style: "plain",
+    strip_align: "left",
     container: 1200,
+    show_login: true,
+    login_label: "Log in",
+    login_url: "",
+    show_subscribe: true,
+    subscribe_label: "Subscribe",
+    subscribe_url: "",
+    header_socials: true,
+    drawer_title: "Hello, Reader",
+    drawer_text: "",
   },
+  sidebar: { on_home: true, on_category: true, on_tag: true, on_author: true, on_search: true, on_post: true, on_page: false, sticky: true, title: "ट्रेंडिंग ख़बरें", source: "trending", count: 8 },
   footer: {
     logo: "",
     description: "",
@@ -505,7 +541,7 @@ export const DEFAULT_THEME: ThemeSettings = {
     style: "classic",
   },
   post: DEFAULT_POST_TEMPLATE,
-  archive: { columns: 2, per_page: 10, show_author: true, show_date: true, show_excerpt: false, sidebar: true, home_heading: "" },
+  archive: { columns: 2, per_page: 10, show_author: true, show_date: true, show_excerpt: false, home_heading: "" },
 };
 
 /** Deep-merges a saved (possibly partial / older) value over the defaults. */
@@ -525,9 +561,59 @@ export function mergeTheme(saved: unknown): ThemeSettings {
     fonts: Array.isArray(s.fonts) ? s.fonts : DEFAULT_THEME.fonts,
     font_display: s.font_display ?? DEFAULT_THEME.font_display,
     typography: Array.isArray(s.typography) ? s.typography.map((r) => ({ ...newTypoRule(r.target), ...r })) : DEFAULT_THEME.typography,
-    header: { ...DEFAULT_THEME.header, ...(s.header ?? {}) },
+    header: mergeHeader(s.header),
+    sidebar: mergeSidebar(s as Parameters<typeof mergeSidebar>[0]),
     footer: { ...DEFAULT_THEME.footer, ...(s.footer ?? {}) },
-    post: { ...DEFAULT_POST_TEMPLATE, ...(s.post ?? {}) },
-    archive: { ...DEFAULT_THEME.archive, ...(s.archive ?? {}) },
+    post: mergePost(s.post),
+    archive: (({ sidebar: _drop, ...rest }) => rest)({ ...DEFAULT_THEME.archive, ...(s.archive ?? {}) } as ThemeSettings["archive"] & { sidebar?: unknown }),
+  };
+}
+
+function mergePost(saved: unknown): PostTemplate {
+  const p = { ...DEFAULT_POST_TEMPLATE, ...((saved && typeof saved === "object" ? saved : {}) as Partial<PostTemplate>) } as PostTemplate & Record<string, unknown>;
+  // Older single "Also Read" settings → one group per paragraph number.
+  if (!Array.isArray((saved as Record<string, unknown> | null)?.also_read_groups) && typeof p.also_read_after === "string") {
+    const style = p.also_read_style === "accent" || p.also_read_style === "minimal" ? p.also_read_style : "card";
+    p.also_read_groups = String(p.also_read_after)
+      .split(/[^\d]+/)
+      .map((n) => parseInt(n, 10))
+      .filter((n) => n > 0)
+      .map((after, i) => ({ id: `ar${i + 1}`, after, count: Number(p.also_read_count) || 1, source: p.also_read_source === "latest" ? "latest" : "category", post_ids: [], style, label: String(p.also_read_label || "Also Read") }));
+  }
+  p.also_read_groups = (Array.isArray(p.also_read_groups) ? p.also_read_groups : []).map((g, i) => ({
+    id: String(g.id || `ar${i + 1}`),
+    after: Math.max(1, Math.min(200, Number(g.after) || 1)),
+    count: Math.max(1, Math.min(12, Number(g.count) || 1)),
+    source: g.source === "latest" || g.source === "manual" ? g.source : "category",
+    post_ids: Array.isArray(g.post_ids) ? g.post_ids.map(Number).filter((n) => n > 0).slice(0, 12) : [],
+    style: g.style === "accent" || g.style === "minimal" ? g.style : "card",
+    label: String(g.label ?? "Also Read").slice(0, 80),
+  }));
+  for (const k of ["also_read_label", "also_read_style", "also_read_source", "also_read_after", "also_read_count"]) delete p[k];
+  return p;
+}
+
+function mergeHeader(saved: unknown): ThemeSettings["header"] {
+  const h = { ...DEFAULT_THEME.header, ...((saved && typeof saved === "object" ? saved : {}) as Partial<ThemeSettings["header"]>) };
+  // Older saves: an empty strip list meant "all categories".
+  if (saved && typeof saved === "object" && !("strip_source" in saved)) h.strip_source = h.strip_items.length ? "custom" : "categories";
+  if (h.template !== "racing") h.template = "classic";
+  return h;
+}
+
+function mergeSidebar(s: { sidebar?: Partial<ThemeSettings["sidebar"]>; post?: Record<string, unknown>; archive?: Record<string, unknown> }): ThemeSettings["sidebar"] {
+  const d = DEFAULT_THEME.sidebar;
+  if (s.sidebar && typeof s.sidebar === "object") return { ...d, ...s.sidebar };
+  // Older saves kept these on the post template / archive settings.
+  const p = s.post ?? {};
+  const a = s.archive ?? {};
+  return {
+    ...d,
+    on_post: p.sidebar === undefined ? d.on_post : Boolean(p.sidebar),
+    sticky: p.sidebar_sticky === undefined ? d.sticky : Boolean(p.sidebar_sticky),
+    title: typeof p.sidebar_title === "string" ? p.sidebar_title : d.title,
+    source: p.sidebar_source === "latest" ? "latest" : d.source,
+    count: Number(p.sidebar_count) || d.count,
+    ...(a.sidebar === false ? { on_home: false, on_category: false, on_tag: false, on_author: false, on_search: false } : {}),
   };
 }

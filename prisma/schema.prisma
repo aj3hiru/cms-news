@@ -212,6 +212,7 @@ model Post {
   postStatsHourly PostStatsHourly[]
   chapterVisitorLogs ChapterVisitorLog[]
   visitorLogs    VisitorLog[]
+  pushCampaigns  PushCampaign[]
 
   @@index([slug], name: "idx_slug")
   @@index([authorId], name: "author_id")
@@ -687,4 +688,61 @@ model AnalyticsHideCarry {
 
   @@id([postId, ruleId])
   @@map("analytics_hide_carry")
+}
+
+
+// ── Push notifications (browser web-push) ───────────────────────────────
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  /// Push endpoints are well under 768 chars; a VarChar so MySQL can index it.
+  endpoint  String   @unique @db.VarChar(768)
+  p256dh    String   @db.VarChar(255)
+  auth      String   @db.VarChar(255)
+  userAgent String?  @map("user_agent") @db.VarChar(255)
+  country   String?  @db.VarChar(8)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  queue PushQueue[]
+
+  @@map("push_subscriptions")
+}
+
+model PushCampaign {
+  id               Int       @id @default(autoincrement())
+  postId           Int?      @map("post_id")
+  title            String    @db.VarChar(200)
+  body             String    @db.Text
+  url              String    @db.VarChar(500)
+  image            String?   @db.VarChar(500)
+  /// draft | scheduled | pending | processing | completed | failed
+  status           String    @default("pending") @db.VarChar(20)
+  sendAt           DateTime? @map("send_at")
+  totalSubscribers Int       @default(0) @map("total_subscribers")
+  sent             Int       @default(0)
+  failed           Int       @default(0)
+  clicks           Int       @default(0)
+  source           String    @default("manual") @db.VarChar(20)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime? @updatedAt @map("updated_at")
+
+  post  Post?       @relation(fields: [postId], references: [id], onDelete: SetNull)
+  queue PushQueue[]
+
+  @@index([status])
+  @@map("push_campaigns")
+}
+
+model PushQueue {
+  id             Int       @id @default(autoincrement())
+  campaignId     Int       @map("campaign_id")
+  subscriptionId Int       @map("subscription_id")
+  attempts       Int       @default(0)
+  lastError      String?   @map("last_error") @db.Text
+
+  campaign     PushCampaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscription PushSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("push_queue")
 }

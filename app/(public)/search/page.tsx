@@ -20,6 +20,7 @@ export default async function SearchPage({ searchParams }: Props) {
   const enc = encodeURIComponent(q);
   return (
     <ArchiveView
+        sidebarOn="search"
       adPage="search"
       posts={res.posts}
       page={page}

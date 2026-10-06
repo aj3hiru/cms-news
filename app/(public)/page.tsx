@@ -56,6 +56,7 @@ export default async function HomePage({ searchParams }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <ArchiveView
+        sidebarOn="home"
         adPage="homepage"
         posts={posts}
         page={page}

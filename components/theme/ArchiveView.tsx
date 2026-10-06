@@ -9,6 +9,7 @@ import { TrendingSidebar } from "./TrendingSidebar";
 /** Homepage / archive page: optional header, card grid, pagination and the trending sidebar. */
 export async function ArchiveView({
   adPage,
+  sidebarOn,
   head,
   posts,
   page,
@@ -18,6 +19,8 @@ export async function ArchiveView({
   children,
 }: {
   adPage: AdPageType;
+  /** Which "Show sidebar on" setting applies to this page. */
+  sidebarOn: "home" | "category" | "tag" | "author" | "search";
   head?: React.ReactNode;
   posts: CardPost[];
   page: number;
@@ -27,11 +30,12 @@ export async function ArchiveView({
   children?: React.ReactNode;
 }) {
   const { theme } = await getSiteContext();
+  const showSidebar = theme.sidebar[`on_${sidebarOn}`];
   const ads = await getListAdSlots(adPage);
   return (
     <main className="nb-archive">
       <ListingAds page={adPage} position="before_post" />
-      <div className={`nb-archive-layout${theme.archive.sidebar ? "" : " nb-no-sidebar"}`}>
+      <div className={`nb-archive-layout${showSidebar ? "" : " nb-no-sidebar"}`}>
         <div className="nb-archive-main">
           {head}
           {children}
@@ -40,7 +44,7 @@ export async function ArchiveView({
           <ListingAds page={adPage} position="after_content" />
           <NewsPagination page={page} totalPages={totalPages} href={href} />
         </div>
-        {theme.archive.sidebar && <TrendingSidebar />}
+        {showSidebar && <TrendingSidebar />}
       </div>
       <ListingAds page={adPage} position="after_post" />
       <ListingAds page={adPage} position="footer" />

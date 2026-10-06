@@ -7,7 +7,8 @@ import { postUrl, authorUrl, categoryUrl, tagUrl, resolveMediaUrl, staticPagePat
 import { getAdHtmlFor, getParagraphAdBlocks, injectAfterParagraph, injectBeforeParagraph } from "@/lib/adRendering";
 import { getSiteContext } from "@/lib/theme/site";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
-import { addHeadingIds, alsoReadHtml, getAlsoReadPosts, parseParagraphList } from "@/lib/content/postContent";
+import { addHeadingIds, alsoReadGroupHtml, getAlsoReadPosts } from "@/lib/content/postContent";
+import { ALSO_READ_SLIDER_SCRIPT } from "@/components/theme/alsoReadSlider";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
 import { buildPostSchema } from "@/lib/seo/schema";
 import { RichContent } from "@/components/shortcodes/RichContent";
@@ -144,24 +145,22 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
   const headings = withIds.headings;
   const readingMinutes = estimateReadingMinutes(stripTags(contentHtml));
 
-  const alsoSlots = parseParagraphList(pt.also_read_after);
-  const alsoPer = Math.max(1, Math.min(6, pt.also_read_count));
-  const [related, alsoPosts] = await Promise.all([
-    pt.related ? getRelatedPosts(post.categoryId, post.id, Math.max(1, Math.min(12, pt.related_count))) : Promise.resolve([]),
-    pt.also_read && alsoSlots.length ? getAlsoReadPosts(pt.also_read_source, post.categoryId, post.id, alsoPer * alsoSlots.length) : Promise.resolve([]),
-  ]);
+  const related = pt.related ? await getRelatedPosts(post.categoryId, post.id, Math.max(1, Math.min(12, pt.related_count))) : [];
 
-  if (alsoPosts.length) {
+  if (pt.also_read && pt.also_read_groups.length) {
     const paragraphs = (contentHtml.match(/<p[\s>]/gi) ?? []).length;
-    // Insert from the last slot backwards so earlier paragraph numbers stay valid.
-    alsoSlots
-      .map((n, i) => ({ n, posts: alsoPosts.slice(i * alsoPer, i * alsoPer + alsoPer) }))
-      .filter((s) => s.n <= paragraphs && s.posts.length)
-      .reverse()
-      .forEach((s) => {
-        const html = s.posts.map((p) => alsoReadHtml(p, pt.also_read_style, pt.also_read_label, ctx.siteName)).join("");
-        contentHtml = injectAfterParagraph(contentHtml, s.n, html);
-      });
+    const groups = [...pt.also_read_groups].filter((g) => g.after <= paragraphs).sort((a, b) => a.after - b.after);
+    // Groups load one after another so no post repeats in two boxes.
+    const used = [post.id];
+    const filled: { after: number; html: string }[] = [];
+    for (const g of groups) {
+      const posts = await getAlsoReadPosts(g, post.categoryId, used);
+      used.push(...posts.map((p) => p.id));
+      const html = alsoReadGroupHtml(posts, g.style, g.label);
+      if (html) filled.push({ after: g.after, html });
+    }
+    // Insert from the last paragraph backwards so earlier paragraph numbers stay valid.
+    for (const f of filled.reverse()) contentHtml = injectAfterParagraph(contentHtml, f.after, f.html);
   }
 
   const [adBeforePost, adBeforeContent, adAfterContent, adAfterPost, adBeforeComments, adAfterComments, adBeforeImg, adAfterImg, adBeforePara, adAfterPara, adFooter] =
@@ -210,10 +209,21 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <div className="container">
         <article className={`single-post nb-post nb-post--${pt.design}`}>
-          <div className={`post-layout${pt.sidebar ? "" : " nb-no-sidebar"}`}>
+          <div className={`post-layout${ctx.theme.sidebar.on_post ? "" : " nb-no-sidebar"}`}>
             <div className="post-main">
               {adBeforePost && <AdminHtml html={adBeforePost} className="ad-slot ad-slot--before-post" allowFrame />}
 
+              {card && pt.breadcrumb && (
+                <nav className="breadcrumbs rank-math-breadcrumb nb-card-bc" aria-label="Breadcrumb">
+                  <p>
+                    <a href="/">Home</a>
+                    <span className="separator"> » </span>
+                    <a href={categoryUrl(post.categorySlug)}>{post.categoryName}</a>
+                    <span className="separator"> » </span>
+                    <span className="last">{post.title}</span>
+                  </p>
+                </nav>
+              )}
               {card ? (
                 <header className="nb-head-card">
                   {pt.category_badge && (
@@ -375,6 +385,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
               )}
 
               <RichContent html={contentHtml} className="content entry-content" />
+              {contentHtml.includes("nb-also--slider") && <script dangerouslySetInnerHTML={{ __html: ALSO_READ_SLIDER_SCRIPT }} />}
 
               {adAfterContent && <AdminHtml html={adAfterContent} className="ad-slot ad-slot--after-content" allowFrame />}
 
@@ -492,7 +503,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
               {adAfterComments && <AdminHtml html={adAfterComments} className="ad-slot ad-slot--after-comments" allowFrame />}
               {adFooter && <AdminHtml html={adFooter} className="ad-slot ad-slot--footer" allowFrame />}
             </div>
-            {pt.sidebar && <TrendingSidebar excludeId={post.id} />}
+            {ctx.theme.sidebar.on_post && <TrendingSidebar excludeId={post.id} />}
           </div>
         </article>
       </div>

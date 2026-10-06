@@ -2,7 +2,9 @@ import { getSiteContext } from "@/lib/theme/site";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
 import { categoryUrl } from "@/lib/urls";
 import type { MenuLink } from "@/lib/theme/types";
-import { SocialIcon } from "./icons";
+import { SocialIcon, SOCIAL_LABELS } from "./icons";
+import { MobileNav } from "./MobileNav";
+import { PushBell } from "./PushBell";
 
 const SEARCH_PATH =
   "M208 48c-88.366 0-160 71.634-160 160s71.634 160 160 160 160-71.634 160-160S296.366 48 208 48zM0 208C0 93.125 93.125 0 208 0s208 93.125 208 208c0 48.741-16.765 93.566-44.843 129.024l133.826 134.018c9.366 9.379 9.355 24.575-.025 33.941-9.379 9.366-24.575 9.355-33.941-.025L337.238 370.987C301.747 399.167 256.839 416 208 416 93.125 416 0 322.875 0 208z";
@@ -17,73 +19,135 @@ function SearchGlyph() {
   );
 }
 
-function MenuItems({ items }: { items: MenuLink[] }) {
+function UserIcon() {
   return (
-    <>
-      {items.map((m, i) => {
-        const subs = (m.children ?? []).filter((c) => c.label);
-        return subs.length ? (
-          <li className="menu-item has-mobile-submenu menu-item-has-children" key={i}>
-            <a className="desktop-menu-link" href={m.url || "#"}>
-              {m.label}
-              <span className="nb-caret" aria-hidden="true" />
-            </a>
-            <button type="button" className="mobile-submenu-trigger" aria-expanded="false">
-              <span>{m.label}</span>
-              <span className="mobile-submenu-arrow" aria-hidden="true" />
-            </button>
-            <div className="mobile-submenu">
-              {subs.map((s, j) => (
-                <a key={j} href={s.url || "#"}>
-                  {s.label}
-                </a>
-              ))}
-            </div>
-            <ul className="sub-menu">
-              {subs.map((s, j) => (
-                <li key={j}>
-                  <a href={s.url || "#"}>{s.label}</a>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ) : (
-          <li className="menu-item" key={i}>
-            <a href={m.url || "#"}>{m.label}</a>
-          </li>
-        );
-      })}
-    </>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" />
+    </svg>
   );
 }
 
-const HEADER_SCRIPT = `(()=>{const d=document,b=d.body,$=(s,r=d)=>r.querySelector(s),nav=$("#site-navigation"),tg=$(".menu-toggle"),so=$(".slideout-overlay"),sm=$("#gp-search"),inp=$("#search-modal-input");if(!nav)return;
-const slide=o=>{b.classList.toggle("slide-opened",o);tg&&tg.setAttribute("aria-expanded",o)};
-tg&&(tg.onclick=()=>slide(!b.classList.contains("slide-opened")));so&&(so.onclick=()=>slide(!1));
+function DesktopMenu({ items, darkMode }: { items: MenuLink[]; darkMode: boolean }) {
+  return (
+    <ul className="menu sf-menu">
+      {items.map((m, i) => {
+        const subs = (m.children ?? []).filter((c) => c.label);
+        return (
+          <li className={`menu-item${subs.length ? " menu-item-has-children" : ""}`} key={i}>
+            <a href={m.url || "#"} {...(m.newTab ? { target: "_blank", rel: "noopener" } : {})}>
+              {m.label}
+              {subs.length > 0 && <span className="nb-caret" aria-hidden="true" />}
+            </a>
+            {subs.length > 0 && (
+              <ul className="sub-menu">
+                {subs.map((s, j) => (
+                  <li key={j}>
+                    <a href={s.url || "#"} {...(s.newTab ? { target: "_blank", rel: "noopener" } : {})}>
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+      {darkMode && (
+        <li className="menu-item">
+          <a href="#" className="dark-mode-toggle" role="button">
+            Dark Mode
+          </a>
+        </li>
+      )}
+    </ul>
+  );
+}
+
+const HEADER_SCRIPT = `(()=>{const d=document,$=(s)=>d.querySelector(s),nav=$(".nb-header"),sm=$("#gp-search"),inp=$("#search-modal-input");if(!nav)return;
 const srch=o=>{if(!sm)return;sm.classList.toggle("gp-modal--open",o);o&&setTimeout(()=>inp&&inp.focus(),100)};
 const ts=$("#topbarSearchForm"),mr=$("#mobileSearchRow"),mi=$("#mobile-search-input"),mc=$("#mobileSearchClose");
-const ms=o=>{if(!mr)return;mr.hidden=!o;nav.classList.toggle("mobile-search-active",o);o&&setTimeout(()=>mi&&mi.focus(),50)};
+const ms=o=>{if(!mr)return;mr.hidden=!o;o&&setTimeout(()=>mi&&mi.focus(),50)};
 ts&&ts.addEventListener("submit",e=>{if(innerWidth<=560){e.preventDefault();ms(!0)}});mc&&mc.addEventListener("click",()=>ms(!1));
-d.querySelectorAll(".mobile-submenu-trigger").forEach(t=>t.addEventListener("click",()=>{const s=t.nextElementSibling,o=t.getAttribute("aria-expanded")==="true";t.setAttribute("aria-expanded",String(!o));s.classList.toggle("show",!o)}));
-d.querySelectorAll("[data-gpmodal-trigger]").forEach(e=>e.onclick=v=>{v.preventDefault();srch(!0)});
-sm&&(sm.onclick=e=>{e.target.hasAttribute("data-gpmodal-close")&&srch(!1)});
-d.addEventListener("keydown",e=>{e.key==="Escape"&&(srch(!1),slide(!1))});
+d.querySelectorAll("[data-gpmodal-trigger]").forEach(e=>e.addEventListener("click",v=>{v.preventDefault();srch(!0)}));
+sm&&sm.addEventListener("click",e=>{e.target.hasAttribute("data-gpmodal-close")&&srch(!1)});
+d.addEventListener("keydown",e=>{e.key==="Escape"&&srch(!1)});
 let s=0;addEventListener("scroll",()=>{const v=scrollY>0;v!==!!s&&(s=v,nav.classList.toggle("is_stuck",v))},{passive:!0});
-const S=window.SpeechRecognition||window.webkitSpeechRecognition;d.querySelectorAll(".voice-icon").forEach(vb=>{const f=vb.closest("form"),i=f&&f.querySelector("input[type=search]");if(!S||!i){vb.style.display="none";return}const r=new S,p=i.placeholder;r.lang=d.documentElement.lang==="hi"?"hi-IN":"en-IN";vb.onclick=()=>{i.placeholder="Listening...";vb.classList.add("listening");try{r.start()}catch(e){}};r.onresult=e=>{i.value=e.results[0][0].transcript;i.placeholder=p;vb.classList.remove("listening");f.submit()};r.onend=()=>{vb.classList.remove("listening");i.placeholder=p}});
+const S=window.SpeechRecognition||window.webkitSpeechRecognition;d.querySelectorAll(".voice-icon").forEach(vb=>{const f=vb.closest("form"),i=f&&f.querySelector("input[type=search]");if(!S||!i){vb.style.display="none";return}const r=new S,p=i.placeholder;r.lang=d.documentElement.lang||"en-IN";vb.onclick=()=>{i.placeholder="Listening...";vb.classList.add("listening");try{r.start()}catch(e){}};r.onresult=e=>{i.value=e.results[0][0].transcript;i.placeholder=p;vb.classList.remove("listening");f.submit()};r.onend=()=>{vb.classList.remove("listening");i.placeholder=p}});
 })();`;
 
 /** Dark mode: Dark Reader is fetched only when a reader turns it on (same as the reference theme). */
-const DARK_SCRIPT = `!function(){var e="1"===localStorage.dm,a=!1,t=!1,r=function(){return new Promise(function(e,t){var r=document.createElement("script");r.src="/assets/js/darkreader.min.js",r.onload=function(){a=!0,e()},r.onerror=t,document.head.appendChild(r)})},n=function(){DarkReader.enable({brightness:100,contrast:100,sepia:10})},l=function(){DarkReader.disable()};function o(o){if(o.preventDefault(),!t){t=!0;var d=document.querySelectorAll(".dark-mode-toggle");d.forEach(function(e){e.classList.add("loading")});(a?Promise.resolve():r()).then(function(){e=!e,localStorage.dm=e?"1":"0",e?n():l()}).finally(function(){setTimeout(function(){d.forEach(function(e){e.classList.remove("loading")}),t=!1},600)})}}e&&(a?n():r().then(n));var c=function(){document.querySelectorAll(".dark-mode-toggle").forEach(function(e){e.onclick=o})};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",c):c()}();`;
+const DARK_SCRIPT = `!function(){var e="1"===localStorage.dm,a=!1,t=!1,r=function(){return new Promise(function(e,t){var r=document.createElement("script");r.src="/assets/js/darkreader.min.js",r.onload=function(){a=!0,e()},r.onerror=t,document.head.appendChild(r)})},n=function(){DarkReader.enable({brightness:100,contrast:100,sepia:10})},l=function(){DarkReader.disable()};function o(o){if(o.preventDefault(),!t){t=!0;var d=document.querySelectorAll(".dark-mode-toggle");d.forEach(function(e){e.classList.add("loading")});(a?Promise.resolve():r()).then(function(){e=!e,localStorage.dm=e?"1":"0",e?n():l();document.querySelectorAll(".dark-mode-toggle").forEach(function(x){x.classList.toggle("is-on",e)})}).finally(function(){setTimeout(function(){d.forEach(function(e){e.classList.remove("loading")}),t=!1},600)})}}e&&(a?n():r().then(n));var c=function(){document.querySelectorAll(".dark-mode-toggle").forEach(function(x){x.onclick=o})};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",c):c()}();`;
 
 export async function SiteHeader() {
   const ctx = await getSiteContext();
   const { theme, siteName, logo, retinaLogo, categories } = ctx;
   const h = theme.header;
   const id = theme.identity;
-  const strip: MenuLink[] = h.strip_items.length ? h.strip_items : categories.map((c) => ({ label: c.name, url: categoryUrl(c.slug) }));
-  const menu = h.menu;
-  const showTitle = !logo || !id.hide_title;
+  const racing = h.template === "racing";
+  const strip: MenuLink[] = h.strip_source === "custom" ? h.strip_items.filter((s) => s.label) : categories.map((c) => ({ label: c.name, url: categoryUrl(c.slug) }));
   const socials = theme.footer.socials.filter((s) => s.url);
+  const showTitle = !logo || !id.hide_title;
+  const login = h.show_login ? { label: h.login_label || "Log in", url: h.login_url } : null;
+  const subscribe = h.show_subscribe ? { label: h.subscribe_label || "Subscribe", url: h.subscribe_url } : null;
+
+  const brand = (
+    <a href="/" title={siteName} rel="home" aria-label={`${siteName} home`} className="nb-brand-link">
+      {logo && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className="header-image is-logo-image"
+          src={logo}
+          srcSet={retinaLogo ? `${logo} 1x, ${retinaLogo} 2x` : undefined}
+          alt={siteName}
+          width={id.logo_width || 146}
+          height={h.logo_height || 50}
+          fetchPriority="high"
+        />
+      )}
+      {showTitle && (
+        <span className="nb-site-branding">
+          <span className="site-title">{siteName}</span>
+          {!id.hide_tagline && ctx.tagline && <span className="site-tagline">{applyShortcodesText(ctx.tagline, ctx.sc)}</span>}
+        </span>
+      )}
+    </a>
+  );
+
+  const mobileNav = (
+    <MobileNav
+      menu={h.menu}
+      categories={categories.map((c) => ({ name: c.name, url: categoryUrl(c.slug) }))}
+      siteName={siteName}
+      logo={logo}
+      title={h.drawer_title}
+      text={h.drawer_text || applyShortcodesText(ctx.tagline, ctx.sc)}
+      login={login}
+      subscribe={subscribe}
+      darkMode={h.dark_mode}
+      socials={socials}
+      followTitle={theme.footer.follow_title}
+      buttonClass={racing ? "nb-burger" : "menu-toggle"}
+    />
+  );
+
+  const searchIcon = h.show_search && (
+    <a href="/search" role="button" aria-label="Open search" data-gpmodal-trigger="gp-search" className="nb-search-icon">
+      <SearchGlyph />
+    </a>
+  );
+
+  const stripNav = strip.length > 0 && (
+    <div className={`inb-scroll-menu nb-strip nb-strip--${h.strip_style} nb-strip--${h.strip_align}`}>
+      <div className="inb-scroll-menu-inner">
+        {strip.map((s, i) => (
+          <a key={i} href={s.url || "#"} {...(s.newTab ? { target: "_blank", rel: "noopener" } : {})}>
+            {s.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -92,153 +156,111 @@ export async function SiteHeader() {
           <div className="grid-container" dangerouslySetInnerHTML={{ __html: applyShortcodes(h.top_bar_html, ctx.sc) }} />
         </div>
       )}
-      <nav className={`has-branding main-navigation nav-align-right has-menu-bar-items${h.sticky ? "" : " nb-not-sticky"}`} id="site-navigation" aria-label="Primary">
-        <div className="inside-navigation grid-container">
-          <div className="navigation-branding">
-            <div className="site-logo">
-              <a href="/" title={siteName} rel="home" aria-label={`${siteName} home`}>
-                {logo && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    className="header-image is-logo-image"
-                    src={logo}
-                    srcSet={retinaLogo ? `${logo} 1x, ${retinaLogo} 2x` : undefined}
-                    alt={siteName}
-                    width={id.logo_width || 146}
-                    height={h.logo_height || 50}
-                    fetchPriority="high"
-                  />
-                )}
-                {showTitle && (
-                  <span className="nb-site-branding">
-                    <span className="site-title">{siteName}</span>
-                    {!id.hide_tagline && ctx.tagline && <span className="site-tagline">{applyShortcodesText(ctx.tagline, ctx.sc)}</span>}
-                  </span>
-                )}
-              </a>
-            </div>
-          </div>
-          <button className="menu-toggle" aria-controls="generate-slideout-menu" aria-expanded="false" aria-label="Open Menu">
-            <span className="custom-menu-icon">
-              <svg fill="none" viewBox="0 0 24 24" width="1.6em" height="1.6em" aria-hidden="true">
-                <path d="M22 18.0048C22 18.5544 21.5544 19 21.0048 19H12.9952C12.4456 19 12 18.5544 12 18.0048C12 17.4552 12.4456 17.0096 12.9952 17.0096H21.0048C21.5544 17.0096 22 17.4552 22 18.0048Z" fill="currentColor" />
-                <path d="M22 12.0002C22 12.5499 21.5544 12.9954 21.0048 12.9954H2.99519C2.44556 12.9954 2 12.5499 2 12.0002C2 11.4506 2.44556 11.0051 2.99519 11.0051H21.0048C21.5544 11.0051 22 11.4506 22 12.0002Z" fill="currentColor" />
-                <path d="M21.0048 6.99039C21.5544 6.99039 22 6.54482 22 5.99519C22 5.44556 21.5544 5 21.0048 5H8.99519C8.44556 5 8 5.44556 8 5.99519C8 6.54482 8.44556 6.99039 8.99519 6.99039H21.0048Z" fill="currentColor" />
-              </svg>
-            </span>
-          </button>
-          <div id="primary-menu" className="main-nav">
-            <ul id="menu-menu" className="menu sf-menu">
-              <MenuItems items={menu} />
-              {h.dark_mode && (
-                <li className="menu-item">
-                  <a href="#" className="dark-mode-toggle" role="button">
-                    Dark Mode
-                  </a>
-                </li>
-              )}
-            </ul>
-          </div>
-          <div className="menu-bar-items">
-            {h.bell && (
-              <span className="menu-bar-item">
-                <a href="#" role="button" id="push-notify-btn" hidden aria-label="Enable Notifications">
-                  <span className="gp-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M10.268 21a2 2 0 0 0 3.464 0" />
-                      <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
-                      <circle cx="19" cy="5" r="3" fill="#e53935" stroke="none" />
-                    </svg>
-                  </span>
-                </a>
-              </span>
-            )}
-            {h.show_search && h.search_style === "inline" && (
-              <span className="menu-bar-item">
-                <form role="search" method="get" className="topbar-search" id="topbarSearchForm" action="/search">
-                  <label htmlFor="topbar-search-input" className="screen-reader-text">
-                    Search for:
-                  </label>
-                  <input id="topbar-search-input" type="search" name="q" placeholder={h.search_placeholder} autoComplete="off" />
-                  <button type="submit" aria-label="Search">
-                    <SearchGlyph />
-                  </button>
-                </form>
-              </span>
-            )}
-            {h.show_search && h.search_style === "icon" && (
-              <span className="menu-bar-item">
-                <a href="/search" role="button" aria-label="Open search" data-gpmodal-trigger="gp-search" className="nb-search-icon">
-                  <SearchGlyph />
-                </a>
-              </span>
-            )}
-          </div>
-        </div>
-      </nav>
 
-      {h.show_search && h.search_style === "inline" && (
-        <div className="mobile-search-row" id="mobileSearchRow" hidden>
-          <form role="search" method="get" action="/search">
-            <label htmlFor="mobile-search-input" className="screen-reader-text">
-              Search for:
-            </label>
-            <input id="mobile-search-input" type="search" name="q" placeholder={h.search_placeholder} autoComplete="off" />
-            <button type="submit" aria-label="Search">
-              <SearchGlyph />
-            </button>
-            <button type="button" id="mobileSearchClose" aria-label="Close search">
-              ×
-            </button>
-          </form>
-        </div>
-      )}
-
-      {h.strip && strip.length > 0 && (
-        <div className="inb-scroll-menu">
-          <div className="inb-scroll-menu-inner">
-            {strip.map((s, i) => (
-              <a key={i} href={s.url || "#"}>
-                {s.label}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <nav id="generate-slideout-menu" className="main-navigation slideout-navigation" aria-label="Mobile Menu">
-        <div className="inside-navigation">
-          <div className="main-nav">
-            <ul className="slideout-menu">
-              <MenuItems items={menu} />
-              {h.dark_mode && (
-                <li className="menu-item">
-                  <a href="#" className="dark-mode-toggle" role="button">
-                    Dark Mode
-                  </a>
-                </li>
-              )}
-            </ul>
-          </div>
-          {socials.length > 0 && (
-            <div className="mobile-drawer-follow">
-              <div className="mobile-drawer-follow-title">{theme.footer.follow_title}</div>
-              <div className="mobile-drawer-socials" aria-label="Follow us on social media">
-                {socials.map((s, i) => (
-                  <a key={i} href={s.url} target="_blank" rel="noopener nofollow" aria-label={s.network}>
-                    <SocialIcon network={s.network} className="mobile-drawer-social-icon" />
+      {racing ? (
+        <header className={`nb-header nb-h-racing${h.sticky ? " is-sticky" : ""}`} id="site-navigation">
+          <div className="nb-hr-top">
+            <nav className="nb-hr-soc" aria-label="Social networks">
+              {h.header_socials &&
+                socials.map((s, i) => (
+                  <a key={i} href={s.url} target="_blank" rel="noopener nofollow" aria-label={SOCIAL_LABELS[s.network]}>
+                    <SocialIcon network={s.network} className="nb-hr-soc-ico" />
                   </a>
                 ))}
+            </nav>
+            <div className="nb-hr-brand">{brand}</div>
+            <div className="nb-hr-act">
+              {h.bell && <PushBell className="nb-hr-bell" />}
+              {searchIcon}
+              {login && (
+                <a className="nb-hr-login" href={login.url || "#"}>
+                  <UserIcon />
+                  <span>{login.label}</span>
+                </a>
+              )}
+              {login && subscribe && <span className="nb-hr-div" aria-hidden="true" />}
+              {subscribe && (
+                <a className="nb-hr-sub" href={subscribe.url || "#"}>
+                  {subscribe.label}
+                </a>
+              )}
+              {mobileNav}
+            </div>
+          </div>
+          {h.strip && stripNav && (
+            <nav className="nb-hr-nav" aria-label="Main navigation">
+              {stripNav}
+            </nav>
+          )}
+        </header>
+      ) : (
+        <>
+          <nav className={`nb-header has-branding main-navigation nav-align-right has-menu-bar-items${h.sticky ? "" : " nb-not-sticky"}`} id="site-navigation" aria-label="Primary">
+            <div className="inside-navigation grid-container">
+              <div className="navigation-branding">
+                <div className="site-logo">{brand}</div>
+              </div>
+              <div id="primary-menu" className="main-nav">
+                <DesktopMenu items={h.menu} darkMode={h.dark_mode} />
+              </div>
+              <div className="menu-bar-items">
+                {h.bell && (
+                  <span className="menu-bar-item">
+                    <PushBell />
+                  </span>
+                )}
+                {h.show_search && h.search_style === "inline" && (
+                  <span className="menu-bar-item nb-inline-search">
+                    <form role="search" method="get" className="topbar-search" id="topbarSearchForm" action="/search">
+                      <label htmlFor="topbar-search-input" className="screen-reader-text">
+                        Search for:
+                      </label>
+                      <input id="topbar-search-input" type="search" name="q" placeholder={h.search_placeholder} autoComplete="off" />
+                      <button type="submit" aria-label="Search">
+                        <SearchGlyph />
+                      </button>
+                    </form>
+                  </span>
+                )}
+                {h.show_search && h.search_style === "icon" && <span className="menu-bar-item">{searchIcon}</span>}
+                {(login || subscribe) && (
+                  <span className="menu-bar-item nb-hc-auth">
+                    {login && (
+                      <a className="nb-hc-login" href={login.url || "#"}>
+                        <UserIcon />
+                        <span>{login.label}</span>
+                      </a>
+                    )}
+                    {subscribe && (
+                      <a className="nb-hc-sub" href={subscribe.url || "#"}>
+                        {subscribe.label}
+                      </a>
+                    )}
+                  </span>
+                )}
+                <span className="menu-bar-item nb-hc-burger">{mobileNav}</span>
               </div>
             </div>
+          </nav>
+          {h.show_search && h.search_style === "inline" && (
+            <div className="mobile-search-row" id="mobileSearchRow" hidden>
+              <form role="search" method="get" action="/search">
+                <label htmlFor="mobile-search-input" className="screen-reader-text">
+                  Search for:
+                </label>
+                <input id="mobile-search-input" type="search" name="q" placeholder={h.search_placeholder} autoComplete="off" />
+                <button type="submit" aria-label="Search">
+                  <SearchGlyph />
+                </button>
+                <button type="button" id="mobileSearchClose" aria-label="Close search">
+                  ×
+                </button>
+              </form>
+            </div>
           )}
-        </div>
-      </nav>
-      <div className="slideout-overlay">
-        <button className="slideout-exit" aria-label="Close Menu">
-          ×
-        </button>
-      </div>
+          {h.strip && stripNav}
+        </>
+      )}
 
       <div className="gp-modal gp-search-modal" id="gp-search" role="dialog" aria-modal="true" aria-label="Search">
         <div className="gp-modal__overlay" data-gpmodal-close="">

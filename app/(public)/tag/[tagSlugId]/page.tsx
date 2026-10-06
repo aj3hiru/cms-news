@@ -41,6 +41,7 @@ export default async function TagPage({ params, searchParams }: Props) {
   const { posts, total, totalPages } = await getCardPosts({ kind: "tag", id: Number(tag.id) }, page, Math.max(2, Math.min(50, theme.archive.per_page)));
   return (
     <ArchiveView
+        sidebarOn="tag"
       adPage="tag"
       posts={posts}
       page={page}

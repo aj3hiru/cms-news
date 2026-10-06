@@ -2,6 +2,7 @@
 import type { UserRole } from "@prisma/client";
 import { invalidatePosts } from "./posts";
 import { pingIndexNow } from "./indexNow";
+import { notifyPostPublished } from "./push/autoSend";
 
 import { trimContentEdges } from "./trimContent";
 import { redirect } from "next/navigation";
@@ -275,6 +276,7 @@ export async function createPost(formData: FormData): Promise<void> {
   if (parsed.status === "published") {
     warmPostCache(parsed.slug);
     pingIndexNow([`/${parsed.slug}`]);
+    void notifyPostPublished(post.id);
   }
   redirect(`/admin/post-manager/${post.id}/edit?success=created`);
 }
@@ -327,6 +329,7 @@ export async function updatePost(postId: number, formData: FormData): Promise<vo
   if (parsed.status === "published") {
     warmPostCache(parsed.slug);
     pingIndexNow([`/${parsed.slug}`]);
+    void notifyPostPublished(postId);
   }
   redirect(`/admin/post-manager/${postId}/edit?success=updated`);
 }

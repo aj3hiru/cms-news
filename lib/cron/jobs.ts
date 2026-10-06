@@ -1,3 +1,5 @@
+import { kickPushQueue, releaseScheduledCampaigns } from "../push/queue";
+import { notifyPostPublished } from "../push/autoSend";
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
@@ -105,6 +107,7 @@ async function publishScheduled(): Promise<string> {
       prisma.postMeta.delete({ where: { id: m.id } }),
     ]);
     revalidatePath(`/${m.post.slug}`);
+    void notifyPostPublished(m.postId);
   }
   if (due.length) {
     revalidatePath("/");
@@ -122,6 +125,12 @@ async function runTasks(job: JobName): Promise<TaskResult[]> {
       await task("Release held traffic", async () => {
         const r = await releaseHeldViews(false);
         return r.released ? `Released ${r.released} held click(s)` : "Nothing waiting";
+      }),
+      await task("Push notifications", async () => {
+        const released = await releaseScheduledCampaigns();
+        const waiting = await prisma.pushCampaign.count({ where: { status: { in: ["pending", "processing"] } } });
+        if (waiting) kickPushQueue();
+        return released ? `${released} scheduled notification(s) started` : waiting ? `Sending ${waiting} campaign(s)` : "Nothing to send";
       }),
       await task("Cache auto-clear", async () => ((await maybeRunAutoClear({ fromRoute: true })) ? "Cache cleared" : "Not due")),
     ];

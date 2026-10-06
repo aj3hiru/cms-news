@@ -1,0 +1,6 @@
+/**
+ * "Also Read" slider: native swipe/scroll with snap points; this only moves
+ * the position bar and the "2 / 5" counter. Runs after the page has loaded,
+ * so it never changes markup React is hydrating.
+ */
+export const ALSO_READ_SLIDER_SCRIPT = `(function(){function init(){document.querySelectorAll(".nb-also--slider").forEach(function(box){if(box.dataset.ready)return;box.dataset.ready="1";var t=box.querySelector(".nb-also-track"),bar=box.querySelector(".nb-also-bar span"),c=box.querySelector(".nb-also-count"),n=t?t.children.length:0;if(!t||!n)return;var tick=false;function up(){tick=false;var w=t.scrollWidth-t.clientWidth,p=w>0?t.scrollLeft/w:0,i=Math.min(n-1,Math.round(p*(n-1)));if(bar){bar.style.width=(100/n)+"%";bar.style.transform="translateX("+(i*100)+"%)"}if(c)c.textContent=(i+1)+" / "+n}t.addEventListener("scroll",function(){if(!tick){tick=true;requestAnimationFrame(up)}},{passive:true});var b=box.querySelector(".nb-also-bar");b&&b.addEventListener("click",function(e){var r=b.getBoundingClientRect(),i=Math.floor((e.clientX-r.left)/r.width*n);t.scrollTo({left:t.children[i].offsetLeft-t.offsetLeft,behavior:"smooth"})})})}if(document.readyState==="complete")setTimeout(init,0);else addEventListener("load",init)})();`;

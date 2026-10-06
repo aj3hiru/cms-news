@@ -337,3 +337,22 @@ details[open] > summary .nb-toc-toggle::after { content: "Hide"; }
 .entry-content table.is-style-minimal th, .entry-content table.is-style-minimal td { border-width: 0 0 1px; background: transparent !important; }
 .entry-content table.is-style-minimal th { border-bottom: 2px solid #111827; }
 .entry-content table th:first-child:not(:only-child) { white-space: nowrap; }
+.nb-page.nb-page--in-layout { max-width: none; margin: 0; padding: 0; }
+
+/* The reference theme pulls the article 20px outside its container; only where there is room. */
+@media (max-width: 1260px) {
+  .single-post { width: 100%; margin-left: 0; }
+}
+@media (max-width: 1260px) {
+  .single-post .post-layout { grid-template-columns: minmax(0, 1fr) 300px; }
+  .single-post .post-layout.nb-no-sidebar { grid-template-columns: minmax(0, 1fr); }
+  .single-post .post-sidebar, .single-post .trending-box { width: 100%; }
+  .single-post .post-main > *, .single-post .post-main .toc, .single-post .post-main .breadcrumbs, .single-post .entry-content > * { max-width: 100%; }
+  .nb-archive-layout { grid-template-columns: minmax(0, 1fr) 300px; }
+  .nb-archive-layout .trending-box { width: 100%; }
+}
+@media (max-width: 980px) {
+  .single-post .post-layout, .nb-archive-layout { grid-template-columns: minmax(0, 1fr); row-gap: 30px; }
+  .single-post .post-main { padding-right: 0; }
+  .post-sidebar { position: static !important; }
+}
