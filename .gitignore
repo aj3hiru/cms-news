@@ -43,3 +43,10 @@ next-env.d.ts
 # locally-stored uploads (lib/localStorage.ts) — user-uploaded images live
 # here at runtime; never commit user data, and this can grow unbounded.
 /uploads/
+
+# local
+AGENTS.md
+CLAUDE.md
+.local/
+backups/
+.local-uploads/
