@@ -24,14 +24,32 @@ function formatDate(d: string | Date | null): string {
   });
 }
 
+export const COMMENT_LABELS = {
+  leave: "Leave a Comment",
+  comments: "Comments",
+  thoughts: "Share your thoughts...",
+  name: "Name",
+  email: "Email",
+  remember: "Save my name and email in this browser for the next time I comment.",
+  post: "Post Comment",
+  posting: "Posting…",
+  replyingTo: "Replying to",
+  reply: "Reply",
+  cancel: "Cancel",
+  more: "Show more",
+};
+type Labels = typeof COMMENT_LABELS;
+
 export function CommentsClient({
   postId,
   initialComments,
   initialTotal,
+  labels: L = COMMENT_LABELS,
 }: {
   postId: number;
   initialComments: CommentNode[];
   initialTotal: number;
+  labels?: Labels;
 }) {
   const [comments, setComments] = useState<ApiCommentNode[]>(initialComments as ApiCommentNode[]);
   const [total, setTotal] = useState(initialTotal);
@@ -76,19 +94,21 @@ export function CommentsClient({
 
   return (
     <>
-      <CommentForm postId={postId} replyTo={replyTo} onCancelReply={() => setReplyTo(null)} onPosted={handlePosted} />
+      <CommentForm postId={postId} replyTo={replyTo} onCancelReply={() => setReplyTo(null)} onPosted={handlePosted} L={L} />
       {total > 0 && (
         <section className="blog-comments-section">
-          <h2>Comments ({total})</h2>
+          <h2>
+            {L.comments} ({total})
+          </h2>
           <div className="blog-comments-container">
             {comments.map((c) => (
-              <CommentItem key={c.id} comment={c} depth={0} onReply={setReplyTo} />
+              <CommentItem key={c.id} comment={c} depth={0} onReply={setReplyTo} L={L} />
             ))}
           </div>
           {topLevelCount < total && (
             <div className="load-more-btn-cont">
               <button type="button" className="load-more-cmt-btn" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? "Loading…" : "Show more ＋"}
+                {loadingMore ? "…" : `${L.more} ＋`}
               </button>
             </div>
           )}
@@ -110,10 +130,12 @@ function CommentItem({
   comment,
   depth,
   onReply,
+  L,
 }: {
   comment: ApiCommentNode;
   depth: number;
   onReply: (target: { id: number; name: string }) => void;
+  L: Labels;
 }) {
   return (
     <div
@@ -126,7 +148,7 @@ function CommentItem({
       </div>
       {comment.parentId && comment.parentName && (
         <div className="blog-comment-replying-to active">
-          Replying to <strong>{comment.parentName}</strong>
+          {L.replyingTo} <strong>{comment.parentName}</strong>
         </div>
       )}
       <div className="blog-comment-content">{comment.content}</div>
@@ -136,11 +158,11 @@ function CommentItem({
           className="blog-comment-reply-btn"
           onClick={() => onReply({ id: comment.id, name: comment.name })}
         >
-          Reply
+          {L.reply}
         </button>
       </div>
       {comment.children.map((child) => (
-        <CommentItem key={child.id} comment={child} depth={depth + 1} onReply={onReply} />
+        <CommentItem key={child.id} comment={child} depth={depth + 1} onReply={onReply} L={L} />
       ))}
     </div>
   );
@@ -151,7 +173,9 @@ function CommentForm({
   replyTo,
   onCancelReply,
   onPosted,
+  L,
 }: {
+  L: Labels;
   postId: number;
   replyTo: { id: number; name: string } | null;
   onCancelReply: () => void;
@@ -211,15 +235,15 @@ function CommentForm({
 
   return (
     <section className="blog-comment-form-container" id="comment-form">
-      <h2>Leave a Comment</h2>
+      <h2>{L.leave}</h2>
       <form id="blog-comment-form" onSubmit={handleSubmit}>
         {replyTo && (
           <div className="blog-comment-replying-to active">
             <span>
-              Replying to <strong>{replyTo.name}</strong>
+              {L.replyingTo} <strong>{replyTo.name}</strong>
             </span>
             <button type="button" className="blog-comment-cancel-reply" onClick={onCancelReply}>
-              ✕ Cancel
+              ✕ {L.cancel}
             </button>
           </div>
         )}
@@ -227,29 +251,29 @@ function CommentForm({
           <label className="screen-reader-text" htmlFor="comment-content">
             Comment
           </label>
-          <textarea id="comment-content" placeholder="Share your thoughts..." value={content} onChange={(e) => setContent(e.target.value)} maxLength={1000} required />
+          <textarea id="comment-content" placeholder={L.thoughts} value={content} onChange={(e) => setContent(e.target.value)} maxLength={1000} required />
         </div>
         <div className="blog-comment-form-group">
           <label className="screen-reader-text" htmlFor="comment-name">
             Name
           </label>
-          <input id="comment-name" type="text" placeholder="Name *" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required autoComplete="name" />
+          <input id="comment-name" type="text" placeholder={`${L.name} *`} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required autoComplete="name" />
         </div>
         <div className="blog-comment-form-group">
           <label className="screen-reader-text" htmlFor="comment-email">
             Email
           </label>
-          <input id="comment-email" type="email" placeholder="Email *" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+          <input id="comment-email" type="email" placeholder={`${L.email} *`} value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
         </div>
         {/* Honeypot: hidden from people, filled by bots. */}
         <input type="text" name="website" tabIndex={-1} autoComplete="off" style={{ display: "none" }} />
         <div className="blog-comment-remember">
           <input type="checkbox" id="blog-comment-remember" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-          <label htmlFor="blog-comment-remember">Save my name and email in this browser for the next time I comment.</label>
+          <label htmlFor="blog-comment-remember">{L.remember}</label>
         </div>
         {error && <div className="blog-comment-alert blog-comment-alert-error show">{error}</div>}
         <button type="submit" className="blog-comment-submit-btn" disabled={submitting}>
-          {submitting ? "Posting…" : "Post Comment"}
+          {submitting ? L.posting : L.post}
         </button>
       </form>
     </section>

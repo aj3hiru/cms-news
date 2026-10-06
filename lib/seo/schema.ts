@@ -53,7 +53,7 @@ export function buildPostSchema({
     name: post.title,
     isPartOf: { "@type": "WebSite", "@id": `${base}/#website`, url: `${base}/`, name: ctx.siteName, publisher: { "@id": publisher["@id"] } },
     ...(image ? { primaryImageOfPage: { "@type": "ImageObject", url: image } } : {}),
-    inLanguage: "en",
+    inLanguage: ctx.locale,
   });
 
   if (type !== "WebPage") {
@@ -69,6 +69,7 @@ export function buildPostSchema({
       ...(seo.publisher_schema ? { publisher } : {}),
       mainEntityOfPage: { "@id": `${url}#webpage` },
       articleSection: post.categoryName,
+      inLanguage: ctx.locale,
       ...(post.tags.length ? { keywords: post.tags.map((t) => t.name).join(", ") } : post.seo.focusKeyword ? { keywords: post.seo.focusKeyword } : {}),
     });
   }

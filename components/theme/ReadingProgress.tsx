@@ -4,8 +4,8 @@
  * sheet listing the article's H2 headings to jump to. Plain inline script,
  * so it costs no hydration.
  */
-export function ReadingProgress({ label, minutes, desktop }: { label: string; minutes: number; desktop: boolean }) {
-  const cfg = JSON.stringify({ label, minutes: Math.max(1, minutes), desktop }).replace(/</g, "\\u003c");
+export function ReadingProgress({ label, backToTop = "Back to top", minutes, desktop }: { label: string; backToTop?: string; minutes: number; desktop: boolean }) {
+  const cfg = JSON.stringify({ label, top: backToTop, minutes: Math.max(1, minutes), desktop }).replace(/</g, "\\u003c");
   const script = `(function(){var C=${cfg};var sc=document.querySelector(".single-post .entry-content");if(!sc)return;
 var hs=[].slice.call(sc.querySelectorAll("h2[id]"));if(!hs.length)return;
 var root=document.getElementById("nb-rp-root");if(!root)return;
@@ -13,7 +13,7 @@ root.innerHTML='<button type="button" id="nb-rp" class="nb-rp'+(C.desktop?' nb-r
 var pod=document.getElementById("nb-rp"),sh=document.getElementById("nb-rp-sheet");pod.setAttribute("aria-label",C.label);
 var esc=function(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML};
 var h="<h4>"+esc(C.label)+"</h4>";hs.forEach(function(e,i){h+='<a href="#'+e.id+'" data-i="'+i+'"><span class="n">'+(i+1)+"</span>"+esc(e.textContent||"")+"</a>"});
-h+='<a href="#" class="top"><span class="n">\\u2191</span>Back to top</a>';sh.innerHTML=h;
+h+='<a href="#" class="top"><span class="n">\\u2191</span>'+esc(C.top)+'</a>';sh.innerHTML=h;
 var ring=pod.querySelector(".nb-rp-ring"),tx=pod.querySelector(".nb-rp-tx"),R=2*Math.PI*15,open=false,cur=-2,tick=false,links=sh.querySelectorAll("a[data-i]"),total=C.minutes*60;
 function tg(v){open=v==null?!open:v;sh.classList.toggle("open",open);pod.setAttribute("aria-expanded",open)}
 pod.addEventListener("click",function(){tg()});

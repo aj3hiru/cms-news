@@ -36,7 +36,7 @@ export default async function TagPage({ params, searchParams }: Props) {
   if (tag.slug !== parsed.slug) redirect(tagUrl(tag.slug, Number(tag.id)));
   const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   prisma.tag.update({ where: { id: tag.id }, data: { views: { increment: 1 } } }).catch(() => {});
-  const { theme } = await getSiteContext();
+  const { theme, t } = await getSiteContext();
   const base = tagUrl(tag.slug, Number(tag.id));
   const { posts, total, totalPages } = await getCardPosts({ kind: "tag", id: Number(tag.id) }, page, Math.max(2, Math.min(50, theme.archive.per_page)));
   return (
@@ -49,7 +49,9 @@ export default async function TagPage({ params, searchParams }: Props) {
       href={(p) => (p > 1 ? `${base}?page=${p}` : base)}
       head={
         <header className="nb-archive-head">
-          <span className="nb-archive-kicker">Tag · {total} {total === 1 ? "post" : "posts"}</span>
+          <span className="nb-archive-kicker">
+            {t.tag} · {total} {total === 1 ? t.post : t.posts}
+          </span>
           <h1>#{tag.name}</h1>
         </header>
       }

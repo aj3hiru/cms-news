@@ -29,6 +29,7 @@ export default async function AuthorPage({ params, searchParams }: Props) {
   if (!author) notFound();
   const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   const ctx = await getSiteContext();
+  const t = ctx.t;
   const { posts, total, totalPages } = await getCardPosts({ kind: "author", id: author.id }, page, Math.max(2, Math.min(50, ctx.theme.archive.per_page)));
   const socials = (
     [
@@ -82,7 +83,7 @@ export default async function AuthorPage({ params, searchParams }: Props) {
               {author.designation && <span className="nb-archive-kicker">{author.designation}</span>}
               {author.bio && <p>{stripTags(author.bio)}</p>}
               <p className="nb-author-count">
-                {total} {total === 1 ? "article" : "articles"}
+                {total} {t.articles}
               </p>
               {socials.length > 0 && (
                 <div className="author-socials">

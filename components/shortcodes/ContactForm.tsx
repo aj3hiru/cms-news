@@ -3,7 +3,9 @@
 import { useState } from "react";
 
 /** The [contact_form] shortcode — name, email, message. Saved to Admin → Contact Messages. */
-export function ContactForm() {
+const EN = { name: "Name", email: "Email", message: "Message", send: "Send Message", sending: "Sending…", thanks: "Thank you! Your message has been sent. We will get back to you soon." };
+
+export function ContactForm({ labels = EN }: { labels?: typeof EN }) {
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState("");
 
@@ -31,7 +33,7 @@ export function ContactForm() {
   if (state === "sent") {
     return (
       <div className="cf-box cf-sent" role="status">
-        <strong>Thank you!</strong> Your message has been sent. We will get back to you soon.
+        {labels.thanks}
       </div>
     );
   }
@@ -41,20 +43,20 @@ export function ContactForm() {
       <div className="cf-row">
         <label className="cf-field">
           <span>
-            Name <b aria-hidden="true">*</b>
+            {labels.name} <b aria-hidden="true">*</b>
           </span>
           <input type="text" name="name" required maxLength={100} autoComplete="name" />
         </label>
         <label className="cf-field">
           <span>
-            Email <b aria-hidden="true">*</b>
+            {labels.email} <b aria-hidden="true">*</b>
           </span>
           <input type="email" name="email" required maxLength={150} autoComplete="email" />
         </label>
       </div>
       <label className="cf-field">
         <span>
-          Message <b aria-hidden="true">*</b>
+          {labels.message} <b aria-hidden="true">*</b>
         </span>
         <textarea name="message" required rows={6} maxLength={5000} />
       </label>
@@ -66,7 +68,7 @@ export function ContactForm() {
         </p>
       )}
       <button type="submit" className="cf-submit" disabled={state === "sending"}>
-        {state === "sending" ? "Sending…" : "Send Message"}
+        {state === "sending" ? labels.sending : labels.send}
       </button>
     </form>
   );

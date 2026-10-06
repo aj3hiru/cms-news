@@ -9,13 +9,14 @@ export const revalidate = 120;
 export async function generateMetadata(): Promise<Metadata> {
   const [ctx, seo] = await Promise.all([getSiteContext(), getSeoSettings()]);
   return {
-    title: { absolute: formatTitle(seo.archive_title_format, { term: "All Categories", sitename: ctx.siteName, sep: seo.separator }) },
+    title: { absolute: formatTitle(seo.archive_title_format, { term: ctx.t.allCategories, sitename: ctx.siteName, sep: seo.separator }) },
     description: `Browse every topic on ${ctx.siteName}.`,
     alternates: { canonical: "/categories" },
   };
 }
 
 export default async function CategoriesPage() {
+  const { t } = await getSiteContext();
   const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
     select: { id: true, name: true, slug: true, _count: { select: { posts: { where: { status: "published" } } } } },
@@ -23,8 +24,10 @@ export default async function CategoriesPage() {
   return (
     <main className="nb-archive">
       <header className="nb-archive-head">
-        <span className="nb-archive-kicker">{categories.length} {categories.length === 1 ? "category" : "categories"}</span>
-        <h1>All Categories</h1>
+        <span className="nb-archive-kicker">
+          {categories.length} · {t.categories}
+        </span>
+        <h1>{t.allCategories}</h1>
       </header>
       <div className="nb-cat-pills">
         {categories.map((c) => (

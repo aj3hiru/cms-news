@@ -3,11 +3,11 @@ import { postUrl, optimizedImage } from "@/lib/urls";
 import { getSiteContext } from "@/lib/theme/site";
 import { CalendarIcon } from "./icons";
 
-const fmt = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "");
+const fmt = (d: Date | null, loc: string) => (d ? d.toLocaleDateString(loc, { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Kolkata" }) : "");
 
 /** Sticky "ट्रेंडिंग ख़बरें" sidebar (Customizer → Post Template → Sidebar). */
 export async function TrendingSidebar({ excludeId }: { excludeId?: number }) {
-  const { theme } = await getSiteContext();
+  const { theme, locale } = await getSiteContext();
   const sb = theme.sidebar;
   const count = Math.max(1, Math.min(20, sb.count));
   const rows =
@@ -42,7 +42,7 @@ export async function TrendingSidebar({ excludeId }: { excludeId?: number }) {
                 </p>
                 <div className="trending-item-date">
                   <CalendarIcon />
-                  {fmt(p.date ? new Date(p.date) : null)}
+                  {fmt(p.date ? new Date(p.date) : null, locale)}
                 </div>
               </div>
             </div>

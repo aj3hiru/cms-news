@@ -3,6 +3,7 @@ import { getSiteContext } from "./site";
 import { getSeoSettings, formatTitle } from "../seo/settings";
 import { resolveMediaUrl } from "../urls";
 import { resolveSiteConfig } from "../config";
+import { LOCALE } from "../i18n/public";
 
 /** Title / description / canonical / robots for archive pages, from SEO settings. */
 export async function archiveMetadata(opts: { term: string; description?: string | null; path: string; page: number; noindex?: boolean }): Promise<Metadata> {
@@ -17,7 +18,7 @@ export async function archiveMetadata(opts: { term: string; description?: string
     description,
     alternates: { canonical: url },
     robots: opts.noindex || (opts.page > 1 && seo.noindex_paginated) ? { index: false, follow: true } : undefined,
-    openGraph: { type: "website", title, description, url, siteName: ctx.siteName, images: [{ url: image }] },
+    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: ctx.siteName, images: [{ url: image }] },
     twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }

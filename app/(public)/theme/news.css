@@ -96,8 +96,8 @@
 .single-post details.nb-toc[open] > summary { margin-bottom: 16px; }
 .single-post details.nb-toc > summary::-webkit-details-marker { display: none; }
 .nb-toc-toggle { padding: 4px 10px; border: 1px solid rgba(255, 255, 255, .75); border-radius: 4px; font-size: 12px; line-height: 18px; font-weight: 500; }
-.nb-toc-toggle::after { content: "Show"; }
-details[open] > summary .nb-toc-toggle::after { content: "Hide"; }
+.nb-toc-toggle::after { content: attr(data-show); }
+details[open] > summary .nb-toc-toggle::after { content: attr(data-hide); }
 .single-post .nb-toc li.nb-toc-sub { margin-left: 18px; font-size: 15px; list-style: circle; }
 .single-post .entry-content h2[id], .single-post .entry-content h3[id] { scroll-margin-top: 80px; }
 
@@ -356,3 +356,4 @@ details[open] > summary .nb-toc-toggle::after { content: "Hide"; }
   .single-post .post-main { padding-right: 0; }
   .post-sidebar { position: static !important; }
 }
+.nb-root { display: contents; }

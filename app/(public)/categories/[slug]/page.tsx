@@ -30,7 +30,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const cat = await getCategoryBySlug(slug);
   if (!cat) notFound();
   prisma.category.update({ where: { id: cat.id }, data: { views: { increment: 1 } } }).catch(() => {});
-  const { theme } = await getSiteContext();
+  const { theme, t } = await getSiteContext();
   const { posts, total, totalPages } = await getCardPosts({ kind: "category", id: cat.id }, page, Math.max(2, Math.min(50, theme.archive.per_page)));
   return (
     <ArchiveView
@@ -40,10 +40,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       page={page}
       totalPages={totalPages}
       href={(p) => (p > 1 ? `${categoryUrl(slug)}?page=${p}` : categoryUrl(slug))}
-      empty="No posts in this category yet."
+      empty={t.noPosts}
       head={
         <header className="nb-archive-head">
-          <span className="nb-archive-kicker">Category · {total} {total === 1 ? "post" : "posts"}</span>
+          <span className="nb-archive-kicker">
+            {t.category} · {total} {total === 1 ? t.post : t.posts}
+          </span>
           <h1>{cat.name}</h1>
           {cat.metaDescription && <p>{cat.metaDescription}</p>}
         </header>

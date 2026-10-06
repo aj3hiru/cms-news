@@ -134,7 +134,7 @@ const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").re
  * container. The embed-card style becomes a swipe slider with a position bar
  * (no arrows) when it holds more than one post.
  */
-export function alsoReadGroupHtml(posts: AlsoReadPost[], style: AlsoReadStyle, label: string): string {
+export function alsoReadGroupHtml(posts: AlsoReadPost[], style: AlsoReadStyle, label: string, continueLabel = "Continue reading"): string {
   if (!posts.length) return "";
   const lbl = escHtml(label || "Also Read");
   if (style === "accent") {
@@ -152,7 +152,7 @@ export function alsoReadGroupHtml(posts: AlsoReadPost[], style: AlsoReadStyle, l
       const img = p.bannerPath ? optimizedImage(p.bannerPath, 640) : "";
       const title = escHtml(p.title);
       const excerpt = escHtml(p.excerpt.length >= 170 ? p.excerpt.replace(/\s+\S*$/, "") + " …" : p.excerpt);
-      return `<a href="${postUrl(p.slug)}" class="nb-also-slide">${img ? `<span class="nb-also-img"><img src="${img}" alt="${title}" width="640" height="360" loading="lazy" decoding="async"></span>` : ""}<span class="nb-also-title">${title}</span>${excerpt ? `<span class="nb-also-excerpt">${excerpt} <span class="nb-also-more">Continue reading</span></span>` : ""}</a>`;
+      return `<a href="${postUrl(p.slug)}" class="nb-also-slide">${img ? `<span class="nb-also-img"><img src="${img}" alt="${title}" width="640" height="360" loading="lazy" decoding="async"></span>` : ""}<span class="nb-also-title">${title}</span>${excerpt ? `<span class="nb-also-excerpt">${excerpt} <span class="nb-also-more">${escHtml(continueLabel)}</span></span>` : ""}</a>`;
     })
     .join("");
   const many = posts.length > 1;

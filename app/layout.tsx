@@ -5,6 +5,7 @@ import { FA_HREF } from "@/lib/assets";
 import { resolveSiteConfig, getAppConfig, getPerfSettings } from "@/lib/config";
 import { resolveMediaUrl } from "@/lib/urls";
 import { getSeoSettings } from "@/lib/seo/settings";
+import { LOCALE, normLang } from "@/lib/i18n/public";
 
 // Design tokens (--font-body / --font-heading in globals.css) call for
 // "Inter" — matches the original site's font-family stack in
@@ -79,7 +80,7 @@ export async function generateMetadata(): Promise<Metadata> {
     applicationName: siteConfig.siteName,
     description: siteConfig.seoDefaultDescription || `Read the latest stories on ${siteConfig.siteName}.`,
     // Pages without their own openGraph block still say which site they belong to.
-    openGraph: { siteName: siteConfig.siteName, type: "website" },
+    openGraph: { siteName: siteConfig.siteName, type: "website", locale: LOCALE[normLang(appConfig.site_language)].og },
     // Large image previews in Search and Discover; full snippets.
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": seo.max_image_preview, "max-snippet": -1, "max-video-preview": -1 } },
     verification: {
@@ -124,9 +125,10 @@ const DEFER_ICONS_SCRIPT = `
 const SYSTEM_FONT_CSS = `html:root{--font-body:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--font-heading:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const perf = await getPerfSettings();
+  const [perf, app] = await Promise.all([getPerfSettings(), getAppConfig()]);
+  const lang = normLang(app.site_language);
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`} data-delay-scripts={perf.delayScripts === "off" ? undefined : perf.delayScripts}
+    <html lang={LOCALE[lang].bcp} className={`${inter.variable} h-full antialiased`} data-delay-scripts={perf.delayScripts === "off" ? undefined : perf.delayScripts}
       data-delay-timeout={perf.delayScripts === "interaction" ? String(perf.delayTimeout) : undefined}>
       <head>
         {/* Real bug fixed here: 46 files across the admin panel (sidebar,

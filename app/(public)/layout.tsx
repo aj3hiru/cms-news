@@ -1,6 +1,8 @@
 import { SiteHeader } from "@/components/theme/SiteHeader";
 import { SiteFooter } from "@/components/theme/SiteFooter";
 import { ThemeHead } from "@/components/theme/ThemeHead";
+import { getSiteContext } from "@/lib/theme/site";
+import { LOCALE } from "@/lib/i18n/public";
 import { AdminBar, ADMIN_BAR_BOOT_SCRIPT } from "@/components/AdminBar";
 import { NativeNavigation } from "@/components/NativeNavigation";
 import { AdminHtml } from "@/components/AdminHtml";
@@ -26,10 +28,10 @@ const SPECULATION_RULES = JSON.stringify({
 });
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
-  const [snippets, ads] = await Promise.all([getCodeSnippets(), getAdInserterConfig()]);
+  const [snippets, ads, ctx] = await Promise.all([getCodeSnippets(), getAdInserterConfig(), getSiteContext()]);
 
   return (
-    <>
+    <div dir={LOCALE[ctx.lang].dir} className="nb-root">
       {/* Floating staff toolbar — ports the `if (!empty($_SESSION['user_id']))`
           admin-bar check at the top of the original components/header.php.
           IMPORTANT: this is a client component that fetches its own
@@ -83,6 +85,6 @@ export default async function PublicLayout({ children }: { children: React.React
       {/* 'footer' snippet — matches components/footer.php echoing
           $_cs['footer'] at the very end of the page. */}
       {snippets.footer && <AdminHtml html={snippets.footer} className="admin-snippet-slot" />}
-    </>
+    </div>
   );
 }

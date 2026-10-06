@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSeoSettings } from "@/lib/seo/settings";
+import { getAppConfig } from "@/lib/config";
+import { dict, normLang } from "@/lib/i18n/public";
 
 /**
  * New feature, no PHP equivalent — per explicit request: an admin toggle
@@ -19,7 +21,8 @@ import { getSeoSettings } from "@/lib/seo/settings";
  * unvalidated value to cause a crash.
  */
 export default async function NotFound() {
-  const pt = await getSeoSettings();
+  const [pt, app] = await Promise.all([getSeoSettings(), getAppConfig()]);
+  const t = dict(normLang(app.site_language));
 
   if (pt.redirect_404_enabled && pt.redirect_404_url) {
     const url = pt.redirect_404_url;
@@ -31,13 +34,13 @@ export default async function NotFound() {
     <div style={{ minHeight: "70vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2rem" }}>
       <h1 style={{ fontSize: "clamp(3rem, 8vw, 5rem)", fontWeight: 800, margin: 0, lineHeight: 1 }}>404</h1>
       <p style={{ fontSize: "1.125rem", color: "#6b7280", margin: "0.75rem 0 1.5rem" }}>
-        This page doesn&apos;t exist, or has been moved.
+        {t.notFoundTitle}
       </p>
       <Link
         href="/"
         style={{ padding: "0.65rem 1.5rem", borderRadius: "0.5rem", background: "#0c6878", color: "#fff", fontWeight: 600, textDecoration: "none" }}
       >
-        Go to Homepage
+        {t.goHome}
       </Link>
     </div>
   );

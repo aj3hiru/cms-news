@@ -7,6 +7,7 @@ import { applyShortcodesText } from "@/lib/shortcodes";
 import { resolveMediaUrl } from "@/lib/urls";
 import { resolveSiteConfig } from "@/lib/config";
 import { ArchiveView } from "@/components/theme/ArchiveView";
+import { LOCALE } from "@/lib/i18n/public";
 
 export const revalidate = 60;
 
@@ -25,7 +26,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     description,
     alternates: { canonical: url, types: { "application/rss+xml": [{ url: "/feed", title: `${ctx.siteName} » Feed` }] } },
     robots: page > 1 && seo.noindex_paginated ? { index: false, follow: true } : undefined,
-    openGraph: { type: "website", title, description, url, siteName: ctx.siteName, images: [{ url: image, width: 1200, height: 630, alt: ctx.siteName }] },
+    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: ctx.siteName, images: [{ url: image, width: 1200, height: 630, alt: ctx.siteName }] },
     twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }

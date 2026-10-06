@@ -60,7 +60,9 @@ function canPromptWithoutGesture(): boolean {
  * First visit: the browser's own Allow/Block prompt (Chrome after a short
  * delay, Firefox/Safari on the first tap); not asked again for 3 days.
  */
-export function PushBell({ className = "", label }: { className?: string; label?: string }) {
+const PUSH_EN = { get: "Get notifications", enabled: "Notifications enabled!", blocked: "Notifications are blocked", help: "Tap the 🔒 icon next to the web address, allow Notifications, then reload the page." };
+
+export function PushBell({ className = "", label, labels = PUSH_EN }: { className?: string; label?: string; labels?: typeof PUSH_EN }) {
   const [state, setState] = useState<State>("loading");
   const [showBell, setShowBell] = useState(true);
   const [toast, setToast] = useState(false);
@@ -146,8 +148,8 @@ export function PushBell({ className = "", label }: { className?: string; label?
             type="button"
             className={`nb-bell${state === "denied" ? " is-denied" : ""}`}
             onClick={() => (state === "denied" ? setHelp((h) => !h) : void subscribe())}
-            aria-label={state === "denied" ? "Notifications are blocked" : "Get notifications"}
-            title={state === "denied" ? "Notifications are blocked" : "Get notifications"}
+            aria-label={state === "denied" ? labels.blocked : labels.get}
+            title={state === "denied" ? labels.blocked : labels.get}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M10.268 21a2 2 0 0 0 3.464 0" />
@@ -162,15 +164,15 @@ export function PushBell({ className = "", label }: { className?: string; label?
               <button type="button" onClick={() => setHelp(false)} aria-label="Close">
                 ×
               </button>
-              <b>Notifications are blocked</b>
-              Tap the 🔒 icon next to the web address, allow <b>Notifications</b>, then reload the page.
+              <b>{labels.blocked}</b>
+              {labels.help}
             </span>
           )}
         </span>
       )}
       {toast && (
         <div className="nb-push-toast" role="status">
-          ✓ Notifications enabled!
+          ✓ {labels.enabled}
         </div>
       )}
     </>

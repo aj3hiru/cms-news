@@ -5,6 +5,7 @@ import { getSiteContext } from "@/lib/theme/site";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
 import { RichContent } from "@/components/shortcodes/RichContent";
+import { LOCALE } from "@/lib/i18n/public";
 import { TrendingSidebar } from "@/components/theme/TrendingSidebar";
 import { resolveSiteConfig } from "@/lib/config";
 import { staticPagePath } from "@/lib/urls";
@@ -22,7 +23,7 @@ export async function buildPageMetadata(slug: string): Promise<Metadata> {
     title: { absolute: title },
     description,
     alternates: { canonical: url },
-    openGraph: { type: "website", title, description, url, siteName: siteConfig.siteName, images: [{ url: siteConfig.seoDefaultImage }] },
+    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: siteConfig.siteName, images: [{ url: siteConfig.seoDefaultImage }] },
     twitter: { card: "summary_large_image", title, description, images: [siteConfig.seoDefaultImage] },
   };
 }

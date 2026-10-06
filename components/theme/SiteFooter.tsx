@@ -2,6 +2,7 @@ import { getSiteContext } from "@/lib/theme/site";
 import { applyShortcodes } from "@/lib/shortcodes";
 import { categoryUrl } from "@/lib/urls";
 import { ChevronIcon, SocialIcon, SOCIAL_LABELS } from "./icons";
+import { tl } from "@/lib/i18n/public";
 
 /** Site footer — brand + link columns + "Follow Us" card with white social icons (Customizer → Footer). */
 export async function SiteFooter() {
@@ -11,7 +12,7 @@ export async function SiteFooter() {
   const socials = f.socials.filter((s) => s.url);
   const columns = f.columns
     .map((c) => ({
-      title: c.title,
+      title: c.title === "Categories" ? tl(c.title, "categories", ctx.t) : c.title === "Quick Links" ? tl(c.title, "quickLinks", ctx.t) : c.title,
       links: c.auto === "categories" ? ctx.categories.slice(0, 10).map((x) => ({ label: x.name, url: categoryUrl(x.slug) })) : c.links.filter((l) => l.label),
     }))
     .filter((c) => c.title || c.links.length);
@@ -45,12 +46,12 @@ export async function SiteFooter() {
           </div>
 
           <div className="ftx-follow">
-            <h2 className="ftx-heading">{f.follow_title}</h2>
+            <h2 className="ftx-heading">{tl(f.follow_title, "followUs", ctx.t)}</h2>
             {f.cta ? (
               <div className="ftx-cta-card">
                 <div className="ftx-cta-text">
-                  <div className="ftx-cta-title">{f.cta_title}</div>
-                  <div className="ftx-cta-subtitle">{f.cta_subtitle}</div>
+                  <div className="ftx-cta-title">{tl(f.cta_title, "followUsSocial", ctx.t)}</div>
+                  <div className="ftx-cta-subtitle">{tl(f.cta_subtitle, "latestOnSocial", ctx.t)}</div>
                 </div>
                 {socials.length > 0 && (
                   <div className="ftx-social-row">

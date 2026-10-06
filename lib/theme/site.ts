@@ -6,6 +6,7 @@ import { resolveMediaUrl } from "../urls";
 import { getTheme, getThemeDraft } from "./settings";
 import type { ShortcodeContext } from "../shortcodes";
 import type { ThemeSettings } from "./types";
+import { dict, LOCALE, normLang, type Dict, type Lang } from "../i18n/public";
 
 export interface SiteContext {
   theme: ThemeSettings;
@@ -16,6 +17,10 @@ export interface SiteContext {
   retinaLogo: string;
   sc: ShortcodeContext;
   categories: { name: string; slug: string }[];
+  lang: Lang;
+  /** BCP-47 locale for dates and schema (e.g. "hi-IN"). */
+  locale: string;
+  t: Dict;
 }
 
 const getCategoriesCached = unstable_cache(
@@ -55,5 +60,8 @@ export const getSiteContext = cache(async (): Promise<SiteContext> => {
     retinaLogo: theme.identity.retina_logo ? resolveMediaUrl(theme.identity.retina_logo) : "",
     sc: { siteName: cfg.siteName, siteUrl: cfg.siteUrl, tagline: cfg.siteTagline, email: app.admin_email?.trim() || cfg.contactEmail },
     categories,
+    lang: normLang(app.site_language),
+    locale: LOCALE[normLang(app.site_language)].bcp,
+    t: dict(normLang(app.site_language)),
   };
 });

@@ -42,8 +42,10 @@ export function MobileNav({
   darkMode,
   socials,
   followTitle,
+  darkLabel = "Dark mode",
   buttonClass = "menu-toggle",
 }: {
+  darkLabel?: string;
   menu: MenuLink[];
   categories: { name: string; url: string }[];
   siteName: string;
@@ -181,7 +183,7 @@ export function MobileNav({
           <div className="mnav-foot">
             <a href="#" role="button" className="mnav-dark dark-mode-toggle">
               <i className="fas fa-moon mnav-icon" />
-              <span>Dark mode</span>
+              <span>{darkLabel}</span>
               <span className="mnav-switch" aria-hidden />
             </a>
           </div>

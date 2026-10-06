@@ -5,7 +5,7 @@ import type { ThemeSettings } from "@/lib/theme/types";
 import { postUrl, authorUrl, optimizedImage, imageSrcSet } from "@/lib/urls";
 import { CalendarIcon, VerifiedIcon } from "./icons";
 
-const fmt = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "");
+const fmt = (d: Date | null, loc = "en-US") => (d ? d.toLocaleDateString(loc, { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Kolkata" }) : "");
 
 /** Card grid used by the homepage and every archive (category, tag, author, search). */
 export function NewsGrid({
@@ -13,7 +13,11 @@ export function NewsGrid({
   archive,
   ads,
   eagerFirst = true,
+  byLabel = "By",
+  locale = "en-US",
 }: {
+  byLabel?: string;
+  locale?: string;
   posts: CardPost[];
   archive: ThemeSettings["archive"];
   ads?: { before: Record<number, string>; after: Record<number, string> };
@@ -46,14 +50,14 @@ export function NewsGrid({
                 <div className="nb-card-meta">
                   {archive.show_author && p.authorName && (
                     <span>
-                      By {p.authorSlug ? <a href={authorUrl(p.authorSlug)}>{p.authorName}</a> : p.authorName} <VerifiedIcon />
+                      {byLabel} {p.authorSlug ? <a href={authorUrl(p.authorSlug)}>{p.authorName}</a> : p.authorName} <VerifiedIcon />
                     </span>
                   )}
                   {archive.show_author && archive.show_date && p.authorName && <span className="sep">|</span>}
                   {archive.show_date && p.date && (
                     <time className="nb-card-date" dateTime={p.date.toISOString()}>
                       <CalendarIcon />
-                      {fmt(p.date)}
+                      {fmt(p.date, locale)}
                     </time>
                   )}
                 </div>
@@ -72,7 +76,7 @@ export function NewsGrid({
 }
 
 /** Numbered pagination: ‹ 1 … 4 5 6 … 20 › */
-export function NewsPagination({ page, totalPages, href }: { page: number; totalPages: number; href: (p: number) => string }) {
+export function NewsPagination({ page, totalPages, href, labels }: { page: number; totalPages: number; href: (p: number) => string; labels?: { prev: string; next: string } }) {
   if (totalPages <= 1) return null;
   const items: (number | "…")[] = [];
   for (let n = 1; n <= totalPages; n++) {
@@ -82,7 +86,7 @@ export function NewsPagination({ page, totalPages, href }: { page: number; total
   return (
     <nav className="nb-pagination" aria-label="Pagination">
       {page > 1 && (
-        <a href={href(page - 1)} rel="prev" aria-label="Previous page">
+        <a href={href(page - 1)} rel="prev" aria-label={labels?.prev ?? "Previous page"}>
           ‹
         </a>
       )}
@@ -102,7 +106,7 @@ export function NewsPagination({ page, totalPages, href }: { page: number; total
         )
       )}
       {page < totalPages && (
-        <a href={href(page + 1)} rel="next" aria-label="Next page">
+        <a href={href(page + 1)} rel="next" aria-label={labels?.next ?? "Next page"}>
           ›
         </a>
       )}

@@ -29,7 +29,7 @@ export async function ArchiveView({
   empty?: string;
   children?: React.ReactNode;
 }) {
-  const { theme } = await getSiteContext();
+  const { theme, t, locale } = await getSiteContext();
   const showSidebar = theme.sidebar[`on_${sidebarOn}`];
   const ads = await getListAdSlots(adPage);
   return (
@@ -40,9 +40,9 @@ export async function ArchiveView({
           {head}
           {children}
           <ListingAds page={adPage} position="before_content" />
-          {posts.length ? <NewsGrid posts={posts} archive={theme.archive} ads={ads} /> : <p className="nb-empty">{empty}</p>}
+          {posts.length ? <NewsGrid posts={posts} archive={theme.archive} ads={ads} byLabel={t.by} locale={locale} /> : <p className="nb-empty">{empty === "No posts found." ? t.noPosts : empty}</p>}
           <ListingAds page={adPage} position="after_content" />
-          <NewsPagination page={page} totalPages={totalPages} href={href} />
+          <NewsPagination page={page} totalPages={totalPages} href={href} labels={{ prev: t.previous, next: t.next }} />
         </div>
         {showSidebar && <TrendingSidebar />}
       </div>

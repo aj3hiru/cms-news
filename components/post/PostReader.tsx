@@ -15,6 +15,7 @@ import { RichContent } from "@/components/shortcodes/RichContent";
 import { TrendingSidebar } from "@/components/theme/TrendingSidebar";
 import { ReadingProgress } from "@/components/theme/ReadingProgress";
 import { VerifiedIcon, SocialIcon } from "@/components/theme/icons";
+import { tl, LOCALE, type Dict } from "@/lib/i18n/public";
 import { ViewTracker } from "./ViewTracker";
 import { ShareButtons } from "./ShareButtons";
 import { CommentsSection } from "../comments/CommentsSection";
@@ -43,6 +44,7 @@ export async function buildPostMetadata(slug: string): Promise<Metadata> {
     robots: post.seo.noindex ? { index: false, follow: true } : undefined,
     openGraph: {
       type: "article",
+      locale: LOCALE[ctx.lang].og,
       title: post.seo.ogTitle || post.title,
       description: desc,
       url: canonical,
@@ -64,9 +66,9 @@ export async function buildPostMetadata(slug: string): Promise<Metadata> {
   };
 }
 
-const longDate = (d: Date | null) =>
-  d ? new Date(d).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "";
-const shortDate = (d: Date | null) => (d ? new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "");
+const longDate = (d: Date | null, loc: string) =>
+  d ? new Date(d).toLocaleString(loc, { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : "";
+const shortDate = (d: Date | null, loc: string) => (d ? new Date(d).toLocaleDateString(loc, { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Kolkata" }) : "");
 
 function GoogleG() {
   return (
@@ -91,7 +93,7 @@ function GoogleNewsIcon() {
   );
 }
 
-function PreferredSourceButton({ host, compact = false }: { host: string; compact?: boolean }) {
+function PreferredSourceButton({ host, compact = false, t }: { host: string; compact?: boolean; t: Dict }) {
   return (
     <a
       className={`post-action-pill nb-pref-source${compact ? " nb-pref-source--card" : ""}`}
@@ -103,8 +105,8 @@ function PreferredSourceButton({ host, compact = false }: { host: string; compac
         <GoogleG />
       </span>
       <span className="pill-text">
-        <span>Add as a preferred</span>
-        <span>source on Google</span>
+        <span>{t.addPreferred1}</span>
+        <span>{t.addPreferred2}</span>
       </span>
     </a>
   );
@@ -134,6 +136,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
 
   const [ctx, seo] = await Promise.all([getSiteContext(), getSeoSettings()]);
   const pt = ctx.theme.post;
+  const t = ctx.t;
   let host = ctx.siteUrl;
   try {
     host = new URL(ctx.siteUrl).host;
@@ -156,7 +159,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
     for (const g of groups) {
       const posts = await getAlsoReadPosts(g, post.categoryId, used);
       used.push(...posts.map((p) => p.id));
-      const html = alsoReadGroupHtml(posts, g.style, g.label);
+      const html = alsoReadGroupHtml(posts, g.style, tl(g.label, "alsoRead", ctx.t), ctx.t.continueReading);
       if (html) filled.push({ after: g.after, html });
     }
     // Insert from the last paragraph backwards so earlier paragraph numbers stay valid.
@@ -216,7 +219,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
               {card && pt.breadcrumb && (
                 <nav className="breadcrumbs rank-math-breadcrumb nb-card-bc" aria-label="Breadcrumb">
                   <p>
-                    <a href="/">Home</a>
+                    <a href="/">{t.home}</a>
                     <span className="separator"> » </span>
                     <a href={categoryUrl(post.categorySlug)}>{post.categoryName}</a>
                     <span className="separator"> » </span>
@@ -241,17 +244,17 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                         <Avatar src={authorImg} name={post.authorName} size={40} />
                         <div>
                           <div className="nb-head-by">
-                            By {authorLink} <VerifiedIcon />
+                            {t.by} {authorLink} <VerifiedIcon />
                           </div>
                           <time className="nb-head-date" dateTime={metaDate ? new Date(metaDate).toISOString() : undefined}>
-                            {shortDate(metaDate)}
+                            {shortDate(metaDate, ctx.locale)}
                           </time>
                         </div>
                       </div>
                     )}
                     {(pt.pill_preferred_source || (pt.card_gn_box && pt.pill_follow_url)) && (
                       <div className="nb-head-actions">
-                        {pt.pill_preferred_source && <PreferredSourceButton host={host} compact />}
+                        {pt.pill_preferred_source && <PreferredSourceButton host={host} compact t={t} />}
                         {pt.card_gn_box && pt.pill_follow_url && (
                           <a className="nb-gn-box" href={pt.pill_follow_url} target="_blank" rel="noopener nofollow" aria-label="Follow us on Google News" title="Follow us on Google News">
                             <GoogleNewsIcon />
@@ -266,7 +269,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                   {pt.breadcrumb && (
                     <nav className="breadcrumbs rank-math-breadcrumb" aria-label="Breadcrumb">
                       <p>
-                        <a href="/">Home</a>
+                        <a href="/">{t.home}</a>
                         <span className="separator"> » </span>
                         <a href={categoryUrl(post.categorySlug)}>{post.categoryName}</a>
                         <span className="separator"> » </span>
@@ -287,8 +290,12 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                       <div className="post-meta-author">
                         <Avatar src={authorImg} name={post.authorName} size={40} />
                         <div>
-                          <div className="post-meta-by">By {authorLink}</div>
-                          <div className="post-meta-date">On:&nbsp;{longDate(metaDate)}</div>
+                          <div className="post-meta-by">
+                            {t.by} {authorLink}
+                          </div>
+                          <div className="post-meta-date">
+                            {t.on}&nbsp;{longDate(metaDate, ctx.locale)}
+                          </div>
                         </div>
                       </div>
                       <div className="post-action-pills">
@@ -297,7 +304,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                             <span className="pill-icon-wa">
                               <SocialIcon network="whatsapp" className="nb-pill-ico" />
                             </span>
-                            {pt.pill_join_label}
+                            {tl(pt.pill_join_label, "joinUs", t)}
                           </a>
                         )}
                         {pt.pill_follow && pt.pill_follow_url && (
@@ -305,10 +312,10 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                             <span className="pill-icon-news">
                               <GoogleNewsIcon />
                             </span>
-                            {pt.pill_follow_label}
+                            {tl(pt.pill_follow_label, "followUs", t)}
                           </a>
                         )}
-                        {pt.pill_preferred_source && <PreferredSourceButton host={host} />}
+                        {pt.pill_preferred_source && <PreferredSourceButton host={host} t={t} />}
                       </div>
                     </div>
                   )}
@@ -336,19 +343,19 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
               {adAfterImg && <AdminHtml html={adAfterImg} className="ad-slot ad-slot--after-featured-image" allowFrame />}
 
               {pt.summary && post.summary.trim() && (
-                <section className="nb-summary" aria-label={pt.summary_title}>
-                  <h2 className="nb-summary-title">{pt.summary_title}</h2>
+                <section className="nb-summary" aria-label={tl(pt.summary_title, "summary", t)}>
+                  <h2 className="nb-summary-title">{tl(pt.summary_title, "summary", t)}</h2>
                   <div className="nb-summary-text">{applyShortcodesText(post.summary, ctx.sc)}</div>
                 </section>
               )}
 
               {pt.key_points && post.keyPoints.length > 0 && (
-                <section className={`nb-keypoints nb-keypoints--${pt.key_points_style}`} aria-label={pt.key_points_title}>
+                <section className={`nb-keypoints nb-keypoints--${pt.key_points_style}`} aria-label={tl(pt.key_points_title, "keyPoints", t)}>
                   <h2 className="nb-keypoints-title">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path fill="currentColor" d="M9 21h6v-1H9v1Zm3-19a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2Z" />
                     </svg>
-                    {pt.key_points_title}
+                    {tl(pt.key_points_title, "keyPoints", t)}
                   </h2>
                   {pt.key_points_style === "number" ? (
                     <ol>
@@ -369,8 +376,8 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
               {pt.toc && headings.length > 1 && (
                 <details className="toc nb-toc" open={!pt.toc_collapsed}>
                   <summary>
-                    <span>{pt.toc_title}</span>
-                    <span className="nb-toc-toggle" aria-hidden="true" />
+                    <span>{tl(pt.toc_title, "toc", t)}</span>
+                    <span className="nb-toc-toggle" aria-hidden="true" data-show={t.show} data-hide={t.hide} />
                   </summary>
                   <ol>
                     {headings
@@ -384,14 +391,14 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                 </details>
               )}
 
-              <RichContent html={contentHtml} className="content entry-content" />
+              <RichContent html={contentHtml} className="content entry-content" t={t} />
               {contentHtml.includes("nb-also--slider") && <script dangerouslySetInnerHTML={{ __html: ALSO_READ_SLIDER_SCRIPT }} />}
 
               {adAfterContent && <AdminHtml html={adAfterContent} className="ad-slot ad-slot--after-content" allowFrame />}
 
               {pt.faq && faq.length > 0 && (
                 <div className="pst-faq-cont">
-                  <h2 className="pst-faq-h">Frequently Asked Questions</h2>
+                  <h2 className="pst-faq-h">{t.faq}</h2>
                   {faq.map((item, i) => (
                     <details className="w" key={i}>
                       <summary className="q">
@@ -453,10 +460,10 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                     <div className="post-join-box post-join-wa">
                       <h2>
                         <SocialIcon network="whatsapp" className="nb-join-ico" />
-                        Join WhatsApp
+                        {t.joinWhatsapp}
                       </h2>
                       <a className="post-join-btn" href={pt.join_whatsapp_url} target="_blank" rel="noopener nofollow">
-                        Join Now
+                        {t.joinNow}
                       </a>
                     </div>
                   )}
@@ -464,10 +471,10 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                     <div className="post-join-box post-join-tg">
                       <h2>
                         <SocialIcon network="telegram" className="nb-join-ico" />
-                        Join Telegram
+                        {t.joinTelegram}
                       </h2>
                       <a className="post-join-btn" href={pt.join_telegram_url} target="_blank" rel="noopener nofollow">
-                        Join Now
+                        {t.joinNow}
                       </a>
                     </div>
                   )}
@@ -499,7 +506,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
               )}
 
               {adBeforeComments && <AdminHtml html={adBeforeComments} className="ad-slot ad-slot--before-comments" allowFrame />}
-              {pt.comments && <CommentsSection postId={post.id} />}
+              {pt.comments && <CommentsSection postId={post.id} t={t} />}
               {adAfterComments && <AdminHtml html={adAfterComments} className="ad-slot ad-slot--after-comments" allowFrame />}
               {adFooter && <AdminHtml html={adFooter} className="ad-slot ad-slot--footer" allowFrame />}
             </div>
@@ -508,7 +515,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
         </article>
       </div>
       {pt.reading_progress && headings.some((h) => h.level === 2) && (
-        <ReadingProgress label={pt.reading_progress_label} minutes={readingMinutes} desktop={pt.reading_progress_desktop} />
+        <ReadingProgress label={tl(pt.reading_progress_label, "inThisArticle", t)} backToTop={t.backToTop} minutes={readingMinutes} desktop={pt.reading_progress_desktop} />
       )}
       {!preview && <ViewTracker postId={post.id} slug={post.slug} />}
       {preview && <div className="nb-preview-bar">Preview — this post is not live yet</div>}

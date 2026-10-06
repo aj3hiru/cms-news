@@ -5,6 +5,7 @@ import type { MenuLink } from "@/lib/theme/types";
 import { SocialIcon, SOCIAL_LABELS } from "./icons";
 import { MobileNav } from "./MobileNav";
 import { PushBell } from "./PushBell";
+import { tl } from "@/lib/i18n/public";
 
 const SEARCH_PATH =
   "M208 48c-88.366 0-160 71.634-160 160s71.634 160 160 160 160-71.634 160-160S296.366 48 208 48zM0 208C0 93.125 93.125 0 208 0s208 93.125 208 208c0 48.741-16.765 93.566-44.843 129.024l133.826 134.018c9.366 9.379 9.355 24.575-.025 33.941-9.379 9.366-24.575 9.355-33.941-.025L337.238 370.987C301.747 399.167 256.839 416 208 416 93.125 416 0 322.875 0 208z";
@@ -28,7 +29,7 @@ function UserIcon() {
   );
 }
 
-function DesktopMenu({ items, darkMode }: { items: MenuLink[]; darkMode: boolean }) {
+function DesktopMenu({ items, darkMode, darkLabel }: { items: MenuLink[]; darkMode: boolean; darkLabel: string }) {
   return (
     <ul className="menu sf-menu">
       {items.map((m, i) => {
@@ -56,7 +57,7 @@ function DesktopMenu({ items, darkMode }: { items: MenuLink[]; darkMode: boolean
       {darkMode && (
         <li className="menu-item">
           <a href="#" className="dark-mode-toggle" role="button">
-            Dark Mode
+            {darkLabel}
           </a>
         </li>
       )}
@@ -85,11 +86,15 @@ export async function SiteHeader() {
   const h = theme.header;
   const id = theme.identity;
   const racing = h.template === "racing";
+  const t = ctx.t;
+  const placeholder = tl(h.search_placeholder, "searchPlaceholder", t);
+  // Untouched default menu labels follow the site language.
+  const menu: MenuLink[] = h.menu.map((m) => (m.label === "Home" ? { ...m, label: t.home } : m.label === "Categories" ? { ...m, label: t.categories } : m));
   const strip: MenuLink[] = h.strip_source === "custom" ? h.strip_items.filter((s) => s.label) : categories.map((c) => ({ label: c.name, url: categoryUrl(c.slug) }));
   const socials = theme.footer.socials.filter((s) => s.url);
   const showTitle = !logo || !id.hide_title;
-  const login = h.show_login ? { label: h.login_label || "Log in", url: h.login_url } : null;
-  const subscribe = h.show_subscribe ? { label: h.subscribe_label || "Subscribe", url: h.subscribe_url } : null;
+  const login = h.show_login ? { label: tl(h.login_label, "logIn", t), url: h.login_url } : null;
+  const subscribe = h.show_subscribe ? { label: tl(h.subscribe_label, "subscribe", t), url: h.subscribe_url } : null;
 
   const brand = (
     <a href="/" title={siteName} rel="home" aria-label={`${siteName} home`} className="nb-brand-link">
@@ -116,23 +121,24 @@ export async function SiteHeader() {
 
   const mobileNav = (
     <MobileNav
-      menu={h.menu}
+      menu={menu}
       categories={categories.map((c) => ({ name: c.name, url: categoryUrl(c.slug) }))}
       siteName={siteName}
       logo={logo}
-      title={h.drawer_title}
+      title={tl(h.drawer_title, "helloReader", t)}
       text={h.drawer_text || applyShortcodesText(ctx.tagline, ctx.sc)}
       login={login}
       subscribe={subscribe}
       darkMode={h.dark_mode}
       socials={socials}
-      followTitle={theme.footer.follow_title}
+      followTitle={tl(theme.footer.follow_title, "followUs", t)}
+      darkLabel={t.darkMode}
       buttonClass={racing ? "nb-burger" : "menu-toggle"}
     />
   );
 
   const searchIcon = h.show_search && (
-    <a href="/search" role="button" aria-label="Open search" data-gpmodal-trigger="gp-search" className="nb-search-icon">
+    <a href="/search" role="button" aria-label={t.search} data-gpmodal-trigger="gp-search" className="nb-search-icon">
       <SearchGlyph />
     </a>
   );
@@ -170,7 +176,7 @@ export async function SiteHeader() {
             </nav>
             <div className="nb-hr-brand">{brand}</div>
             <div className="nb-hr-act">
-              {h.bell && <PushBell className="nb-hr-bell" />}
+              {h.bell && <PushBell className="nb-hr-bell" labels={{ get: t.getNotifications, enabled: t.notificationsEnabled, blocked: t.notificationsBlocked, help: t.notificationsHelp }} />}
               {searchIcon}
               {login && (
                 <a className="nb-hr-login" href={login.url || "#"}>
@@ -201,21 +207,21 @@ export async function SiteHeader() {
                 <div className="site-logo">{brand}</div>
               </div>
               <div id="primary-menu" className="main-nav">
-                <DesktopMenu items={h.menu} darkMode={h.dark_mode} />
+                <DesktopMenu items={menu} darkMode={h.dark_mode} darkLabel={t.darkMode} />
               </div>
               <div className="menu-bar-items">
                 {h.bell && (
                   <span className="menu-bar-item">
-                    <PushBell />
+                    <PushBell labels={{ get: t.getNotifications, enabled: t.notificationsEnabled, blocked: t.notificationsBlocked, help: t.notificationsHelp }} />
                   </span>
                 )}
                 {h.show_search && h.search_style === "inline" && (
                   <span className="menu-bar-item nb-inline-search">
                     <form role="search" method="get" className="topbar-search" id="topbarSearchForm" action="/search">
                       <label htmlFor="topbar-search-input" className="screen-reader-text">
-                        Search for:
+                        {t.searchFor}
                       </label>
-                      <input id="topbar-search-input" type="search" name="q" placeholder={h.search_placeholder} autoComplete="off" />
+                      <input id="topbar-search-input" type="search" name="q" placeholder={placeholder} autoComplete="off" />
                       <button type="submit" aria-label="Search">
                         <SearchGlyph />
                       </button>
@@ -246,9 +252,9 @@ export async function SiteHeader() {
             <div className="mobile-search-row" id="mobileSearchRow" hidden>
               <form role="search" method="get" action="/search">
                 <label htmlFor="mobile-search-input" className="screen-reader-text">
-                  Search for:
+                  {t.searchFor}
                 </label>
-                <input id="mobile-search-input" type="search" name="q" placeholder={h.search_placeholder} autoComplete="off" />
+                <input id="mobile-search-input" type="search" name="q" placeholder={placeholder} autoComplete="off" />
                 <button type="submit" aria-label="Search">
                   <SearchGlyph />
                 </button>
@@ -267,10 +273,10 @@ export async function SiteHeader() {
           <div className="gp-modal__container">
             <form role="search" method="get" className="search-modal-form" action="/search">
               <label htmlFor="search-modal-input" className="screen-reader-text">
-                Search for:
+                {t.searchFor}
               </label>
               <div className="search-modal-fields">
-                <input id="search-modal-input" type="search" className="search-field" placeholder={h.search_placeholder} name="q" required autoComplete="off" />
+                <input id="search-modal-input" type="search" className="search-field" placeholder={placeholder} name="q" required autoComplete="off" />
                 {h.voice_search && (
                   <button type="button" className="voice-icon" aria-label="Voice search">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
