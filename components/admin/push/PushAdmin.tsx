@@ -223,22 +223,10 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
 
       <div className="pn-card pn-preview-card">
         <h3>
-          <i className="fas fa-eye" /> Preview
+          <i className="fas fa-mobile-screen-button" /> Live lock screen preview
         </h3>
-        <div className="pn-preview">
-          <div className="pn-preview-head">
-            <span className="pn-preview-icon">{siteName.slice(0, 1).toUpperCase()}</span>
-            <span>
-              {siteName} · now
-            </span>
-          </div>
-          <strong>{title || "Notification title"}</strong>
-          <p>{body || "Your message appears here."}</p>
-          {image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={src(image)} alt="" />
-          )}
-        </div>
+        <PhonePreview appName={siteName} title={title} body={body} image={image ? src(image) : ""} />
+        <p className="pn-muted pn-center">Roughly how it appears on a modern Android phone.</p>
       </div>
       <MediaLibraryModal
         open={picker}
@@ -496,6 +484,59 @@ function Settings({ overview, isAdmin, onSaved }: { overview: Overview; isAdmin:
           setPicker(false);
         }}
       />
+    </div>
+  );
+}
+
+function PhonePreview({ appName, title, body, image }: { appName: string; title: string; body: string; image: string }) {
+  // The viewer's own clock, filled in after mount (avoids a server/browser mismatch).
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    const first = setTimeout(tick, 0);
+    const t = setInterval(tick, 30_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
+  }, []);
+  const time = now ? now.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/\s?[ap]m$/i, "") : "";
+  const date = now ? now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : "";
+  return (
+    <div className="pn-phone">
+      <div className="pn-phone-notch" />
+      <div className="pn-phone-status">
+        <span>{time}</span>
+        <span>
+          <i className="fas fa-signal" /> <i className="fas fa-wifi" /> <i className="fas fa-battery-three-quarters" />
+        </span>
+      </div>
+      <div className="pn-phone-screen">
+        <div className="pn-phone-time">{time}</div>
+        <div className="pn-phone-date">{date}</div>
+        <div key={`${title}|${image}`} className="pn-phone-card">
+          <div className="pn-phone-head">
+            <span className="pn-phone-app">
+              <span className="pn-phone-ico">
+                <i className="fas fa-bell" />
+              </span>
+              <b>{appName}</b>
+            </span>
+            <span>
+              now <i className="fas fa-chevron-down" />
+            </span>
+          </div>
+          <div className="pn-phone-body">
+            <strong>{title || "Notification title"}</strong>
+            <p>{body || "Notification text…"}</p>
+            {image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={image} alt="" />
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="pn-phone-home" />
     </div>
   );
 }
