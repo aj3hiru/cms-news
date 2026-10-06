@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
@@ -37,8 +38,8 @@ type BlockDef = { id: string; label: string; icon: string; keywords: string; run
 /**
  * Block editor for posts and pages — WordPress-style blocks (Paragraph,
  * Heading, List, Quote, Image, Button, Table, Callout, Video, Separator,
- * Code) on a Tiptap document. Insert with the "+" button, the "+" on an
- * empty line, or by typing "/" at the start of an empty line.
+ * Code) on a Tiptap document. Insert with the "+" button in the toolbar
+ * or by typing "/" at the start of an empty line.
  * Saves plain HTML in the form field `name`.
  */
 export function BlockEditor({
@@ -62,18 +63,6 @@ export function BlockEditor({
   const [tableOpen, setTableOpen] = useState(false);
   const [, force] = useState(0);
   const slashRef = useRef(false);
-  const [floatTop, setFloatTop] = useState<number | null>(null);
-
-  // The "+" beside an empty line (like the WordPress block editor).
-  function placeFloat(ed: Editor) {
-    const { $from, empty } = ed.state.selection;
-    if (!ed.isFocused || !empty || $from.depth !== 1 || $from.parent.type.name !== "paragraph" || $from.parent.content.size !== 0 || !wrapRef.current) {
-      setFloatTop(null);
-      return;
-    }
-    const c = ed.view.coordsAtPos($from.pos);
-    setFloatTop(c.top - wrapRef.current.getBoundingClientRect().top + (c.bottom - c.top) / 2 - 15);
-  }
   const fileRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const { notice } = useAdminDialogs();
@@ -98,7 +87,6 @@ export function BlockEditor({
     onUpdate: ({ editor }) => {
       const next = editor.getHTML();
       setHtml(next);
-      placeFloat(editor);
       onChange?.(next);
       // "/" at the start of an empty paragraph opens the block picker.
       const { $from, empty } = editor.state.selection;
@@ -111,18 +99,13 @@ export function BlockEditor({
         setInserter({ open: false, query: "", slash: false });
       }
     },
-    onSelectionUpdate: ({ editor }) => {
-      force((n) => n + 1);
-      placeFloat(editor);
-    },
-    onFocus: ({ editor }) => placeFloat(editor),
-    onBlur: () => setFloatTop(null),
+    onSelectionUpdate: () => force((n) => n + 1),
   });
 
   useEffect(() => {
     function close(e: MouseEvent) {
       const t = e.target as HTMLElement;
-      if (t.closest?.(".be-inserter, .be-add, .be-float-add")) return;
+      if (t.closest?.(".be-inserter, .be-add")) return;
       slashRef.current = false;
       setInserter((s) => (s.open ? { open: false, query: "", slash: false } : s));
     }
@@ -330,11 +313,6 @@ export function BlockEditor({
       {uploading && <div className="be-uploading">Uploading image…</div>}
 
       <div style={{ display: mode === "visual" ? "block" : "none" }}>
-        {floatTop !== null && !inserter.open && (
-          <button type="button" className="be-float-add" style={{ top: floatTop }} title="Add block" onMouseDown={(e) => e.preventDefault()} onClick={() => setInserter({ open: true, query: "", slash: false })}>
-            <i className="fas fa-plus" />
-          </button>
-        )}
         <BubbleMenu editor={editor} className="be-bubble" shouldShow={({ editor: ed, state }) => !state.selection.empty && !ed.isActive("image") && !ed.isActive("buttonBlock") && !ed.isActive("embed")}>
           <Btn on={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon="fa-bold" />
           <Btn on={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon="fa-italic" />
@@ -368,14 +346,16 @@ export function BlockEditor({
       </div>
       <input type="hidden" name={name} value={mode === "html" ? html : editor.getHTML()} />
 
-      {tableOpen && (
+      {tableOpen &&
+        createPortal(
         <TableDialog
           onClose={() => setTableOpen(false)}
           onInsert={(tableHtml) => {
             setTableOpen(false);
             editor.chain().focus().insertContent(tableHtml).run();
           }}
-        />
+        />,
+        document.body
       )}
       <MediaLibraryModal
         open={libraryOpen}

@@ -150,7 +150,7 @@ export function SeoBox({
           </label>
 
           <label className="seo-label">
-            SEO title <span className="seo-hint">(empty = {defaults.titleFormat.replace(/%/g, "")})</span>
+            SEO title <span className="seo-hint">(empty = automatic)</span>
             <input type="text" name="seoTitle" value={seoTitle} maxLength={200} onChange={(e) => setSeoTitle(e.target.value)} placeholder={autoTitle} />
             <Meter value={shownTitle.length} min={30} max={60} />
           </label>

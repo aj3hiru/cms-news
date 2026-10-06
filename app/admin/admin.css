@@ -2651,7 +2651,6 @@ a.pf-st:hover { border-color: var(--primary); }
 .seo-checks li { display: flex; gap: 8px; align-items: baseline; color: #374151; }
 .seo-checks li.ok i { color: #16a34a; } .seo-checks li.no i { color: #dc2626; } .seo-checks li.info i { color: #2563eb; }
 .be-toolbar select.be-type { width: auto !important; min-width: 120px; flex: 0 0 auto; }
-.be-content { padding-left: 52px !important; }
 .be-float-add { margin-left: -42px; }
 
 /* ═══ SEO admin + wizard ═══ */
@@ -2778,7 +2777,7 @@ a.pf-st:hover { border-color: var(--primary); }
 .be-inserter { top: 52px; left: 12px; padding: 14px; }
 .be-inserter-grid button:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-lighter); }
 .be-inserter-grid button:hover i, .be-inserter-grid button i { color: var(--primary); }
-.be-content { padding: 26px 32px 44px 60px !important; }
+.be-content { padding: 26px 32px 44px 32px !important; }
 .be-wrap .meta-panel-body, .meta-panel:has(.be-wrap) { overflow: visible; }
 .be-table-bar select { height: 26px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 12px; width: auto !important; }
 .be-content table.is-style-stripes tr:nth-child(even) td { background: #f5f3ff; }
@@ -3008,3 +3007,15 @@ a.pf-st:hover { border-color: var(--primary); }
 .pn-phone-body img { display: block; width: 100%; height: 112px; object-fit: cover; border-radius: 8px; }
 .pn-phone-home { position: absolute; bottom: 18px; left: 50%; width: 96px; height: 4px; transform: translateX(-50%); border-radius: 999px; background: rgba(255, 255, 255, .7); }
 .pn-center { text-align: center; }
+/* SEO box: clear spacing between groups */
+.seo-box .meta-panel-body { display: flex; flex-direction: column; gap: 0; padding: 14px 16px 18px; }
+.seo-box .seo-tabs { margin: 0 0 16px; }
+.seo-box .seo-preview { margin-bottom: 18px; padding: 14px; }
+.seo-box .seo-label { margin-bottom: 18px; gap: 8px; line-height: 1.3; }
+.seo-box .seo-label input, .seo-box .seo-label textarea, .seo-box .seo-label select { margin: 0; }
+.seo-box .seo-meter { margin-top: 0; height: 6px; }
+.seo-box .seo-hint { display: block; margin-top: 2px; }
+.seo-box .seo-check { margin-bottom: 18px; }
+.seo-box .seo-checks { margin-top: 4px; padding-top: 16px; border-top: 1px solid #f1f5f9; gap: 9px; line-height: 1.4; }
+.seo-box .field-hint { display: block; margin-top: 4px; line-height: 1.5; }
+.editor-sidebar-panel .seo-tabs button { padding: 9px 4px; }

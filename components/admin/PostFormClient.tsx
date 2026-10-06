@@ -350,16 +350,6 @@ export function PostFormClient({
             </div>
           </div>
 
-          <SeoBox
-            defaults={seoDefaults}
-            title={title}
-            slug={slug}
-            content={content}
-            metaDescription={metaDescription}
-            onMetaDescription={setMetaDescription}
-            initial={post?.seo}
-            hasFeaturedImage={Boolean(post?.featuredImagePath)}
-          />
           <div className="meta-panel">
             <div className="meta-panel-header">
               <span>Featured Image</span>
@@ -420,6 +410,16 @@ export function PostFormClient({
               <input type="hidden" name="faqJson" value={faqItems.length > 0 ? JSON.stringify(faqItems) : ""} />
             </div>
           </div>
+          <SeoBox
+            defaults={seoDefaults}
+            title={title}
+            slug={slug}
+            content={content}
+            metaDescription={metaDescription}
+            onMetaDescription={setMetaDescription}
+            initial={post?.seo}
+            hasFeaturedImage={Boolean(post?.featuredImagePath)}
+          />
         </div>
 
         <FaqModal open={faqOpen} onClose={() => setFaqOpen(false)} initial={faqItems} onSave={setFaqItems} />

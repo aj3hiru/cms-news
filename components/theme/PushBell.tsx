@@ -62,8 +62,9 @@ function canPromptWithoutGesture(): boolean {
  */
 const PUSH_EN = { get: "Get notifications", enabled: "Notifications enabled!", blocked: "Notifications are blocked", help: "Tap the 🔒 icon next to the web address, allow Notifications, then reload the page." };
 
-export function PushBell({ className = "", label, labels = PUSH_EN }: { className?: string; label?: string; labels?: typeof PUSH_EN }) {
-  const [state, setState] = useState<State>("loading");
+export function PushBell({ className = "", label, labels = PUSH_EN, ready = false }: { className?: string; label?: string; labels?: typeof PUSH_EN; ready?: boolean }) {
+  // `ready`: push is set up on the server, so the bell is drawn with the page (no pop-in).
+  const [state, setState] = useState<State>(ready ? "default" : "loading");
   const [showBell, setShowBell] = useState(true);
   const [toast, setToast] = useState(false);
   const [help, setHelp] = useState(false);
@@ -81,6 +82,7 @@ export function PushBell({ className = "", label, labels = PUSH_EN }: { classNam
       await navigator.serviceWorker.ready;
       if (await subscribeBrowser(ctx.current.reg, ctx.current.key)) {
         setState("subscribed");
+        document.documentElement.classList.add("nb-push-sub");
         setToast(true);
         setTimeout(() => setToast(false), 3000);
       } else setState("default");
@@ -117,6 +119,7 @@ export function PushBell({ className = "", label, labels = PUSH_EN }: { classNam
         const fresh = existing && store.get(K_KEY) === data.publicKey && Date.now() - Number(store.get(K_SYNC) ?? 0) < SYNC_MS;
         const ok = fresh || (await subscribeBrowser(reg, data.publicKey).catch(() => false));
         if (!cancelled) setState(ok ? "subscribed" : "default");
+        if (ok) document.documentElement.classList.add("nb-push-sub");
         return;
       }
       setState("default");

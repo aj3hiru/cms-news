@@ -157,3 +157,8 @@ body:has(#site-admin-bar) #site-navigation.nb-h-racing.is-sticky { top: 36px; }
   .navigation-branding .is-logo-image { max-width: 150px; height: auto; max-height: calc(var(--hd-h) - 12px); }
   .main-navigation .menu-bar-items { gap: 0; }
 }
+/* Minimal Subscribe button */
+.nb-hr-sub { padding: 6px 15px; border-radius: 5px; font-size: 14px; font-weight: 600; line-height: 1.3; }
+@media (max-width: 980px) { .nb-hr-sub { padding: 5px 11px; font-size: 13px; } }
+/* Bell: drawn with the page (no late pop-in); hidden at once for readers already subscribed. */
+html.nb-push-sub .nb-bell-wrap { display: none !important; }

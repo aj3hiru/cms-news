@@ -128,7 +128,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [perf, app] = await Promise.all([getPerfSettings(), getAppConfig()]);
   const lang = normLang(app.site_language);
   return (
-    <html lang={LOCALE[lang].bcp} className={`${inter.variable} h-full antialiased`} data-delay-scripts={perf.delayScripts === "off" ? undefined : perf.delayScripts}
+    <html suppressHydrationWarning lang={LOCALE[lang].bcp} className={`${inter.variable} h-full antialiased`} data-delay-scripts={perf.delayScripts === "off" ? undefined : perf.delayScripts}
       data-delay-timeout={perf.delayScripts === "interaction" ? String(perf.delayTimeout) : undefined}>
       <head>
         {/* Real bug fixed here: 46 files across the admin panel (sidebar,

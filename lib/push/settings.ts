@@ -1,5 +1,6 @@
 import { createECDH, createHash } from "crypto";
 import webpush from "web-push";
+import { unstable_cache, revalidateTag } from "next/cache";
 import { prisma } from "../db";
 
 const KEY = "push_settings";
@@ -45,7 +46,18 @@ export async function savePushSettings(patch: Partial<PushSettings>): Promise<vo
   const { configured: _c, ...rest } = current;
   const next = { ...rest, ...patch };
   await prisma.appConfig.upsert({ where: { configKey: KEY }, create: { configKey: KEY, configValue: JSON.stringify(next) }, update: { configValue: JSON.stringify(next) } });
+  revalidateTag("push-settings", "max");
 }
+
+/** Whether the header should draw the bell (cached; no secrets). */
+export const getPushPublic = unstable_cache(
+  async () => {
+    const s = await getPushSettings();
+    return { bell: s.configured && s.showBell };
+  },
+  ["push-public"],
+  { revalidate: 300, tags: ["push-settings"] }
+);
 
 /** Safe label for a key: a hash, never the key itself. */
 export function keyFingerprint(key: string): string {

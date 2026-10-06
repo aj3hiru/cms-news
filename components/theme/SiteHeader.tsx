@@ -6,6 +6,7 @@ import { SocialIcon, SOCIAL_LABELS } from "./icons";
 import { MobileNav } from "./MobileNav";
 import { PushBell } from "./PushBell";
 import { tl } from "@/lib/i18n/public";
+import { getPushPublic } from "@/lib/push/settings";
 
 const SEARCH_PATH =
   "M208 48c-88.366 0-160 71.634-160 160s71.634 160 160 160 160-71.634 160-160S296.366 48 208 48zM0 208C0 93.125 93.125 0 208 0s208 93.125 208 208c0 48.741-16.765 93.566-44.843 129.024l133.826 134.018c9.366 9.379 9.355 24.575-.025 33.941-9.379 9.366-24.575 9.355-33.941-.025L337.238 370.987C301.747 399.167 256.839 416 208 416 93.125 416 0 322.875 0 208z";
@@ -77,11 +78,14 @@ let s=0;addEventListener("scroll",()=>{const v=scrollY>0;v!==!!s&&(s=v,nav.class
 const S=window.SpeechRecognition||window.webkitSpeechRecognition;d.querySelectorAll(".voice-icon").forEach(vb=>{const f=vb.closest("form"),i=f&&f.querySelector("input[type=search]");if(!S||!i){vb.style.display="none";return}const r=new S,p=i.placeholder;r.lang=d.documentElement.lang||"en-IN";vb.onclick=()=>{i.placeholder="Listening...";vb.classList.add("listening");try{r.start()}catch(e){}};r.onresult=e=>{i.value=e.results[0][0].transcript;i.placeholder=p;vb.classList.remove("listening");f.submit()};r.onend=()=>{vb.classList.remove("listening");i.placeholder=p}});
 })();`;
 
+/** Readers who already subscribed: hide the bell before the first paint. */
+const PUSH_EARLY = `try{if(localStorage.getItem("push_vapid_key")&&window.Notification&&Notification.permission==="granted")document.documentElement.classList.add("nb-push-sub")}catch(e){}`;
+
 /** Dark mode: Dark Reader is fetched only when a reader turns it on (same as the reference theme). */
 const DARK_SCRIPT = `!function(){var e="1"===localStorage.dm,a=!1,t=!1,r=function(){return new Promise(function(e,t){var r=document.createElement("script");r.src="/assets/js/darkreader.min.js",r.onload=function(){a=!0,e()},r.onerror=t,document.head.appendChild(r)})},n=function(){DarkReader.enable({brightness:100,contrast:100,sepia:10})},l=function(){DarkReader.disable()};function o(o){if(o.preventDefault(),!t){t=!0;var d=document.querySelectorAll(".dark-mode-toggle");d.forEach(function(e){e.classList.add("loading")});(a?Promise.resolve():r()).then(function(){e=!e,localStorage.dm=e?"1":"0",e?n():l();document.querySelectorAll(".dark-mode-toggle").forEach(function(x){x.classList.toggle("is-on",e)})}).finally(function(){setTimeout(function(){d.forEach(function(e){e.classList.remove("loading")}),t=!1},600)})}}e&&(a?n():r().then(n));var c=function(){document.querySelectorAll(".dark-mode-toggle").forEach(function(x){x.onclick=o})};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",c):c()}();`;
 
 export async function SiteHeader() {
-  const ctx = await getSiteContext();
+  const [ctx, push] = await Promise.all([getSiteContext(), getPushPublic()]);
   const { theme, siteName, logo, retinaLogo, categories } = ctx;
   const h = theme.header;
   const id = theme.identity;
@@ -93,8 +97,8 @@ export async function SiteHeader() {
   const strip: MenuLink[] = h.strip_source === "custom" ? h.strip_items.filter((s) => s.label) : categories.map((c) => ({ label: c.name, url: categoryUrl(c.slug) }));
   const socials = theme.footer.socials.filter((s) => s.url);
   const showTitle = !logo || !id.hide_title;
-  const login = h.show_login ? { label: tl(h.login_label, "logIn", t), url: h.login_url } : null;
-  const subscribe = h.show_subscribe ? { label: tl(h.subscribe_label, "subscribe", t), url: h.subscribe_url } : null;
+  const login = racing && h.show_login ? { label: tl(h.login_label, "logIn", t), url: h.login_url } : null;
+  const subscribe = racing && h.show_subscribe ? { label: tl(h.subscribe_label, "subscribe", t), url: h.subscribe_url } : null;
 
   const brand = (
     <a href="/" title={siteName} rel="home" aria-label={`${siteName} home`} className="nb-brand-link">
@@ -176,7 +180,7 @@ export async function SiteHeader() {
             </nav>
             <div className="nb-hr-brand">{brand}</div>
             <div className="nb-hr-act">
-              {h.bell && <PushBell className="nb-hr-bell" labels={{ get: t.getNotifications, enabled: t.notificationsEnabled, blocked: t.notificationsBlocked, help: t.notificationsHelp }} />}
+              {h.bell && <PushBell ready={push.bell} className="nb-hr-bell" labels={{ get: t.getNotifications, enabled: t.notificationsEnabled, blocked: t.notificationsBlocked, help: t.notificationsHelp }} />}
               {searchIcon}
               {login && (
                 <a className="nb-hr-login" href={login.url || "#"}>
@@ -212,7 +216,7 @@ export async function SiteHeader() {
               <div className="menu-bar-items">
                 {h.bell && (
                   <span className="menu-bar-item">
-                    <PushBell labels={{ get: t.getNotifications, enabled: t.notificationsEnabled, blocked: t.notificationsBlocked, help: t.notificationsHelp }} />
+                    <PushBell ready={push.bell} labels={{ get: t.getNotifications, enabled: t.notificationsEnabled, blocked: t.notificationsBlocked, help: t.notificationsHelp }} />
                   </span>
                 )}
                 {h.show_search && h.search_style === "inline" && (
@@ -296,6 +300,7 @@ export async function SiteHeader() {
       </div>
 
       <script dangerouslySetInnerHTML={{ __html: HEADER_SCRIPT }} />
+      {h.bell && push.bell && <script dangerouslySetInnerHTML={{ __html: PUSH_EARLY }} />}
       {h.dark_mode && <script dangerouslySetInnerHTML={{ __html: DARK_SCRIPT }} />}
     </>
   );

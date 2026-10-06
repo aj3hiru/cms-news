@@ -287,6 +287,11 @@ export function Customizer({ initial, identity: initialIdentity, siteUrl }: { in
             </a>
           </div>
           <div className={`cz-frame-wrap cz-dev-${device}`}>
+            {device === "m" && (
+              <div className="cz-phone" aria-hidden="true">
+                <span className="cz-phone-notch" />
+              </div>
+            )}
             {[0, 1].map((i) => (
               <iframe
                 key={i}

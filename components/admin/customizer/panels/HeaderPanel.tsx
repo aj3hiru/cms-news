@@ -48,6 +48,7 @@ export function HeaderPanel() {
         <Range label="Logo height" unit="px" min={24} max={120} value={h.logo_height} onChange={(v) => set("logo_height", v)} />
       </Section>
 
+      {h.template === "racing" && (
       <Section title="Log in & Subscribe buttons" defaultOpen>
         <Toggle label="Show “Log in”" checked={h.show_login} onChange={(v) => set("show_login", v)} hint="Desktop only — on mobile it is inside the menu." />
         {h.show_login && (
@@ -64,6 +65,7 @@ export function HeaderPanel() {
           </>
         )}
       </Section>
+      )}
 
       <Section title="Search">
         <Toggle label="Show search" checked={h.show_search} onChange={(v) => set("show_search", v)} />

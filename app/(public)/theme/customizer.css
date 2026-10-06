@@ -227,3 +227,10 @@ html body .content a:hover {
 /* Inside the Customizer preview: no staff toolbar. */
 html.nb-in-customizer #site-admin-bar, html.nb-in-customizer #ab-boot { display: none !important; }
 html.nb-in-customizer body { padding-top: 0 !important; margin-top: 0 !important; }
+/* Inside the Customizer preview there is no admin bar: no top spacing, header sticks at 0. */
+html.nb-in-customizer body:has(#site-admin-bar) { margin-top: 0 !important; padding-top: 0 !important; }
+html.nb-in-customizer body:has(#site-admin-bar) #site-navigation,
+html.nb-in-customizer body:has(#site-admin-bar) #site-navigation.nb-h-racing.is-sticky { top: 0 !important; }
+html.nb-in-customizer body:has(#site-admin-bar) .mnav,
+html.nb-in-customizer body:has(#site-admin-bar) .mnav-overlay { top: 0 !important; }
+html.nb-in-customizer #site-admin-bar, html.nb-in-customizer #ab-boot { display: none !important; }
