@@ -42,6 +42,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/admin/comments-manager": { title: "Comments Manager", subtitle: "Moderate and manage comments" },
   "/admin/seo": { title: "SEO", subtitle: "Titles, schema, social, indexing & verification" },
   "/admin/seo/wizard": { title: "SEO Setup Wizard", subtitle: "Set up search engine optimisation in a few steps" },
+  "/admin/bulk-update": { title: "Bulk Update", subtitle: "Refresh publish dates of posts and pages" },
   "/admin/push-notifications": { title: "Push Notifications", subtitle: "Send browser notifications to your subscribers" },
   "/admin/contact-messages": { title: "Contact Messages", subtitle: "Messages sent through the contact form" },
   "/admin/customize": { title: "Customize", subtitle: "Site identity, colors, typography, header, footer & post template" },

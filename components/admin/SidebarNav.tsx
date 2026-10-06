@@ -157,6 +157,7 @@ export function SidebarNav({
           icon: "fa-toolbox",
           href: "#",
           items: [
+            ...(isAdmin || role === "editor" ? [{ label: "Bulk Update", href: "/admin/bulk-update", icon: "fa-clock-rotate-left" }] : []),
             ...(can(permissions?.tools.import_export) ? [{ label: "Import & Export", href: "/admin/import-export", icon: "fa-exchange-alt" }] : []),
             ...(can(permissions?.tools.backup_restore) ? [{ label: "Backup & Restore", href: "/admin/backup-restore", icon: "fa-database" }] : []),
             ...(can(permissions?.tools.cache_manager) ? [{ label: "Cache Manager", href: "/admin/cache-manager", icon: "fa-bolt" }] : []),
