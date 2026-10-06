@@ -3031,3 +3031,15 @@ a.pf-st:hover { border-color: var(--primary); }
 .pn-ext .pn-btn { justify-content: center; }
 .pn-field { position: relative; }
 .pn-field em { position: absolute; top: 0; right: 0; margin: 0; }
+
+/* Mobile spacing fixes: grids never grow past the screen, tab rows scroll instead of wrapping. */
+@media (max-width: 1023px) { .layout-grid { grid-template-columns: minmax(0, 1fr); } }
+.layout-grid > * { min-width: 0; }
+@media (max-width: 600px) {
+  .pn-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}
+@media (max-width: 860px) {
+  .seo-tabs-v { gap: 2px; padding-bottom: 2px; scrollbar-width: none; }
+  .seo-tabs-v button { flex-shrink: 0; white-space: nowrap; padding: 9px 12px; }
+}
+.form-card-body > form { display: flex; flex-direction: column; gap: 1rem; }
