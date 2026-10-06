@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getSiteContext } from "@/lib/theme/site";
-import { getCardPosts } from "@/lib/theme/cards";
+import { getCardPosts, getCardPostsRange } from "@/lib/theme/cards";
+import { HOME_BATCH, HOME_FIRST } from "@/lib/theme/homeFeed";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
 import { publisherNode } from "@/lib/seo/schema";
 import { applyShortcodesText } from "@/lib/shortcodes";
@@ -34,8 +35,13 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function HomePage({ searchParams }: Props) {
   const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   const [ctx, seo] = await Promise.all([getSiteContext(), getSeoSettings()]);
-  const perPage = Math.max(2, Math.min(50, ctx.theme.archive.per_page));
-  const { posts, totalPages } = await getCardPosts({ kind: "all" }, page, perPage);
+  // Featured layout: "Posts per page" posts, but only the first screen is sent now; the rest load on scroll.
+  const featured = ctx.theme.archive.home_layout === "featured";
+  const perPage = featured ? Math.max(4, Math.min(60, ctx.theme.archive.home_count)) : Math.max(2, Math.min(50, ctx.theme.archive.per_page));
+  const first = Math.min(perPage, page === 1 ? HOME_FIRST : HOME_BATCH);
+  const { posts, totalPages, total } = featured
+    ? await getCardPostsRange({ kind: "all" }, (page - 1) * perPage, first).then((r) => ({ ...r, totalPages: Math.max(1, Math.ceil(r.total / perPage)) }))
+    : await getCardPosts({ kind: "all" }, page, perPage);
   const home = `${ctx.siteUrl}/`;
   const schema = {
     "@context": "https://schema.org",
@@ -62,6 +68,7 @@ export default async function HomePage({ searchParams }: Props) {
         posts={posts}
         page={page}
         totalPages={totalPages}
+        more={featured ? { page, perPage, total } : undefined}
         href={(p) => (p > 1 ? `/?page=${p}` : "/")}
         head={
           heading ? (

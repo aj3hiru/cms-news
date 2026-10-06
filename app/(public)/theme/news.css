@@ -500,3 +500,9 @@ details[open] > summary .nb-toc-toggle::after { content: attr(data-hide); }
   .nb-grid--feat { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .nb-card--feat .nb-card-title, .nb-card--lead .nb-card-title { font-size: 20px; }
 }
+/* Homepage load-on-scroll */
+.nb-more { grid-column: 1 / -1; display: flex; justify-content: center; align-items: center; min-height: 56px; }
+.nb-more-spin { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #e5e7eb; border-top-color: var(--gc-accent, #0c6878); animation: nb-spin .8s linear infinite; }
+.nb-more-retry { width: 42px; height: 42px; border: 1px solid #d1d5db; border-radius: 50%; background: #fff; font-size: 20px; color: #374151; cursor: pointer; }
+@keyframes nb-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .nb-more-spin { animation-duration: 2.4s; } }

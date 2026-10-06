@@ -318,6 +318,10 @@ export interface ThemeSettings {
     home_layout: "featured" | "grid";
     /** Button under each homepage card; empty = no button. */
     home_read_more: string;
+    /** "Read more" also on the three-per-row cards (the lead card always has it when the text is set). */
+    home_grid_read_more: boolean;
+    /** Posts per homepage page in the featured layout; the first screen loads at once, the rest as the reader scrolls. */
+    home_count: number;
   };
 }
 
@@ -548,7 +552,7 @@ export const DEFAULT_THEME: ThemeSettings = {
     style: "classic",
   },
   post: DEFAULT_POST_TEMPLATE,
-  archive: { columns: 2, per_page: 10, show_author: true, show_date: true, show_excerpt: false, home_heading: "", home_layout: "featured", home_read_more: "Read more" },
+  archive: { columns: 2, per_page: 10, show_author: true, show_date: true, show_excerpt: false, home_heading: "", home_layout: "featured", home_read_more: "Read more", home_grid_read_more: true, home_count: 30 },
 };
 
 /** Deep-merges a saved (possibly partial / older) value over the defaults. */

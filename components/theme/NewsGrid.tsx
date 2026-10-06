@@ -2,16 +2,9 @@ import { Fragment } from "react";
 import { AdminHtml } from "@/components/AdminHtml";
 import type { CardPost } from "@/lib/theme/cards";
 import type { ThemeSettings } from "@/lib/theme/types";
-import { postUrl, authorUrl, categoryUrl, optimizedImage, imageSrcSet } from "@/lib/urls";
-import { CalendarIcon, VerifiedIcon } from "./icons";
-
-const Bolt = () => (
-  <svg className="nb-card-bolt" viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
-  </svg>
-);
-
-const fmt = (d: Date | null, loc = "en-US") => (d ? d.toLocaleDateString(loc, { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Kolkata" }) : "");
+import { NewsCard, type FeaturedOpts } from "./NewsCard";
+import type { HomeMoreInfo } from "@/lib/theme/homeFeed";
+import { HomeMore } from "./HomeMore";
 
 /** Card grid used by the homepage and every archive (category, tag, author, search). */
 export function NewsGrid({
@@ -22,15 +15,18 @@ export function NewsGrid({
   byLabel = "By",
   locale = "en-US",
   featured,
+  more,
 }: {
-  /** Homepage brandsfever layout: `lead` = first post as a large card. */
-  featured?: { lead: boolean; readMore: string };
   byLabel?: string;
   locale?: string;
   posts: CardPost[];
   archive: ThemeSettings["archive"];
   ads?: { before: Record<number, string>; after: Record<number, string> };
   eagerFirst?: boolean;
+  /** Homepage brandsfever layout. */
+  featured?: FeaturedOpts;
+  /** Homepage: the rest of the page loads as the reader scrolls. */
+  more?: HomeMoreInfo;
 }) {
   return (
     <div
@@ -40,75 +36,20 @@ export function NewsGrid({
       {posts.map((p, i) => (
         <Fragment key={p.id}>
           {ads?.before[i + 1] && <AdminHtml html={ads.before[i + 1]} className="ad-slot nb-grid-ad" allowFrame />}
-          <article className={featured ? (featured.lead && i === 0 ? "nb-card nb-card--feat nb-card--lead" : "nb-card nb-card--feat") : "nb-card"}>
-            <a className="nb-card-img" href={postUrl(p.slug)} tabIndex={-1} aria-hidden="true">
-              {p.bannerPath && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={optimizedImage(p.bannerPath, 640)}
-                  srcSet={imageSrcSet(p.bannerPath, [384, 640, 828])}
-                  sizes={featured?.lead && i === 0 ? "(max-width: 640px) 100vw, 560px" : featured ? "(max-width: 640px) 100vw, 380px" : "(max-width: 640px) 100vw, 480px"}
-                  alt={p.bannerAlt || p.title}
-                  width={640}
-                  height={360}
-                  loading={eagerFirst && i < 2 ? "eager" : "lazy"}
-                  fetchPriority={eagerFirst && i === 0 ? "high" : undefined}
-                  decoding="async"
-                />
-              )}
-            </a>
-            <div className="nb-card-body">
-              {featured && p.categoryName && (
-                <a className="nb-card-cat" href={categoryUrl(p.categorySlug)}>
-                  <Bolt />
-                  {p.categoryName}
-                </a>
-              )}
-              {!featured && (archive.show_author || archive.show_date) && (
-                <div className="nb-card-meta">
-                  {archive.show_author && p.authorName && (
-                    <span>
-                      {byLabel} {p.authorSlug ? <a href={authorUrl(p.authorSlug)}>{p.authorName}</a> : p.authorName} <VerifiedIcon />
-                    </span>
-                  )}
-                  {archive.show_author && archive.show_date && p.authorName && <span className="sep">|</span>}
-                  {archive.show_date && p.date && (
-                    <time className="nb-card-date" dateTime={p.date.toISOString()}>
-                      <CalendarIcon />
-                      {fmt(p.date, locale)}
-                    </time>
-                  )}
-                </div>
-              )}
-              <h2 className="nb-card-title">
-                <a href={postUrl(p.slug)}>{p.title}</a>
-              </h2>
-              {featured && (archive.show_author || archive.show_date) && (
-                <div className="nb-card-meta">
-                  {archive.show_author && p.authorName && (
-                    <span>
-                      {byLabel} {p.authorSlug ? <a href={authorUrl(p.authorSlug)}>{p.authorName}</a> : p.authorName}
-                    </span>
-                  )}
-                  {archive.show_author && archive.show_date && p.authorName && <span className="sep">·</span>}
-                  {archive.show_date && p.date && (
-                    <time className="nb-card-date" dateTime={p.date.toISOString()}>
-                      {fmt(p.date, locale)}
-                    </time>
-                  )}
-                </div>
-              )}
-              {(featured || archive.show_excerpt) && p.excerpt && <p className="nb-card-excerpt">{p.excerpt}</p>}
-              {featured?.readMore && (
-                <a className="nb-card-more" href={postUrl(p.slug)} aria-label={`${featured.readMore}: ${p.title}`}>
-                  {featured.readMore}
-                </a>
-              )}
-            </div>
-          </article>
+          <NewsCard
+            p={p}
+            archive={archive}
+            featured={featured}
+            isLead={Boolean(featured?.lead && i === 0)}
+            eager={eagerFirst && i < (featured ? 4 : 2)}
+            priority={eagerFirst && i === 0}
+            byLabel={byLabel}
+            locale={locale}
+          />
           {ads?.after[i + 1] && <AdminHtml html={ads.after[i + 1]} className="ad-slot nb-grid-ad" allowFrame />}
         </Fragment>
       ))}
+      {featured && more && <HomeMore info={more} start={posts.length} archive={archive} featured={featured} ads={ads} byLabel={byLabel} locale={locale} />}
     </div>
   );
 }

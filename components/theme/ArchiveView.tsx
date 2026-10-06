@@ -3,6 +3,7 @@ import { getListAdSlots } from "@/lib/adRendering";
 import { getSiteContext } from "@/lib/theme/site";
 import { tl } from "@/lib/i18n/public";
 import type { CardPost } from "@/lib/theme/cards";
+import type { HomeMoreInfo } from "@/lib/theme/homeFeed";
 import { ListingAds } from "@/components/shared/ListingAds";
 import { NewsGrid, NewsPagination } from "./NewsGrid";
 import { TrendingSidebar } from "./TrendingSidebar";
@@ -18,7 +19,10 @@ export async function ArchiveView({
   href,
   empty = "No posts found.",
   children,
+  more,
 }: {
+  /** Homepage featured layout: the rest of the page loads on scroll. */
+  more?: HomeMoreInfo;
   adPage: AdPageType;
   /** Which "Show sidebar on" setting applies to this page. */
   sidebarOn: "home" | "category" | "tag" | "author" | "search";
@@ -37,7 +41,7 @@ export async function ArchiveView({
   // Homepage "featured" layout: lead card on page 1, then three per row.
   const featured =
     sidebarOn === "home" && a.home_layout === "featured"
-      ? { lead: page === 1, readMore: a.home_read_more.trim() ? tl(a.home_read_more, "readMore", t) : "" }
+      ? { lead: page === 1, readMore: a.home_read_more.trim() ? tl(a.home_read_more, "readMore", t) : "", gridReadMore: a.home_grid_read_more }
       : undefined;
   return (
     <main className="nb-archive">
@@ -47,7 +51,7 @@ export async function ArchiveView({
           {head}
           {children}
           <ListingAds page={adPage} position="before_content" />
-          {posts.length ? <NewsGrid posts={posts} archive={a} ads={ads} byLabel={t.by} locale={locale} featured={featured} /> : <p className="nb-empty">{empty === "No posts found." ? t.noPosts : empty}</p>}
+          {posts.length ? <NewsGrid posts={posts} archive={a} ads={ads} byLabel={t.by} locale={locale} featured={featured} more={featured ? more : undefined} /> : <p className="nb-empty">{empty === "No posts found." ? t.noPosts : empty}</p>}
           <ListingAds page={adPage} position="after_content" />
           <NewsPagination page={page} totalPages={totalPages} href={href} labels={{ prev: t.previous, next: t.next }} />
         </div>

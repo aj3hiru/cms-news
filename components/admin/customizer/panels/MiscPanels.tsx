@@ -40,7 +40,7 @@ export function ArchivePanel() {
             ["3", "3"],
           ]}
         />
-        <Range label="Posts per page" min={2} max={50} value={a.per_page} onChange={(v) => update((t) => void (t.archive.per_page = v))} />
+        <Range label={a.home_layout === "featured" ? "Posts per page (categories, tags, search)" : "Posts per page"} min={2} max={50} value={a.per_page} onChange={(v) => update((t) => void (t.archive.per_page = v))} />
         <Toggle label="Author" checked={a.show_author} onChange={(v) => update((t) => void (t.archive.show_author = v))} />
         <Toggle label="Date" checked={a.show_date} onChange={(v) => update((t) => void (t.archive.show_date = v))} />
         <Toggle label="Excerpt / summary" checked={a.show_excerpt} onChange={(v) => update((t) => void (t.archive.show_excerpt = v))} />
@@ -58,7 +58,10 @@ export function ArchivePanel() {
         {a.home_layout === "featured" && (
           <>
             <Hint>The newest post shows as a large card (image left, text right), the rest three per row with category, excerpt and a button. On phones every card is full width.</Hint>
-            <Text label="Button text" value={a.home_read_more} onChange={(v) => update((t) => void (t.archive.home_read_more = v))} hint="Empty = no button." />
+            <Range label="Posts on the homepage" min={4} max={60} value={a.home_count} onChange={(v) => update((t) => void (t.archive.home_count = v))} />
+            <Hint>Only the first screen (the lead card + 6 posts) loads with the page; the rest load 6 at a time as the reader scrolls. Older posts continue on page 2.</Hint>
+            <Text label="Button text" value={a.home_read_more} onChange={(v) => update((t) => void (t.archive.home_read_more = v))} hint="Empty = no button anywhere." />
+            <Toggle label="“Read more” button on the 3-per-row cards" checked={a.home_grid_read_more} onChange={(v) => update((t) => void (t.archive.home_grid_read_more = v))} hint="Off = only the large lead card has the button." />
           </>
         )}
         <Text label="Heading above the posts (optional)" value={a.home_heading} onChange={(v) => update((t) => void (t.archive.home_heading = v))} hint="Shortcodes allowed. Empty = no heading." />
