@@ -398,3 +398,4 @@ details[open] > summary .nb-toc-toggle::after { content: attr(data-hide); }
   .nb-also--card .nb-also-slide .nb-also-title { font-size: 18px; }
   .nb-also--card .nb-also-slide .nb-also-excerpt { font-size: 14.5px; }
 }
+.single-post .content .nb-also img, .entry-content .nb-also img { max-width: 100% !important; width: 100% !important; height: 100% !important; margin: 0 !important; }
