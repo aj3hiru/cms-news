@@ -223,3 +223,7 @@ html body .content a:hover {
 .mobile-drawer-socials { display: flex; flex-wrap: wrap; gap: 14px; }
 .mobile-drawer-socials a { color: #fff; }
 .mobile-drawer-social-icon { width: 20px; height: 20px; }
+
+/* Inside the Customizer preview: no staff toolbar. */
+html.nb-in-customizer #site-admin-bar, html.nb-in-customizer #ab-boot { display: none !important; }
+html.nb-in-customizer body { padding-top: 0 !important; margin-top: 0 !important; }

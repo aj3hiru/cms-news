@@ -98,7 +98,7 @@ export async function resolveSiteConfig(currentDomain: string): Promise<Resolved
   // crashed every single page. Guaranteeing a non-empty fallback HERE,
   // once, protects every caller at once rather than special-casing each
   // of the 23 call sites individually.
-  const siteUrl = appConfig.site_url?.trim().replace(/\/+$/, "") || currentDomain || "http://localhost:3000";
+  const siteUrl = (appConfig.site_url?.trim() || process.env.APP_URL?.trim() || currentDomain || "http://localhost:3000").replace(/\/+$/, "");
   // site_logo is stored as a RAW local-storage key (e.g. "uploads/x.png",
   // same convention as media.filePath) when uploaded through the admin —
   // resolveMediaUrl() turns that into the actual public URL

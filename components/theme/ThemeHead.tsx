@@ -6,6 +6,9 @@ import "@/app/(public)/theme/customizer.css";
 import { getTheme } from "@/lib/theme/settings";
 import { buildThemeCss, googleFontsHref } from "@/lib/theme/css";
 
+/** Inside the Customizer's preview frame: apply unsaved colors / typography as they change. */
+const PREVIEW_LISTENER = `if(window.parent!==window){document.documentElement.classList.add("nb-in-customizer");addEventListener("message",function(e){if(e.origin!==location.origin||!e.data||e.data.nbCss==null)return;var s=document.getElementById("nb-customizer");if(s)s.textContent=e.data.nbCss;var l=document.getElementById("nb-cz-fonts");if(e.data.nbFonts){if(!l){l=document.createElement("link");l.id="nb-cz-fonts";l.rel="stylesheet";document.head.appendChild(l)}if(l.href!==e.data.nbFonts)l.href=e.data.nbFonts}})}`;
+
 /** Theme stylesheets + the Customizer's colors/typography + Google Fonts. */
 export async function ThemeHead() {
   const theme = await getTheme();
@@ -20,6 +23,7 @@ export async function ThemeHead() {
         </>
       )}
       <style id="nb-customizer" dangerouslySetInnerHTML={{ __html: buildThemeCss(theme) }} />
+      <script dangerouslySetInnerHTML={{ __html: PREVIEW_LISTENER }} />
     </>
   );
 }

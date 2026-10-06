@@ -114,17 +114,7 @@ export function SidebarNav({
       items: [
         ...(settings
           ? [
-              {
-                label: "Appearance",
-                icon: "fa-palette",
-                href: "#",
-                items: [
-                  { label: "Homepage", href: "/admin/homepage-settings", icon: "fa-house" },
-                  { label: "Header", href: "/admin/header-customizer", icon: "fa-window-maximize" },
-                  { label: "Footer", href: "/admin/footer-customizer", icon: "fa-shoe-prints" },
-                  { label: "Post Template", href: "/admin/post-template", icon: "fa-file-alt" },
-                ],
-              } as NavSubmenu,
+              { label: "Customize", href: "/admin/customize", icon: "fa-palette" } as NavLink,
               {
                 label: "Settings",
                 icon: "fa-cogs",

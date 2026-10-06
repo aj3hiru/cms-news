@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getPostTemplateSettings } from "@/lib/postTemplateSettings";
+import { getSeoSettings } from "@/lib/seo/settings";
 
 /**
  * New feature, no PHP equivalent — per explicit request: an admin toggle
@@ -19,7 +19,7 @@ import { getPostTemplateSettings } from "@/lib/postTemplateSettings";
  * unvalidated value to cause a crash.
  */
 export default async function NotFound() {
-  const pt = await getPostTemplateSettings();
+  const pt = await getSeoSettings();
 
   if (pt.redirect_404_enabled && pt.redirect_404_url) {
     const url = pt.redirect_404_url;
@@ -35,7 +35,7 @@ export default async function NotFound() {
       </p>
       <Link
         href="/"
-        style={{ padding: "0.65rem 1.5rem", borderRadius: "0.5rem", background: "#7c3aed", color: "#fff", fontWeight: 600, textDecoration: "none" }}
+        style={{ padding: "0.65rem 1.5rem", borderRadius: "0.5rem", background: "#0c6878", color: "#fff", fontWeight: 600, textDecoration: "none" }}
       >
         Go to Homepage
       </Link>

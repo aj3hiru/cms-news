@@ -2650,3 +2650,6 @@ a.pf-st:hover { border-color: var(--primary); }
 .seo-checks { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
 .seo-checks li { display: flex; gap: 8px; align-items: baseline; color: #374151; }
 .seo-checks li.ok i { color: #16a34a; } .seo-checks li.no i { color: #dc2626; } .seo-checks li.info i { color: #2563eb; }
+.be-toolbar select.be-type { width: auto !important; min-width: 120px; flex: 0 0 auto; }
+.be-content { padding-left: 52px !important; }
+.be-float-add { margin-left: -42px; }

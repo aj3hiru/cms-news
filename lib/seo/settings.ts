@@ -51,6 +51,8 @@ export interface SeoSettings {
   pinterest_verification: string;
   max_image_preview: "large" | "standard" | "none";
   news_sitemap: boolean;
+  redirect_404_enabled: boolean;
+  redirect_404_url: string;
 }
 
 export const SEO_DEFAULTS: SeoSettings = {
@@ -85,6 +87,8 @@ export const SEO_DEFAULTS: SeoSettings = {
   pinterest_verification: "",
   max_image_preview: "large",
   news_sitemap: true,
+  redirect_404_enabled: false,
+  redirect_404_url: "",
 };
 
 const getSeoCached = unstable_cache(
