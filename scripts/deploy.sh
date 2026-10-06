@@ -10,7 +10,7 @@ export PORT NODE_OPTIONS=--max_old_space_size=4096
 APP=cms-storytimes
 PORT=3006
 npx prisma generate > /dev/null 2>&1
-rm -rf .next-build
+rm -rf .next-build .next/types .next/dev/types
 if ! NEXT_DIST_DIR=.next-build NODE_OPTIONS=--max-old-space-size=4096 npx next build > /tmp/cms-build.log 2>&1; then
   tail -30 /tmp/cms-build.log; echo "BUILD FAILED — live site untouched"; rm -rf .next-build; exit 1
 fi
