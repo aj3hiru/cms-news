@@ -83,16 +83,15 @@ export const IMAGE_WIDTHS = [128, 256, 384, 640, 828, 1080, 1200] as const;
 export type ImageWidth = (typeof IMAGE_WIDTHS)[number];
 
 /**
- * A resized, compressed WebP of an uploaded image, served as /img/<w>/<file>
- * (rewritten to Next's image optimizer in next.config.ts). The file-like URL
- * lets Cloudflare keep a copy at its edge. External URLs, SVGs and GIFs are
- * returned unchanged.
+ * A resized WebP of an uploaded image, served as /i/<w>/<file> (app/i route —
+ * always WebP, so Cloudflare can keep one copy per URL; the older /img/ prefix
+ * still works). External URLs, SVGs and GIFs are returned unchanged.
  */
 export function optimizedImage(path: string | null | undefined, width: ImageWidth): string {
   const src = resolveMediaUrl(path ?? "");
   const m = /^\/upload\/media\/(.+)$/.exec(src);
   if (!m || /\.(svg|gif)$/i.test(m[1])) return src;
-  return `/img/${width}/${m[1]}`;
+  return `/i/${width}/${m[1]}`;
 }
 
 export function imageSrcSet(path: string | null | undefined, widths: ImageWidth[]): string | undefined {

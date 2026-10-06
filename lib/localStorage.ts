@@ -66,6 +66,16 @@ const IMAGE_EXT_BY_TYPE: Record<string, string> = {
 const ALLOWED_IMAGE_TYPES = new Set(Object.keys(IMAGE_EXT_BY_TYPE));
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB — same limit as the R2 path
 
+/** Real raster type from the first bytes (a JPEG renamed to .webp is still a JPEG). */
+export function sniffImageType(b: Buffer): "image/jpeg" | "image/png" | "image/webp" | "image/gif" | null {
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b.length >= 8 && b.readUInt32BE(0) === 0x89504e47) return "image/png";
+  if (b.length >= 12 && b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+  if (b.length >= 6 && /^GIF8[79]a$/.test(b.toString("ascii", 0, 6))) return "image/gif";
+  return null;
+}
+const RASTER = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
 export interface LocalUploadResult {
   filePath: string; // e.g. "uploads/1234-abcd.webp" — stored in media.file_path, same convention as the R2 path
   publicUrl: string; // e.g. "/upload/media/1234-abcd.webp" — see lib/urls.ts's resolveMediaUrl() for why this shape
@@ -103,6 +113,12 @@ export async function saveLocalImage(
     throw new Error("File too large (max 5MB).");
   }
 
+  // Raster images: trust the bytes, not the browser's guess from the file name.
+  if (RASTER.has(contentType)) {
+    const real = sniffImageType(file);
+    if (!real) throw new Error("This file isn't a valid image.");
+    contentType = real;
+  }
   // Extension from the checked type, not the file name (a renamed file can't pick its own).
   const nameExt = originalName.split(".").pop()?.toLowerCase();
   const ext = nameExt === "jpeg" && contentType === "image/jpeg" ? "jpeg" : IMAGE_EXT_BY_TYPE[contentType];
@@ -148,7 +164,7 @@ export async function readLocalImage(requestedPath: string): Promise<{ data: Buf
       { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".ico": "image/x-icon" }[
         ext
       ] ?? "application/octet-stream";
-    return { data, contentType };
+    return { data, contentType: RASTER.has(contentType) ? sniffImageType(data) ?? contentType : contentType };
   } catch {
     return null;
   }
@@ -241,7 +257,8 @@ export async function readLocalFile(requestedPath: string): Promise<{ data: Buff
       ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".ico": "image/x-icon",
     };
     const contentType = imageTypes[ext] ?? GENERAL_CONTENT_TYPES[ext] ?? "application/octet-stream";
-    return { data, contentType };
+    // Older uploads may carry the wrong extension; send the type the bytes really are.
+    return { data, contentType: RASTER.has(contentType) ? sniffImageType(data) ?? contentType : contentType };
   } catch {
     return null;
   }

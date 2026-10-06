@@ -50,3 +50,6 @@ CLAUDE.md
 .local/
 backups/
 .local-uploads/
+
+# resized WebP copies (app/i route)
+.cache/
