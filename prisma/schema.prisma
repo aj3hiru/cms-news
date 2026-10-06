@@ -569,7 +569,7 @@ model AiGenerationLog {
 
 model AppConfig {
   configKey   String  @id @map("config_key") @db.VarChar(50)
-  configValue String? @map("config_value") @db.Text
+  configValue String? @map("config_value") @db.LongText
 
   @@map("app_config")
 }

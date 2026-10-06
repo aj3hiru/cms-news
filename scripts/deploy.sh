@@ -6,14 +6,15 @@
 #   bash scripts/deploy.sh            (after git pull + any prisma db push)
 set -euo pipefail
 cd "$(dirname "$0")/.."
-APP=fable
-PORT=3004
+export PORT NODE_OPTIONS=--max_old_space_size=4096
+APP=cms-storytimes
+PORT=3006
 npx prisma generate > /dev/null 2>&1
 rm -rf .next-build
-if ! NEXT_DIST_DIR=.next-build NODE_OPTIONS=--max-old-space-size=1536 npx next build > /tmp/fable-build.log 2>&1; then
-  tail -30 /tmp/fable-build.log; echo "BUILD FAILED — live site untouched"; rm -rf .next-build; exit 1
+if ! NEXT_DIST_DIR=.next-build NODE_OPTIONS=--max-old-space-size=4096 npx next build > /tmp/cms-build.log 2>&1; then
+  tail -30 /tmp/cms-build.log; echo "BUILD FAILED — live site untouched"; rm -rf .next-build; exit 1
 fi
-grep -E "Compiled|Generating static" /tmp/fable-build.log | tail -2 || true
+grep -E "Compiled|Generating static" /tmp/cms-build.log | tail -2 || true
 if [ ! -f .next-build/BUILD_ID ]; then
   echo "Build folder has no BUILD_ID — live site untouched"; ls .next-build | head; exit 1
 fi
@@ -50,5 +51,5 @@ echo "DEPLOYED"
   for map in $(curl -s "http://127.0.0.1:$PORT/sitemap.xml" | grep -o '<loc>[^<]*sitemap-posts-[0-9]*\.xml</loc>' | sed 's/<[^>]*>//g'); do
     curl -s "http://127.0.0.1:$PORT/$(echo "$map" | sed 's#^https\?://[^/]*/##')" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g'
   done | sed "s#^https\?://[^/]*#http://127.0.0.1:$PORT#" | xargs -P 2 -n 1 curl -s -o /dev/null
-  echo "cache warmed $(date)" >> /tmp/fable-warm.log
+  echo "cache warmed $(date)" >> /tmp/cms-warm.log
 ) > /dev/null 2>&1 &

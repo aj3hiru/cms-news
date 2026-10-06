@@ -1,140 +1,101 @@
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { resolveSiteConfig, buildListingMetadata } from "@/lib/config";
-import { getAuthorBySlug, getAuthorPosts } from "@/lib/listings";
-import { PostGrid } from "@/components/shared/PostGrid";
-import { Pagination } from "@/components/shared/Pagination";
-import { authorUrl, resolveMediaUrl, optimizedImage } from "@/lib/urls";
-import { ListingAds } from "@/components/shared/ListingAds";
-import { getListAdSlots } from "@/lib/adRendering";
+import type { Metadata } from "next";
+import { getAuthorBySlug } from "@/lib/listings";
+import { getCardPosts } from "@/lib/theme/cards";
+import { getSiteContext } from "@/lib/theme/site";
+import { archiveMetadata } from "@/lib/theme/archiveMeta";
+import { getSeoSettings } from "@/lib/seo/settings";
+import { authorUrl, optimizedImage, resolveMediaUrl } from "@/lib/urls";
+import { stripTags } from "@/lib/postDetail";
+import { ArchiveView } from "@/components/theme/ArchiveView";
+import { SocialIcon, VerifiedIcon } from "@/components/theme/icons";
 
-// ISR — same reasoning as the homepage/post pages.
 export const revalidate = 60;
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> };
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
   const author = await getAuthorBySlug(slug);
   if (!author) return {};
-  const siteConfig = await resolveSiteConfig("");
-  const title = `Articles by ${author.name} | ${siteConfig.siteName}`;
-  const description = `Browse all articles and updates written by ${author.name} on ${siteConfig.siteName}.`;
-  return {
-    title,
-    description,
-    ...buildListingMetadata(siteConfig, title, description, authorUrl(author.slug ?? slug)),
-  };
+  const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
+  const seo = await getSeoSettings();
+  return archiveMetadata({ term: author.name, description: author.bio ? stripTags(author.bio).slice(0, 160) : null, path: authorUrl(slug), page, noindex: seo.noindex_authors });
 }
 
-export default async function AuthorPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
-}) {
+export default async function AuthorPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { page: pageParam } = await searchParams;
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
-
   const author = await getAuthorBySlug(slug);
   if (!author) notFound();
-
-  const { posts, total, totalPages } = await getAuthorPosts(author.id, page);
-
-  const sameAs = [author.instagram, author.threads, author.linkedin, author.facebook, author.twitter].filter(
-    Boolean
-  ) as string[];
-
+  const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
+  const ctx = await getSiteContext();
+  const { posts, total, totalPages } = await getCardPosts({ kind: "author", id: author.id }, page, Math.max(2, Math.min(50, ctx.theme.archive.per_page)));
+  const socials = (
+    [
+      ["facebook", author.facebook],
+      ["x", author.twitter],
+      ["instagram", author.instagram],
+      ["threads", author.threads],
+      ["linkedin", author.linkedin],
+    ] as const
+  ).filter(([, u]) => u);
+  const person = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    mainEntity: {
+      "@type": "Person",
+      name: author.name,
+      url: `${ctx.siteUrl}${authorUrl(slug)}`,
+      ...(author.designation ? { jobTitle: author.designation } : {}),
+      ...(author.profileImage ? { image: `${ctx.siteUrl}${resolveMediaUrl(author.profileImage)}` } : {}),
+      ...(author.bio ? { description: stripTags(author.bio).slice(0, 300) } : {}),
+      ...(socials.length ? { sameAs: socials.map(([, u]) => u) } : {}),
+    },
+  };
   return (
-    <main>
-      <ListingAds page="tag" position="before_post" />
-      <nav className="breadcrumbs" aria-label="Breadcrumb">
-        <ol>
-          <li aria-current="page">{author.name}</li>
-        </ol>
-      </nav>
-
-      <div className="container">
-        <div className="author-bio">
-          {/* Real bug fixed here: this built the URL with raw string
-              concatenation (`/${profileImage}`) instead of going
-              through resolveMediaUrl() — the one shared helper every
-              other image source across the site uses, which correctly
-              maps a stored "uploads/..." path to its real, resolvable
-              URL. The raw concatenation form never matched anything
-              the app actually serves. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={author.profileImage ? optimizedImage(author.profileImage, 256) : "/assets/img/user.png"}
-            alt={author.name}
-            width={88}
-            height={88}
-            style={{ width: 88, height: 88, borderRadius: "50%", objectFit: "cover" }}
-          />
-          <h1 className="page-title">About {author.name}</h1>
-          <span className="author-stat-pill">
-            {total} {total === 1 ? "Article" : "Articles"} Published
-          </span>
-          {author.bio && (
-            <p style={{ whiteSpace: "pre-line" }}>{author.bio}</p>
-          )}
-          {sameAs.length > 0 && (
-            <div className="author-follow-links">
-              <h2>Follow on</h2>
-              <div className="author-social-links">
-                {author.instagram && (
-                  <a href={author.instagram} target="_blank" rel="noopener noreferrer">
-                    Instagram
-                  </a>
-                )}
-                {author.threads && (
-                  <a href={author.threads} target="_blank" rel="noopener noreferrer">
-                    Threads
-                  </a>
-                )}
-                {author.linkedin && (
-                  <a href={author.linkedin} target="_blank" rel="noopener noreferrer">
-                    LinkedIn
-                  </a>
-                )}
-                {author.facebook && (
-                  <a href={author.facebook} target="_blank" rel="noopener noreferrer">
-                    Facebook
-                  </a>
-                )}
-                {author.twitter && (
-                  <a href={author.twitter} target="_blank" rel="noopener noreferrer">
-                    X
-                  </a>
-                )}
-              </div>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(person).replace(/</g, "\\u003c") }} />
+      <ArchiveView
+        adPage="category"
+        posts={posts}
+        page={page}
+        totalPages={totalPages}
+        href={(p) => (p > 1 ? `${authorUrl(slug)}?page=${p}` : authorUrl(slug))}
+        head={
+          <header className="nb-author-head">
+            {author.profileImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={optimizedImage(author.profileImage, 256)} alt={author.name} width={90} height={90} />
+            ) : (
+              <span className="nb-avatar-fallback" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="8" r="4.2" fill="currentColor" />
+                  <path d="M3.5 21c.8-4.4 4.2-7 8.5-7s7.7 2.6 8.5 7" fill="currentColor" />
+                </svg>
+              </span>
+            )}
+            <div>
+              <h1>
+                {author.name} <VerifiedIcon />
+              </h1>
+              {author.designation && <span className="nb-archive-kicker">{author.designation}</span>}
+              {author.bio && <p>{stripTags(author.bio)}</p>}
+              <p className="nb-author-count">
+                {total} {total === 1 ? "article" : "articles"}
+              </p>
+              {socials.length > 0 && (
+                <div className="author-socials">
+                  {socials.map(([n, u]) => (
+                    <a key={n} className="author-social-link" href={u!} target="_blank" rel="noopener nofollow" aria-label={n}>
+                      <SocialIcon network={n} className="nb-author-ico" />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        <h2 className="section-heading">Posts by {author.name}</h2>
-
-        {posts.length === 0 ? (
-          <p>No posts found by this author.</p>
-        ) : (
-          <>
-            <ListingAds page="tag" position="before_content" />
-            <PostGrid posts={posts} ads={await getListAdSlots("tag")} />
-            <ListingAds page="tag" position="after_content" />
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              buildHref={(p) => `${authorUrl(slug)}${p > 1 ? `?page=${p}` : ""}`}
-            />
-          </>
-        )}
-      </div>
-      <ListingAds page="tag" position="after_post" />
-      <ListingAds page="tag" position="footer" />
-    </main>
+          </header>
+        }
+      />
+    </>
   );
 }

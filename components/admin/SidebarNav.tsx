@@ -94,7 +94,6 @@ export function SidebarNav({
             ]
           : []),
         ...(can(permissions?.files.access_file_manager) ? [{ label: "File Manager", href: "/admin/file-manager", icon: "fa-images" } as NavLink] : []),
-        { label: "AI Features", href: "/admin/ai-features", icon: "fa-robot" },
         ...(can(permissions?.analytics.view_basic)
           ? [
               {

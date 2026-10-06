@@ -1,89 +1,52 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
-import { resolveSiteConfig, buildListingMetadata } from "@/lib/config";
-import { getCategoryBySlug, getCategoryPosts } from "@/lib/listings";
-import { PostGrid } from "@/components/shared/PostGrid";
-import { Pagination } from "@/components/shared/Pagination";
-import { ListingAds } from "@/components/shared/ListingAds";
-import { getListAdSlots } from "@/lib/adRendering";
+import { getCategoryBySlug } from "@/lib/listings";
+import { getCardPosts } from "@/lib/theme/cards";
+import { getSiteContext } from "@/lib/theme/site";
+import { archiveMetadata } from "@/lib/theme/archiveMeta";
+import { getSeoSettings } from "@/lib/seo/settings";
+import { categoryUrl } from "@/lib/urls";
+import { ArchiveView } from "@/components/theme/ArchiveView";
 
-// ISR — same reasoning as the homepage/post pages. NOTE: the category
-// view-counter increment below now only runs when this page actually
-// regenerates (not on every cached hit), which is a good thing under
-// heavy traffic — far fewer redundant UPDATE queries hitting the DB.
 export const revalidate = 60;
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> };
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   const cat = await getCategoryBySlug(slug);
   if (!cat) return {};
-  const siteConfig = await resolveSiteConfig("");
-  const title = `${cat.metaTitle || cat.name} | ${siteConfig.siteName}`;
-  const description = cat.metaDescription || `Explore all posts in ${cat.name} on ${siteConfig.siteName}`;
-  return {
-    title,
-    description,
-    ...buildListingMetadata(siteConfig, title, description, `/categories/${slug}`),
-  };
+  const seo = await getSeoSettings();
+  const empty = seo.noindex_empty_categories && (await prisma.post.count({ where: { categoryId: cat.id, status: "published" } })) === 0;
+  const meta = await archiveMetadata({ term: cat.metaTitle || cat.name, description: cat.metaDescription, path: categoryUrl(slug), page, noindex: empty });
+  return cat.metaKeywords ? { ...meta, keywords: cat.metaKeywords } : meta;
 }
 
-export default async function CategoryPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
-}) {
+export default async function CategoryPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { page: pageParam } = await searchParams;
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
-
+  const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   const cat = await getCategoryBySlug(slug);
   if (!cat) notFound();
-
-  // Fire-and-forget view counter, mirrors `UPDATE categories SET views = views + 1`.
   prisma.category.update({ where: { id: cat.id }, data: { views: { increment: 1 } } }).catch(() => {});
-
-  const { posts, total, totalPages } = await getCategoryPosts(cat.id, page);
-
+  const { theme } = await getSiteContext();
+  const { posts, total, totalPages } = await getCardPosts({ kind: "category", id: cat.id }, page, Math.max(2, Math.min(50, theme.archive.per_page)));
   return (
-    <main>
-      <ListingAds page="category" position="before_post" />
-      <nav className="breadcrumbs" aria-label="Breadcrumb">
-        <ol>
-          <li>
-            <Link prefetch={false} href="/categories">Categories</Link>
-          </li>
-          <li aria-current="page">{cat.name}</li>
-          <li aria-hidden="true">&middot;</li>
-          <li className="breadcrumb-count">
-            {total} {total === 1 ? "Post" : "Posts"}
-          </li>
-        </ol>
-      </nav>
-
-      <div className="container">
-        <h1 className="sr-only">{cat.name}</h1>
-
-        {posts.length === 0 ? (
-          <p>No posts found in this category.</p>
-        ) : (
-          <>
-            <ListingAds page="category" position="before_content" />
-            <PostGrid posts={posts} ads={await getListAdSlots("category")} />
-            <ListingAds page="category" position="after_content" />
-            <Pagination page={page} totalPages={totalPages} buildHref={(p) => (p > 1 ? `/categories/${slug}?page=${p}` : `/categories/${slug}`)} />
-          </>
-        )}
-      </div>
-      <ListingAds page="category" position="after_post" />
-      <ListingAds page="category" position="footer" />
-    </main>
+    <ArchiveView
+      adPage="category"
+      posts={posts}
+      page={page}
+      totalPages={totalPages}
+      href={(p) => (p > 1 ? `${categoryUrl(slug)}?page=${p}` : categoryUrl(slug))}
+      empty="No posts in this category yet."
+      head={
+        <header className="nb-archive-head">
+          <span className="nb-archive-kicker">Category · {total} {total === 1 ? "post" : "posts"}</span>
+          <h1>{cat.name}</h1>
+          {cat.metaDescription && <p>{cat.metaDescription}</p>}
+        </header>
+      }
+    />
   );
 }

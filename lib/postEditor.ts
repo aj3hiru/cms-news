@@ -74,10 +74,19 @@ interface ParsedPostForm {
   faqJson: string | null;
   tagNames: string[];
   featuredImageId: number | undefined;
+  /** The editor removed the featured image (the field was sent empty). */
+  featuredImageCleared: boolean;
   metaDescription: string;
   metaKeywords: string;
-  fbDescription: string;
-  thumbnailPrompt: string;
+  summary: string;
+  keyPoints: string[];
+  seoTitle: string;
+  focusKeyword: string;
+  schemaType: string;
+  canonical: string;
+  noindex: boolean;
+  ogTitle: string;
+  ogDescription: string;
 }
 
 async function parsePostForm(formData: FormData, excludePostId?: number): Promise<ParsedPostForm> {
@@ -111,10 +120,22 @@ async function parsePostForm(formData: FormData, excludePostId?: number): Promis
     faqJson: String(formData.get("faqJson") ?? "") || null,
     tagNames,
     featuredImageId: featuredImageIdRaw ? parseInt(featuredImageIdRaw, 10) : undefined,
+    featuredImageCleared: formData.has("featuredImageUrl") && !String(formData.get("featuredImageUrl") ?? "").trim(),
     metaDescription: String(formData.get("metaDescription") ?? "").trim(),
     metaKeywords: String(formData.get("metaKeywords") ?? "").trim(),
-    fbDescription: String(formData.get("fbDescription") ?? "").trim(),
-    thumbnailPrompt: String(formData.get("thumbnailPrompt") ?? "").trim(),
+    summary: String(formData.get("summary") ?? "").trim().slice(0, 2000),
+    keyPoints: formData
+      .getAll("keyPoints")
+      .map((v) => String(v).trim().slice(0, 500))
+      .filter(Boolean)
+      .slice(0, 20),
+    seoTitle: String(formData.get("seoTitle") ?? "").trim().slice(0, 200),
+    focusKeyword: String(formData.get("focusKeyword") ?? "").trim().slice(0, 120),
+    schemaType: String(formData.get("schemaType") ?? "").trim().slice(0, 40),
+    canonical: String(formData.get("canonical") ?? "").trim().slice(0, 500),
+    noindex: formData.get("noindex") === "on",
+    ogTitle: String(formData.get("ogTitle") ?? "").trim().slice(0, 200),
+    ogDescription: String(formData.get("ogDescription") ?? "").trim().slice(0, 300),
   };
 }
 
@@ -136,8 +157,15 @@ async function savePostMeta(postId: number, parsed: ParsedPostForm) {
   const entries: { metaKey: string; metaValue: string }[] = [];
   if (parsed.metaKeywords) entries.push({ metaKey: "keywords", metaValue: parsed.metaKeywords });
   if (parsed.metaDescription) entries.push({ metaKey: "description", metaValue: parsed.metaDescription });
-  if (parsed.fbDescription) entries.push({ metaKey: "fb_description", metaValue: parsed.fbDescription });
-  if (parsed.thumbnailPrompt) entries.push({ metaKey: "thumbnail_prompt", metaValue: parsed.thumbnailPrompt });
+  if (parsed.summary) entries.push({ metaKey: "summary", metaValue: parsed.summary });
+  if (parsed.keyPoints.length) entries.push({ metaKey: "key_points", metaValue: JSON.stringify(parsed.keyPoints) });
+  if (parsed.seoTitle) entries.push({ metaKey: "seo_title", metaValue: parsed.seoTitle });
+  if (parsed.focusKeyword) entries.push({ metaKey: "focus_keyword", metaValue: parsed.focusKeyword });
+  if (parsed.schemaType) entries.push({ metaKey: "schema_type", metaValue: parsed.schemaType });
+  if (parsed.canonical) entries.push({ metaKey: "canonical", metaValue: parsed.canonical });
+  if (parsed.noindex) entries.push({ metaKey: "noindex", metaValue: "1" });
+  if (parsed.ogTitle) entries.push({ metaKey: "og_title", metaValue: parsed.ogTitle });
+  if (parsed.ogDescription) entries.push({ metaKey: "og_description", metaValue: parsed.ogDescription });
   if (parsed.publishAt) entries.push({ metaKey: "publish_at", metaValue: parsed.publishAt });
   if (entries.length > 0) {
     await prisma.postMeta.createMany({ data: entries.map((e) => ({ postId, ...e })) });
@@ -277,7 +305,7 @@ export async function updatePost(postId: number, formData: FormData): Promise<vo
       status: parsed.status,
       faqJson: parsed.faqJson,
       ...(authorId ? { authorId } : {}),
-      ...(parsed.featuredImageId ? { featuredImageId: parsed.featuredImageId } : {}),
+      ...(parsed.featuredImageId ? { featuredImageId: parsed.featuredImageId } : parsed.featuredImageCleared ? { featuredImageId: null } : {}),
     },
   });
 

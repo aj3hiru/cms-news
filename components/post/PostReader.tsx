@@ -1,274 +1,175 @@
-import Link from "next/link";
-import { notFound, permanentRedirect, redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
+import { prisma } from "@/lib/db";
 import { AdminHtml } from "@/components/AdminHtml";
-import { getPostBySlug, getRelatedPosts, estimateReadingMinutes, stripTags } from "@/lib/postDetail";
-import { parseChaptersFromContent } from "@/lib/chapters";
-import { postUrl, chapterUrl, authorUrl, categoryUrl, resolveMediaUrl, staticPagePath, optimizedImage, imageSrcSet } from "@/lib/urls";
-import { resolveSiteConfig } from "@/lib/config";
-import { getPostTemplateSettings } from "@/lib/postTemplateSettings";
+import { getPostBySlug, getRelatedPosts, estimateReadingMinutes, stripTags, type PostDetail } from "@/lib/postDetail";
+import { postUrl, authorUrl, categoryUrl, tagUrl, resolveMediaUrl, staticPagePath, optimizedImage, imageSrcSet } from "@/lib/urls";
 import { getAdHtmlFor, getParagraphAdBlocks, injectAfterParagraph, injectBeforeParagraph } from "@/lib/adRendering";
-import { ChapterNav, ChapterStartNav } from "./ChapterNav";
-import { ChapterListDrawer } from "./ChapterListDrawer";
-import { DesktopTocSidebar } from "./DesktopTocSidebar";
-import { ChapterViewTracker } from "./ChapterViewTracker";
+import { getSiteContext } from "@/lib/theme/site";
+import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
+import { addHeadingIds, alsoReadHtml, getAlsoReadPosts, parseParagraphList } from "@/lib/content/postContent";
+import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
+import { buildPostSchema } from "@/lib/seo/schema";
+import { RichContent } from "@/components/shortcodes/RichContent";
+import { TrendingSidebar } from "@/components/theme/TrendingSidebar";
+import { ReadingProgress } from "@/components/theme/ReadingProgress";
+import { VerifiedIcon, SocialIcon } from "@/components/theme/icons";
+import { ViewTracker } from "./ViewTracker";
 import { ShareButtons } from "./ShareButtons";
-import { PostSidebar } from "./PostSidebar";
 import { CommentsSection } from "../comments/CommentsSection";
 
-/**
- * Comprehensive SEO + social-share metadata for a post/chapter page —
- * previously only had a bare title/description and a partial, buggy
- * OpenGraph block (manually built the image path instead of calling
- * resolveMediaUrl(), so it 404'd once uploads moved to local-disk
- * storage; had no og:type/og:url/og:siteName, no Twitter Card at all,
- * and no canonical URL). Chapter pages (chapter > 0) previously got NO
- * image and NO OpenGraph/Twitter data whatsoever, so a shared chapter
- * link showed a blank/generic preview on every platform.
- */
-export async function buildPostMetadata(slug: string, chapter: number): Promise<Metadata> {
+function description(post: PostDetail): string {
+  return (post.seo.ogDescription || post.metaDescription || post.summary || stripTags(post.content).replace(/\s+/g, " ")).trim().slice(0, 160);
+}
+
+export async function buildPostMetadata(slug: string): Promise<Metadata> {
   const post = await getPostBySlug(slug);
   if (!post) return {};
-  const siteConfig = await resolveSiteConfig("");
-  const pt = await getPostTemplateSettings();
-  const parsed = pt.chapters
-    ? parseChaptersFromContent(post.content)
-    : { hasChapters: false, introHtml: "", chapters: [], total: 0 };
-
-  // Real gap fixed here (SEO_FIXES.md #2): a post/chapter with no
-  // featured image got NO og:image/twitter:image at all — a blank
-  // preview card on every platform. Falls back to the site's own
-  // default share image, matching how category/tag/author pages
-  // already handle this via siteConfig.seoDefaultImage.
-  const imageUrl = post.bannerPath ? resolveMediaUrl(post.bannerPath) : siteConfig.seoDefaultImage;
-  const canonicalPath = chapter > 0 ? chapterUrl(post.slug, chapter) : postUrl(post.slug);
-  const publishedTime = post.date ? new Date(post.date).toISOString() : undefined;
-  const modifiedTime = post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedTime;
-
-  function buildMetadata(title: string, description: string): Metadata {
-    if (!post) return {};
-    return {
-      title,
-      description,
-      alternates: { canonical: canonicalPath, types: { "application/rss+xml": [{ url: "/feed", title: `${siteConfig.siteName} » Feed` }] } },
-      openGraph: {
-        type: "article",
-        title,
-        description,
-        url: canonicalPath,
-        siteName: siteConfig.siteName,
-        images: imageUrl ? [{ url: imageUrl, width: 1200, height: 675, alt: post.bannerAlt || post.title }] : undefined,
-        publishedTime,
-        modifiedTime,
-        authors: post.authorName ? [post.authorName] : undefined,
-        section: post.categoryName,
-      },
-      twitter: {
-        card: imageUrl ? "summary_large_image" : "summary",
-        title,
-        description,
-        images: imageUrl ? [imageUrl] : undefined,
-      },
-    };
-  }
-
-  if (parsed.hasChapters && chapter > 0) {
-    const ch = parsed.chapters[chapter - 1];
-    if (!ch) return {};
-    return buildMetadata(
-      `${ch.title} — ${post.title} | ${siteConfig.siteName}`,
-      stripTags(ch.contentHtml).slice(0, 160)
-    );
-  }
-
-  // Real, serious bug fixed here — `fbDescription` must NEVER be used as
-  // the page description. That field is the author's own private
-  // Facebook caption, written to be pasted into a FB post (and the
-  // matching `fbCommentText` into a comment); it is a publishing
-  // convenience in the editor, not page content. Using it here meant a
-  // private caption became the og:description Facebook/WhatsApp show in
-  // link previews AND the description in the Article schema Google reads
-  // — so search engines and every social preview were describing the
-  // story with internal marketing text instead of the story itself. Now
-  // only the real SEO field (`metaDescription`) is used, falling back to
-  // the story's own opening text.
-  const description =
-    post.metaDescription?.trim() ||
-    stripTags(parsed.hasChapters ? parsed.introHtml : post.content).slice(0, 160);
-
+  const [ctx, seo] = await Promise.all([getSiteContext(), getSeoSettings()]);
+  const title = applyShortcodesText(
+    post.seo.title || formatTitle(seo.post_title_format, { title: post.title, sitename: ctx.siteName, sep: seo.separator }),
+    ctx.sc
+  );
+  const desc = description(post);
+  const imageUrl = post.bannerPath ? resolveMediaUrl(post.bannerPath) : seo.default_og_image ? resolveMediaUrl(seo.default_og_image) : undefined;
+  const canonical = post.seo.canonical || postUrl(post.slug);
+  const published = post.date ? new Date(post.date).toISOString() : undefined;
   return {
-    ...buildMetadata(`${post.title} | ${siteConfig.siteName}`, description),
-    keywords: post.metaKeywords?.trim() || undefined,
-  };
-}
-
-/**
- * JSON-LD "Article" structured data — what actually earns a post the
- * enhanced Google search result (headline, image, publish date, author)
- * rather than a plain blue link. Rendered as a <script type="application/
- * ld+json"> in the page body (Metadata objects can't carry this; it has
- * to be real markup) — was completely absent before this pass, on every
- * single post page.
- */
-function PostJsonLd({
-  post,
-  siteConfig,
-  canonicalPath,
-  faq,
-  chapterInfo,
-}: {
-  post: { title: string; date: Date | null; updatedAt: Date | null; authorName: string; bannerPath: string | null; bannerAlt: string | null; metaDescription: string | null; fbDescription: string | null };
-  siteConfig: { siteName: string; siteUrl: string; seoDefaultImage: string; siteLogoAbsolute: string | null };
-  canonicalPath: string;
-  /** FAQ items already entered in the post editor and already rendered
-   *  on-page (see the pt.faq block further down) — real gap fixed here
-   *  (SEO_FIXES.md #3): that same data was never turned into FAQPage
-   *  JSON-LD, so posts with FAQs filled in sat on ready-made rich-
-   *  result data Google could never see. */
-  faq: { q: string; a: string }[];
-  /** Real gap fixed here (SEO_FIXES.md #4): chapter pages show a
-   *  visible "Post Title · Chapter N of M" breadcrumb on-page but had
-   *  no matching BreadcrumbList schema for Google's own breadcrumb
-   *  rich result. Only passed (non-null) on an actual chapter page. */
-  chapterInfo: { postTitle: string; postUrl: string; chapterTitle: string; chapterNumber: number; chapterDescription: string | null } | null;
-}) {
-  // Real gap fixed here (SEO_FIXES.md #2, same fallback as
-  // buildPostMetadata above): a post with no featured image had no
-  // "image" field in its Article JSON-LD at all — Google's own
-  // structured-data guidelines call out image as recommended for the
-  // rich-result eligibility this schema exists to earn in the first
-  // place.
-  const imageUrl = post.bannerPath ? resolveMediaUrl(post.bannerPath) : siteConfig.seoDefaultImage;
-  const absoluteImageUrl = imageUrl ? new URL(imageUrl, siteConfig.siteUrl).toString() : undefined;
-  const articleSchema = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: post.title,
-    // Same fix as the page description above: never the private FB
-    // caption. For a chapter this is the chapter's own text, so each
-    // chapter describes itself rather than repeating the parent story.
-    description:
-      chapterInfo?.chapterDescription?.trim() ||
-      post.metaDescription?.trim() ||
-      undefined,
-    image: absoluteImageUrl ? [absoluteImageUrl] : undefined,
-    datePublished: post.date ? new Date(post.date).toISOString() : undefined,
-    dateModified: post.updatedAt ? new Date(post.updatedAt).toISOString() : undefined,
-    author: { "@type": "Person", name: post.authorName },
-    publisher: {
-      "@type": "Organization",
-      name: siteConfig.siteName,
-      ...(siteConfig.siteLogoAbsolute ? { logo: { "@type": "ImageObject", url: siteConfig.siteLogoAbsolute } } : {}),
+    title: { absolute: title },
+    description: desc,
+    keywords: post.metaKeywords?.trim() || post.seo.focusKeyword || undefined,
+    alternates: { canonical },
+    robots: post.seo.noindex ? { index: false, follow: true } : undefined,
+    openGraph: {
+      type: "article",
+      title: post.seo.ogTitle || post.title,
+      description: desc,
+      url: canonical,
+      siteName: ctx.siteName,
+      images: imageUrl ? [{ url: imageUrl, width: 1200, height: 675, alt: post.bannerAlt || post.title }] : undefined,
+      publishedTime: published,
+      modifiedTime: post.updatedAt ? new Date(post.updatedAt).toISOString() : published,
+      authors: [post.authorName],
+      section: post.categoryName,
+      tags: post.tags.map((t) => t.name),
     },
-    mainEntityOfPage: { "@type": "WebPage", "@id": new URL(canonicalPath, siteConfig.siteUrl).toString() },
+    twitter: {
+      card: imageUrl ? "summary_large_image" : "summary",
+      title: post.seo.ogTitle || post.title,
+      description: desc,
+      images: imageUrl ? [imageUrl] : undefined,
+      site: seo.twitter_username ? `@${seo.twitter_username.replace(/^@/, "")}` : undefined,
+    },
   };
-
-  const faqSchema =
-    faq.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faq.map((item) => ({
-            "@type": "Question",
-            name: item.q,
-            acceptedAnswer: { "@type": "Answer", text: item.a },
-          })),
-        }
-      : null;
-
-  const breadcrumbSchema = chapterInfo
-    ? {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          { "@type": "ListItem", position: 1, name: chapterInfo.postTitle, item: new URL(chapterInfo.postUrl, siteConfig.siteUrl).toString() },
-          { "@type": "ListItem", position: 2, name: `Chapter ${chapterInfo.chapterNumber}: ${chapterInfo.chapterTitle}`, item: new URL(canonicalPath, siteConfig.siteUrl).toString() },
-        ],
-      }
-    : null;
-
-  // Combine whichever schemas actually apply into a single @graph — a
-  // page can validly carry multiple structured-data types at once, and
-  // @graph is schema.org's own documented way to do that in one script
-  // tag rather than needing a separate <script> per type.
-  const graph = [articleSchema, faqSchema, breadcrumbSchema].filter(Boolean);
-  const jsonLd = graph.length > 1 ? { "@context": "https://schema.org", "@graph": graph } : graph[0];
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />;
 }
 
-/**
- * Renders the post/chapter reader. `chapter === 0` is the intro page
- * (plain post content, or the pre-chapter-1 intro block when the post has
- * chapters). Ports the core structure of post.php's chapter-resolution
- * branch: intro-empty → redirect to chapter 1; invalid chapter number →
- * 404; otherwise render that chapter's slice of content.
- */
-export async function PostReader({
-  slug,
-  chapter,
-  preview = false,
-}: {
-  slug: string;
-  chapter: number;
-  preview?: boolean;
-}) {
+const longDate = (d: Date | null) =>
+  d ? new Date(d).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+const shortDate = (d: Date | null) => (d ? new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "");
+
+function GoogleG() {
+  return (
+    <svg viewBox="-3 0 262 262" aria-hidden="true">
+      <path fill="#4285F4" d="M255.878,133.451 C255.878,122.717 255.007,114.884 253.122,106.761 L130.55,106.761 L130.55,155.209 L202.497,155.209 C201.047,167.249 193.214,185.381 175.807,197.565 L175.563,199.187 L214.318,229.21 L217.003,229.478 C241.662,206.704 255.878,173.196 255.878,133.451" />
+      <path fill="#34A853" d="M130.55,261.1 C165.798,261.1 195.389,249.495 217.003,229.478 L175.807,197.565 C164.783,205.253 149.987,210.62 130.55,210.62 C96.027,210.62 66.726,187.847 56.281,156.37 L54.75,156.5 L14.452,187.687 L13.925,189.152 C35.393,231.798 79.49,261.1 130.55,261.1" />
+      <path fill="#FBBC05" d="M56.281,156.37 C53.525,148.247 51.93,139.543 51.93,130.55 C51.93,121.556 53.525,112.853 56.136,104.73 L56.063,103 L15.26,71.312 L13.925,71.947 C5.077,89.644 0,109.517 0,130.55 C0,151.583 5.077,171.455 13.925,189.152 L56.281,156.37" />
+      <path fill="#EB4335" d="M130.55,50.479 C155.064,50.479 171.6,61.068 181.029,69.917 L217.873,33.943 C195.245,12.91 165.798,0 130.55,0 C79.49,0 35.393,29.301 13.925,71.947 L56.136,104.73 C66.726,73.253 96.027,50.479 130.55,50.479" />
+    </svg>
+  );
+}
+
+function GoogleNewsIcon() {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#0c9d58" d="M10 7v24c0 1.1.9 2 2 2h24c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2H12c-1.1 0-2 .9-2 2z" />
+      <path fill="#ea4335" d="M22.5 10.8 16.7 31.9c-.3 1 .3 2 1.3 2.3l20.9 5.8c1 .3 2-.3 2.3-1.3l5.8-21.1c.3-1-.3-2-1.3-2.3L24.8 9.5c-1-.3-2 .3-2.3 1.3z" />
+      <path fill="#fbbc04" d="m1.1 18 7.5 20.5c.3 1 1.4 1.4 2.3 1.1l23.4-8.5c.9-.3 1.4-1.4 1.1-2.3L27.9 8.2c-.3-.9-1.4-1.4-2.3-1.1L2.2 15.6c-.9.4-1.4 1.4-1.1 2.4z" />
+      <path fill="#4285f4" d="M6 17v24c0 1.1.9 2 2 2h32c1.1 0 2-.9 2-2V17c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2z" />
+      <path fill="#fff" d="M25 25v-3h10c.6 0 1 .4 1 1v1c0 .6-.4 1-1 1H25zm0 5v-3h12c.6 0 1 .4 1 1v1c0 .6-.4 1-1 1H25zm0 5v-3h10c.6 0 1 .4 1 1v1c0 .6-.4 1-1 1H25zM10 28.5a6.5 6.5 0 0 1 11.1-4.6L19 26a3.5 3.5 0 1 0 1 3.5h-3v-1.5h6v.5a6.5 6.5 0 1 1-13 0z" />
+    </svg>
+  );
+}
+
+function PreferredSourceButton({ host, compact = false }: { host: string; compact?: boolean }) {
+  return (
+    <a
+      className={`post-action-pill nb-pref-source${compact ? " nb-pref-source--card" : ""}`}
+      href={`https://www.google.com/preferences/source?q=${encodeURIComponent(host)}`}
+      target="_blank"
+      rel="noopener nofollow"
+    >
+      <span className="pill-icon-google">
+        <GoogleG />
+      </span>
+      <span className="pill-text">
+        <span>Add as a preferred</span>
+        <span>source on Google</span>
+      </span>
+      {compact && (
+        <span className="nb-pref-gn">
+          <GoogleNewsIcon />
+        </span>
+      )}
+    </a>
+  );
+}
+
+function Avatar({ src, name, size, className }: { src: string; name: string; size: number; className?: string }) {
+  return src ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img className={className} src={src} alt={name} width={size} height={size} loading="lazy" decoding="async" />
+  ) : (
+    <span className={`nb-avatar-fallback ${className ?? ""}`} style={{ width: size, height: size }} aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4.2" fill="currentColor" />
+        <path d="M3.5 21c.8-4.4 4.2-7 8.5-7s7.7 2.6 8.5 7" fill="currentColor" />
+      </svg>
+    </span>
+  );
+}
+
+export async function PostReader({ slug, preview = false }: { slug: string; preview?: boolean }) {
   const post = await getPostBySlug(slug, preview);
   if (!post) {
-    // An old link to a static page at /<slug> (it lives at /page/<slug>) — send it there for good.
     const page = await prisma.page.findFirst({ where: { slug, status: "published" }, select: { slug: true } });
     if (page) permanentRedirect(staticPagePath(page.slug));
     notFound();
   }
 
-  const pt = await getPostTemplateSettings();
-  // Master "chapters" toggle — ports $_chapters_feature_on in post.php:
-  // when off, every post is single-page even if its content has <h1>
-  // boundaries (chapter routes 404 instead of resolving).
-  const parsedRaw = parseChaptersFromContent(post.content);
-  const parsed = pt.chapters ? parsedRaw : { hasChapters: false, introHtml: "", chapters: [], total: 0 };
-  const { hasChapters, chapters, total: totalChapters } = parsed;
+  const [ctx, seo] = await Promise.all([getSiteContext(), getSeoSettings()]);
+  const pt = ctx.theme.post;
+  let host = ctx.siteUrl;
+  try {
+    host = new URL(ctx.siteUrl).host;
+  } catch {}
 
-  let contentHtml: string;
-  let chapterTitle: string | null = null;
+  // Body: shortcodes → heading ids (TOC + reading progress) → "Also Read" cards → ads.
+  const withIds = addHeadingIds(applyShortcodes(post.content, ctx.sc));
+  let contentHtml = withIds.html;
+  const headings = withIds.headings;
+  const readingMinutes = estimateReadingMinutes(stripTags(contentHtml));
 
-  if (hasChapters) {
-    if (chapter === 0) {
-      const introPlain = stripTags(parsed.introHtml).replace(/[\s\u00A0]+/g, "");
-      if (introPlain === "") {
-        redirect(chapterUrl(slug, 1));
-      }
-      contentHtml = parsed.introHtml;
-    } else {
-      if (chapter < 1 || chapter > totalChapters) notFound();
-      const ch = chapters[chapter - 1];
-      contentHtml = ch.contentHtml;
-      chapterTitle = ch.title;
-    }
-  } else {
-    if (chapter > 0) notFound();
-    contentHtml = post.content;
+  const alsoSlots = parseParagraphList(pt.also_read_after);
+  const alsoPer = Math.max(1, Math.min(6, pt.also_read_count));
+  const [related, alsoPosts] = await Promise.all([
+    pt.related ? getRelatedPosts(post.categoryId, post.id, Math.max(1, Math.min(12, pt.related_count))) : Promise.resolve([]),
+    pt.also_read && alsoSlots.length ? getAlsoReadPosts(pt.also_read_source, post.categoryId, post.id, alsoPer * alsoSlots.length) : Promise.resolve([]),
+  ]);
+
+  if (alsoPosts.length) {
+    const paragraphs = (contentHtml.match(/<p[\s>]/gi) ?? []).length;
+    // Insert from the last slot backwards so earlier paragraph numbers stay valid.
+    alsoSlots
+      .map((n, i) => ({ n, posts: alsoPosts.slice(i * alsoPer, i * alsoPer + alsoPer) }))
+      .filter((s) => s.n <= paragraphs && s.posts.length)
+      .reverse()
+      .forEach((s) => {
+        const html = s.posts.map((p) => alsoReadHtml(p, pt.also_read_style, pt.also_read_label, ctx.siteName)).join("");
+        contentHtml = injectAfterParagraph(contentHtml, s.n, html);
+      });
   }
 
-  const readingMinutes = estimateReadingMinutes(stripTags(contentHtml));
-  const pubDate = post.date
-    ? new Date(post.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : "";
-
-  const relatedPosts = await getRelatedPosts(post.categoryId, post.id, 4);
-  const siteConfig = await resolveSiteConfig("");
-
-  // Real gap fixed here: this used to treat EVERY enabled block as if
-  // its insertion type were always "after_paragraph", ignoring the
-  // other 9 insertion-point choices (before_post/before_content/
-  // after_content/after_post/before_comments/after_comments/footer)
-  // and ignoring each block's own page-type targeting (`pages`)
-  // entirely — a block explicitly configured for, say, "Homepage" only
-  // would still render on every post page regardless. Now uses the
-  // shared getAdHtmlFor()/getParagraphAdBlocks() helpers (see
-  // lib/adRendering.ts) that respect both, matching each block's real
-  // configured page + insertion-point combination.
-  const [adBeforePost, adBeforeContent, adAfterContent, adAfterPost, adBeforeComments, adAfterComments, adBeforeFeaturedImage, adAfterFeaturedImage, adParagraphBlocks] =
+  const [adBeforePost, adBeforeContent, adAfterContent, adAfterPost, adBeforeComments, adAfterComments, adBeforeImg, adAfterImg, adBeforePara, adAfterPara, adFooter] =
     await Promise.all([
       getAdHtmlFor("post", "before_post"),
       getAdHtmlFor("post", "before_content"),
@@ -279,351 +180,323 @@ export async function PostReader({
       getAdHtmlFor("post", "before_featured_image"),
       getAdHtmlFor("post", "after_featured_image"),
       getParagraphAdBlocks("post", "before_paragraph"),
+      getParagraphAdBlocks("post", "after_paragraph"),
+      getAdHtmlFor("post", "footer"),
     ]);
-  const adFooter = await getAdHtmlFor("post", "footer");
-  const adAfterParagraphBlocks = await getParagraphAdBlocks("post", "after_paragraph");
-
-  for (const { paragraph, html } of adParagraphBlocks) {
-    contentHtml = injectBeforeParagraph(contentHtml, paragraph, html);
-  }
-  for (const { paragraph, html } of adAfterParagraphBlocks) {
-    contentHtml = injectAfterParagraph(contentHtml, paragraph, html);
-  }
+  for (const { paragraph, html } of adBeforePara) contentHtml = injectBeforeParagraph(contentHtml, paragraph, html);
+  for (const { paragraph, html } of adAfterPara) contentHtml = injectAfterParagraph(contentHtml, paragraph, html);
   if (adBeforeContent) contentHtml = adBeforeContent + contentHtml;
-  // Real positioning bug fixed here, per explicit request: the
-  // "after content" ad used to be concatenated onto the end of
-  // contentHtml, which put it ABOVE the previous/next chapter buttons —
-  // burying the one control a reader mid-story is actually looking for
-  // behind an ad unit. It now renders as its own slot BELOW that
-  // navigation (see further down), so the chapter buttons stay
-  // immediately visible at the end of the text and the ad follows them.
-
-  // "You may also like" — a compact inline block of related-post links
-  // injected after paragraph N, matching _build_may_you_like_html() +
-  // _inject_after_paragraph() in post.php.
-  if (pt.may_you_like && relatedPosts.length > 0) {
-    const mayLikePosts = relatedPosts.slice(0, pt.may_you_like_count);
-    const mayLikeHtml = `<div class="pst-may-like"><strong>You may also like:</strong><ul>${mayLikePosts
-      .map((rp) => `<li><a href="${postUrl(rp.slug)}">${rp.title}</a></li>`)
-      .join("")}</ul></div>`;
-    contentHtml = injectAfterParagraph(contentHtml, pt.may_you_like_after_paragraph, mayLikeHtml);
-  }
 
   let faq: { q: string; a: string }[] = [];
-  if (post.faqJson) {
-    try {
-      const parsedFaq = JSON.parse(post.faqJson);
-      if (Array.isArray(parsedFaq)) faq = parsedFaq;
-    } catch {
-      // malformed faq_json — skip rendering rather than crash the page
-    }
-  }
+  try {
+    const parsed = post.faqJson ? JSON.parse(post.faqJson) : [];
+    if (Array.isArray(parsed)) faq = parsed.filter((f) => f && f.q);
+  } catch {}
 
-  const postFullTitle = chapterTitle ? `${chapterTitle} — ${post.title}` : post.title;
-  const fullPostUrl = `${siteConfig.siteUrl.replace(/\/+$/, "")}${chapter > 0 ? chapterUrl(slug, chapter) : postUrl(slug)}`;
-  const showSidebar = pt.sidebar && (pt.sidebar_latest || pt.sidebar_trending);
+  const fullUrl = `${ctx.siteUrl.replace(/\/+$/, "")}${postUrl(post.slug)}`;
+  const authorImg = post.authorProfileImage ? optimizedImage(post.authorProfileImage, 128) : "";
+  const schema = buildPostSchema({ post, ctx, seo, faq: pt.faq ? faq : [], url: fullUrl, description: description(post) });
+  const card = pt.design === "card";
+  const joinUrl = pt.pill_join_url || pt.join_whatsapp_url;
+  const metaDate = pt.show_updated_date ? post.updatedAt ?? post.date : post.date;
+  const authorLink = post.authorSlug ? <a href={authorUrl(post.authorSlug)}>{post.authorName}</a> : post.authorName;
+  const authorSocials = (
+    [
+      ["instagram", post.authorSocials.instagram],
+      ["threads", post.authorSocials.threads],
+      ["linkedin", post.authorSocials.linkedin],
+      ["facebook", post.authorSocials.facebook],
+      ["x", post.authorSocials.twitter],
+    ] as const
+  ).filter(([, u]) => u);
 
   return (
-    <>
-      <PostJsonLd
-        post={{
-          title: post.title,
-          date: post.date,
-          updatedAt: post.updatedAt,
-          authorName: post.authorName,
-          bannerPath: post.bannerPath,
-          bannerAlt: post.bannerAlt,
-          metaDescription: post.metaDescription,
-          fbDescription: post.fbDescription,
-        }}
-        siteConfig={siteConfig}
-        canonicalPath={chapter > 0 ? chapterUrl(slug, chapter) : postUrl(slug)}
-        faq={faq}
-        chapterInfo={
-          hasChapters && chapter > 0 && chapterTitle
-            ? {
-                postTitle: post.title,
-                postUrl: postUrl(slug),
-                chapterTitle,
-                chapterNumber: chapter,
-                // Each chapter is its own page, so it gets its own
-                // description from its own text rather than repeating the
-                // parent story's — previously every chapter shared one
-                // description, which reads as duplicate content.
-                chapterDescription: stripTags(contentHtml).slice(0, 160) || null,
-              }
-            : null
-        }
-      />
-      <main className={`pst-layout${showSidebar ? " pst-layout--with-sidebar" : ""}`}>
-    <div
-      className="pst-wrap"
-      style={
-        {
-          "--pt-title-size": `${pt.font_title}px`,
-          "--pt-h2-size": `${pt.font_h2}px`,
-          "--pt-h3-size": `${pt.font_h3}px`,
-          "--pt-h4-size": `${pt.font_h4}px`,
-          "--pt-h5-size": `${pt.font_h5}px`,
-          "--pt-h6-size": `${pt.font_h6}px`,
-          "--pt-p-size": `${pt.font_p}px`,
-          "--pt-breadcrumb-size": `${pt.breadcrumb_font_size}px`,
-        } as React.CSSProperties
-      }
-    >
-      {/* Real bugs fixed here, verified against the actual post.php:
-          1. The post-title link before "Chapter N of M" was missing
-             entirely — only the small "Chapter N of M" text showed,
-             with no way to click back to the post from a chapter page.
-          2. The H1 below used to show `postFullTitle` (chapter title +
-             " — " + post title combined) — that combined form is only
-             ever used for the <title>/meta tags and ShareButtons in the
-             reference, never as the visible on-page heading. The visible
-             H1 on a chapter page is the chapter's OWN title alone. */}
-      {pt.breadcrumb && hasChapters && chapter > 0 && (
-        <nav className="pst-bc pst-bc-chapter-row" aria-label="Breadcrumb">
-          <Link prefetch={false} href={postUrl(slug)}>{post.title}</Link>{" "}
-          <span className="pst-bc-sep">&middot;</span>{" "}
-          <span className="pst-bc-chapter">
-            Chapter {chapter} of {totalChapters}
-          </span>
-        </nav>
-      )}
-      {hasChapters && chapter > 0 && (
-        <div className="chapter-progress-bar-container">
-          <div className="chapter-progress-bar" style={{ width: `${(chapter / totalChapters) * 100}%` }} />
-        </div>
-      )}
+    <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
+      <div className="container">
+        <article className={`single-post nb-post nb-post--${pt.design}`}>
+          <div className={`post-layout${pt.sidebar ? "" : " nb-no-sidebar"}`}>
+            <div className="post-main">
+              {adBeforePost && <AdminHtml html={adBeforePost} className="ad-slot ad-slot--before-post" allowFrame />}
 
-      {adBeforePost && <AdminHtml html={adBeforePost} className="ad-slot ad-slot--before-post" allowFrame />}
-
-      {/* Real gap fixed here: the reference shows a centered "date ·
-          N CHAPTERS" hero line above the title on a chaptered post's
-          intro page (chapter === 0), plus a "Read from start" button
-          right below the title — both entirely missing previously. */}
-      {hasChapters && chapter === 0 ? (
-        <div className="pst-story-hero">
-          <div className="pst-bc pst-story-hero-meta">
-            <time dateTime={post.date ? new Date(post.date).toISOString().slice(0, 10) : undefined}>{pubDate.toUpperCase()}</time>
-            <span className="pst-story-hero-dot" aria-hidden="true">
-              &middot;
-            </span>
-            <span>
-              {totalChapters} CHAPTER{totalChapters !== 1 ? "S" : ""}
-            </span>
-          </div>
-          <h1 className="pst-title pst-story-hero-title">
-            {post.title}
-          </h1>
-        </div>
-      ) : (
-        <h1 className="pst-title">
-          {hasChapters && chapter > 0 ? chapterTitle : postFullTitle}
-        </h1>
-      )}
-
-      {/* Real gap fixed here: this project had one banner-display path
-          for chapter pages (Phase 57), but completely missed this
-          SEPARATE one — the reference has a dedicated intro-page banner,
-          controlled by its own "intro_thumbnail" toggle, shown ONLY on
-          chapter===0 when that setting is on: `$show_intro_banner =
-          $chapter === 0 && $banner_src && !empty($_pt['intro_thumbnail'])`.
-          This is why enabling "Show banner image on intro page" in Post
-          Template Settings had no visible effect at all — this code path
-          simply didn't exist yet, regardless of the toggle's value. */}
-      {hasChapters && chapter === 0 && pt.intro_thumbnail && post.bannerPath && (
-        <>
-          {adBeforeFeaturedImage && <AdminHtml html={adBeforeFeaturedImage} className="ad-slot ad-slot--before-featured-image" allowFrame />}
-          <div className="pst-featured-img-wrap pst-intro-featured-img-wrap">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={optimizedImage(post.bannerPath, 828)}
-              srcSet={imageSrcSet(post.bannerPath, [640, 828, 1080, 1200])}
-              sizes="(max-width: 840px) 100vw, 800px"
-              alt={post.bannerAlt ?? post.title}
-              className="pst-featured-img pst-intro-featured-img"
-              width={800}
-              height={450}
-              fetchPriority="high"
-            />
-          </div>
-          {adAfterFeaturedImage && <AdminHtml html={adAfterFeaturedImage} className="ad-slot ad-slot--after-featured-image" allowFrame />}
-        </>
-      )}
-
-      {hasChapters && chapter === 0 && (
-        <div className="pst-read-from-start-wrap">
-          <Link prefetch={false} href={chapterUrl(slug, 1)} className="read-from-start-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-            </svg>
-            Read from start
-          </Link>
-        </div>
-      )}
-      {/* Real bug fixed here — the actual root cause of the mobile
-          Chapters button not showing, found by a session with a
-          different AI tool (Manus AI) working directly on the live
-          site: ChapterListDrawer used to be nested INSIDE this
-          `pt.post_meta &&` block. If the "Post Meta" toggle in Post
-          Template Settings was off, the ENTIRE block — including the
-          chapter button, which has nothing to do with post meta at all
-          — never rendered, full stop. All the CSS/JS positioning work
-          in earlier phases was investigating a symptom that couldn't
-          actually be the cause here: the component wasn't in the DOM
-          to begin with. Moved to render unconditionally on
-          `hasChapters`, independent of the post_meta toggle. */}
-      {pt.post_meta && (
-        <div className="pst-meta">
-          {post.authorSlug && <Link prefetch={false} href={authorUrl(post.authorSlug)}>{post.authorName}</Link>}
-          <span>{pubDate}</span>
-          <span>{readingMinutes} min read</span>
-          <Link prefetch={false} href={categoryUrl(post.categorySlug)}>{post.categoryName}</Link>
-        </div>
-      )}
-      {hasChapters && <ChapterListDrawer slug={slug} chapters={chapters} currentChapter={chapter} />}
-
-      {/* Real bug fixed here: this condition was backwards — it only
-          showed the featured image on the INTRO page (chapter === 0)
-          and skipped it on every actual chapter, when the reference
-          does the exact opposite: `$skip_inline_banner = ($has_chapters
-          && $chapter === 0)`, i.e. skip ONLY on the intro page, and
-          show it prepended to the content on every real chapter (and
-          on non-chaptered single-page posts, which never skip at all).
-          Matches the reference's .pst-img-wrap class (with its shimmer/
-          loading-placeholder styling) instead of the unrelated
-          .pst-banner class used here before. */}
-      {post.bannerPath && !(hasChapters && chapter === 0) && (
-        <>
-          {adBeforeFeaturedImage && <AdminHtml html={adBeforeFeaturedImage} className="ad-slot ad-slot--before-featured-image" allowFrame />}
-          <div className="pst-img-wrap loaded">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={optimizedImage(post.bannerPath, 828)}
-              srcSet={imageSrcSet(post.bannerPath, [640, 828, 1080, 1200])}
-              sizes="(max-width: 840px) 100vw, 800px"
-              alt={post.bannerAlt ?? post.title}
-              width={800}
-              height={450}
-              fetchPriority="high"
-            />
-          </div>
-          {adAfterFeaturedImage && <AdminHtml html={adAfterFeaturedImage} className="ad-slot ad-slot--after-featured-image" allowFrame />}
-        </>
-      )}
-
-      {/* No featured image on this page: its ad slots still show, at the spot where the image would be. */}
-      {!(hasChapters && chapter === 0 && pt.intro_thumbnail && post.bannerPath) && !(post.bannerPath && !(hasChapters && chapter === 0)) && (
-        <>
-          {adBeforeFeaturedImage && <AdminHtml html={adBeforeFeaturedImage} className="ad-slot ad-slot--before-featured-image" allowFrame />}
-          {adAfterFeaturedImage && <AdminHtml html={adAfterFeaturedImage} className="ad-slot ad-slot--after-featured-image" allowFrame />}
-        </>
-      )}
-
-      {/* Author-authored HTML from the post editor — same trust model as
-          the original PHP, which echoed post content directly. Also
-          carries any in-content Ad Inserter blocks injected via
-          injectAfterParagraph()/injectBeforeParagraph() above (before/
-          after paragraph N, before/after content) — AdminHtml (not
-          allowFrame, matching Global Header/Footer/Code Snippets) makes
-          any <script> tags in either the post body or an injected ad
-          block actually execute. */}
-      <AdminHtml html={contentHtml} className="entry-content" />
-
-      {hasChapters && chapter === 0 && pt.read_from_start && <ChapterStartNav slug={slug} chapters={chapters} />}
-      {hasChapters && chapter > 0 && (
-        <ChapterNav slug={slug} postTitle={post.title} chapters={chapters} chapter={chapter} />
-      )}
-
-      {/* "After content" ad — deliberately rendered here, AFTER the
-          chapter navigation above, not appended to the end of the post
-          body. See the comment where adAfterContent is fetched. */}
-      {adAfterContent && <AdminHtml html={adAfterContent} className="ad-slot ad-slot--after-content" allowFrame />}
-
-      {faq.length > 0 && (
-        <div className="pst-faq">
-          <h2 className="pst-faq-h">Frequently Asked Questions</h2>
-          {faq.map((item, i) => (
-            <div className="pst-faq-item" key={i}>
-              <div className="pst-faq-q">{item.q}</div>
-              <div className="pst-faq-a">{item.a}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {pt.related_posts && relatedPosts.length > 0 && (
-        <div className="pst-related">
-          <h2 className="section-heading">You may also like</h2>
-          <div className="post-grid">
-            {relatedPosts.map((rp) => (
-              <article className="post-card" key={rp.id}>
-                <Link prefetch={false} href={postUrl(rp.slug)} className="post-card-link">
-                  {rp.bannerPath && (
-                    <div className="post-banner">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={optimizedImage(rp.bannerPath, 640)} srcSet={imageSrcSet(rp.bannerPath, [384, 640])} sizes="(max-width: 700px) 100vw, 320px" alt={rp.title} loading="lazy" decoding="async" width={640} height={360} />
+              {card ? (
+                <header className="nb-head-card">
+                  {pt.category_badge && (
+                    <a className="nb-head-cat" href={categoryUrl(post.categorySlug)}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
+                      </svg>
+                      {post.categoryName}
+                    </a>
+                  )}
+                  <h1 className="entry-title">{post.title}</h1>
+                  <div className="nb-head-meta">
+                    {pt.meta_row && (
+                      <div className="nb-head-author">
+                        <Avatar src={authorImg} name={post.authorName} size={40} />
+                        <div>
+                          <div className="nb-head-by">
+                            By {authorLink} <VerifiedIcon />
+                          </div>
+                          <time className="nb-head-date" dateTime={metaDate ? new Date(metaDate).toISOString() : undefined}>
+                            {shortDate(metaDate)}
+                          </time>
+                        </div>
+                      </div>
+                    )}
+                    {pt.pill_preferred_source && <PreferredSourceButton host={host} compact />}
+                  </div>
+                </header>
+              ) : (
+                <>
+                  {pt.breadcrumb && (
+                    <nav className="breadcrumbs rank-math-breadcrumb" aria-label="Breadcrumb">
+                      <p>
+                        <a href="/">Home</a>
+                        <span className="separator"> » </span>
+                        <a href={categoryUrl(post.categorySlug)}>{post.categoryName}</a>
+                        <span className="separator"> » </span>
+                        <span className="last">{post.title}</span>
+                      </p>
+                    </nav>
+                  )}
+                  {pt.category_badge && (
+                    <div className="post-cat-badges">
+                      <a className="post-cat-badge" href={categoryUrl(post.categorySlug)}>
+                        {post.categoryName}
+                      </a>
                     </div>
                   )}
-                  <div className="post-card-content">
-                    <h3 className="post-card-title">{rp.title}</h3>
+                  <h1 className="entry-title">{post.title}</h1>
+                  {pt.meta_row && (
+                    <div className="post-meta-row">
+                      <div className="post-meta-author">
+                        <Avatar src={authorImg} name={post.authorName} size={40} />
+                        <div>
+                          <div className="post-meta-by">By {authorLink}</div>
+                          <div className="post-meta-date">On:&nbsp;{longDate(metaDate)}</div>
+                        </div>
+                      </div>
+                      <div className="post-action-pills">
+                        {pt.pill_join && joinUrl && (
+                          <a className="post-action-pill" href={joinUrl} target="_blank" rel="noopener nofollow">
+                            <span className="pill-icon-wa">
+                              <SocialIcon network="whatsapp" className="nb-pill-ico" />
+                            </span>
+                            {pt.pill_join_label}
+                          </a>
+                        )}
+                        {pt.pill_follow && pt.pill_follow_url && (
+                          <a className="post-action-pill" href={pt.pill_follow_url} target="_blank" rel="noopener nofollow">
+                            <span className="pill-icon-news">
+                              <GoogleNewsIcon />
+                            </span>
+                            {pt.pill_follow_label}
+                          </a>
+                        )}
+                        {pt.pill_preferred_source && <PreferredSourceButton host={host} />}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {adBeforeImg && <AdminHtml html={adBeforeImg} className="ad-slot ad-slot--before-featured-image" allowFrame />}
+              {pt.featured_image && post.bannerPath && (
+                <figure className="nb-featured">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={optimizedImage(post.bannerPath, 828)}
+                    srcSet={imageSrcSet(post.bannerPath, [640, 828, 1080, 1200])}
+                    sizes="(max-width: 860px) 100vw, 815px"
+                    alt={post.bannerAlt ?? post.title}
+                    className="post-featured-img"
+                    width={1280}
+                    height={720}
+                    fetchPriority="high"
+                    decoding="async"
+                  />
+                  {pt.featured_caption && post.bannerAlt && <figcaption className="post-featured-caption">{post.bannerAlt}</figcaption>}
+                </figure>
+              )}
+              {adAfterImg && <AdminHtml html={adAfterImg} className="ad-slot ad-slot--after-featured-image" allowFrame />}
+
+              {pt.summary && post.summary.trim() && (
+                <section className="nb-summary" aria-label={pt.summary_title}>
+                  <h2 className="nb-summary-title">{pt.summary_title}</h2>
+                  <div className="nb-summary-text">{applyShortcodesText(post.summary, ctx.sc)}</div>
+                </section>
+              )}
+
+              {pt.key_points && post.keyPoints.length > 0 && (
+                <section className={`nb-keypoints nb-keypoints--${pt.key_points_style}`} aria-label={pt.key_points_title}>
+                  <h2 className="nb-keypoints-title">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="currentColor" d="M9 21h6v-1H9v1Zm3-19a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2Z" />
+                    </svg>
+                    {pt.key_points_title}
+                  </h2>
+                  {pt.key_points_style === "number" ? (
+                    <ol>
+                      {post.keyPoints.map((k, i) => (
+                        <li key={i}>{applyShortcodesText(k, ctx.sc)}</li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <ul>
+                      {post.keyPoints.map((k, i) => (
+                        <li key={i}>{applyShortcodesText(k, ctx.sc)}</li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
+
+              {pt.toc && headings.length > 1 && (
+                <details className="toc nb-toc" open={!pt.toc_collapsed}>
+                  <summary>
+                    <span>{pt.toc_title}</span>
+                    <span className="nb-toc-toggle" aria-hidden="true" />
+                  </summary>
+                  <ol>
+                    {headings
+                      .filter((h) => h.level <= 3)
+                      .map((h) => (
+                        <li key={h.id} className={h.level === 3 ? "nb-toc-sub" : undefined}>
+                          <a href={`#${h.id}`}>{h.text}</a>
+                        </li>
+                      ))}
+                  </ol>
+                </details>
+              )}
+
+              <RichContent html={contentHtml} className="content entry-content" />
+
+              {adAfterContent && <AdminHtml html={adAfterContent} className="ad-slot ad-slot--after-content" allowFrame />}
+
+              {pt.faq && faq.length > 0 && (
+                <div className="pst-faq-cont">
+                  <h2 className="pst-faq-h">Frequently Asked Questions</h2>
+                  {faq.map((item, i) => (
+                    <details className="w" key={i}>
+                      <summary className="q">
+                        {item.q}
+                        <svg className="sp" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </summary>
+                      <div className="a">
+                        <p>{item.a}</p>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+
+              {pt.tags && post.tags.length > 0 && (
+                <div className="post-tags wplt-tag-badges">
+                  {post.tags.map((t) => (
+                    <a key={t.id} href={tagUrl(t.slug, t.id)} className="tag-link wplt-tag-badge">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="none" stroke="currentColor" strokeWidth="2" d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.59-4.58a2 2 0 0 0 0-2.83z" />
+                      </svg>
+                      {t.name}
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {pt.share_buttons && <ShareButtons url={fullUrl} title={post.title} />}
+
+              {pt.author_box && (
+                <div className="author-bio">
+                  <Avatar src={authorImg} name={post.authorName} size={100} className="author-bio-avatar" />
+                  <div className="author-bio-content">
+                    <h3>
+                      {authorLink}
+                      <span className="author-verified" aria-label="Verified author">
+                        ✓
+                      </span>
+                    </h3>
+                    {post.authorBio && <p>{stripTags(post.authorBio).trim()}</p>}
+                    {authorSocials.length > 0 && (
+                      <nav className="author-socials" aria-label={`${post.authorName} social profiles`}>
+                        {authorSocials.map(([n, u]) => (
+                          <a key={n} className="author-social-link" href={u!} target="_blank" rel="noopener nofollow" aria-label={n}>
+                            <SocialIcon network={n} className="nb-author-ico" />
+                          </a>
+                        ))}
+                      </nav>
+                    )}
                   </div>
-                </Link>
-              </article>
-            ))}
+                </div>
+              )}
+
+              {pt.join_boxes && (pt.join_whatsapp_url || pt.join_telegram_url) && (
+                <div className="post-join-boxes">
+                  {pt.join_whatsapp_url && (
+                    <div className="post-join-box post-join-wa">
+                      <h2>
+                        <SocialIcon network="whatsapp" className="nb-join-ico" />
+                        Join WhatsApp
+                      </h2>
+                      <a className="post-join-btn" href={pt.join_whatsapp_url} target="_blank" rel="noopener nofollow">
+                        Join Now
+                      </a>
+                    </div>
+                  )}
+                  {pt.join_telegram_url && (
+                    <div className="post-join-box post-join-tg">
+                      <h2>
+                        <SocialIcon network="telegram" className="nb-join-ico" />
+                        Join Telegram
+                      </h2>
+                      <a className="post-join-btn" href={pt.join_telegram_url} target="_blank" rel="noopener nofollow">
+                        Join Now
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {adAfterPost && <AdminHtml html={adAfterPost} className="ad-slot ad-slot--after-post" allowFrame />}
+
+              {pt.related && related.length > 0 && (
+                <section className="more-posts-section">
+                  <h2 className="more-posts-header">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                    {pt.related_title}
+                  </h2>
+                  <div className="more-posts-grid">
+                    {related.map((r) => (
+                      <a href={postUrl(r.slug)} className="more-posts-item" key={r.id}>
+                        {r.bannerPath && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={optimizedImage(r.bannerPath, 384)} alt={r.title} loading="lazy" decoding="async" width={400} height={250} />
+                        )}
+                        <h3 className="more-posts-item-title">{r.title}</h3>
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {adBeforeComments && <AdminHtml html={adBeforeComments} className="ad-slot ad-slot--before-comments" allowFrame />}
+              {pt.comments && <CommentsSection postId={post.id} />}
+              {adAfterComments && <AdminHtml html={adAfterComments} className="ad-slot ad-slot--after-comments" allowFrame />}
+              {adFooter && <AdminHtml html={adFooter} className="ad-slot ad-slot--footer" allowFrame />}
+            </div>
+            {pt.sidebar && <TrendingSidebar excludeId={post.id} />}
           </div>
-        </div>
+        </article>
+      </div>
+      {pt.reading_progress && headings.some((h) => h.level === 2) && (
+        <ReadingProgress label={pt.reading_progress_label} minutes={readingMinutes} desktop={pt.reading_progress_desktop} />
       )}
-
-      {pt.author_box && post.authorBio && (
-        <div className="author-bio">
-          {post.authorProfileImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={optimizedImage(post.authorProfileImage, 128)} alt={post.authorName} width={64} height={64} loading="lazy" decoding="async" />
-          )}
-          <div>
-            <strong>{post.authorName}</strong>
-            <p>{post.authorBio}</p>
-          </div>
-        </div>
-      )}
-
-      {adAfterPost && <AdminHtml html={adAfterPost} className="ad-slot ad-slot--after-post" allowFrame />}
-
-      {/* Share buttons moved here, per explicit request: they used to sit
-          directly after the content, ABOVE the previous/next chapter
-          navigation — which pushed the chapter buttons (the thing a
-          reader mid-story actually wants next) further down the page.
-          The reference puts them just above the comments box instead,
-          which is also where they read as "you finished, now react to
-          it" rather than interrupting the read. */}
-      {pt.share_buttons && <ShareButtons url={fullPostUrl} title={postFullTitle} />}
-
-      {adBeforeComments && <AdminHtml html={adBeforeComments} className="ad-slot ad-slot--before-comments" allowFrame />}
-      {pt.comments_section && <CommentsSection postId={post.id} />}
-      {adAfterComments && <AdminHtml html={adAfterComments} className="ad-slot ad-slot--after-comments" allowFrame />}
-      {adFooter && <AdminHtml html={adFooter} className="ad-slot ad-slot--footer" allowFrame />}
-
-      {/* Real bug fixed here: this only ever rendered for posts WITH
-          detected chapters (hasChapters) — a plain single-page post
-          (no H1 chapter structure) never got a tracker at all, so its
-          views were never counted anywhere. Single-page posts now track
-          as "chapter 1" (the whole page counts as one unit for stats
-          purposes) — matching the track-view route's own updated
-          handling of hasChapters=false posts. */}
-      {!preview && <ChapterViewTracker postId={post.id} slug={slug} chapterNumber={hasChapters ? chapter : 1} />}
-      {preview && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, background: "#7c3aed", color: "#fff", textAlign: "center", padding: "8px", fontSize: "14px", fontWeight: 600, zIndex: 9999 }}>
-          Preview mode — this {post.date ? "post" : "content"} is not live yet
-        </div>
-      )}
-    </div>
-    {showSidebar && (
-      <PostSidebar pt={pt} excludePostId={post.id}>
-        {hasChapters && <DesktopTocSidebar slug={slug} title={post.title} chapters={chapters} currentChapter={chapter} />}
-      </PostSidebar>
-    )}
+      {!preview && <ViewTracker postId={post.id} slug={post.slug} />}
+      {preview && <div className="nb-preview-bar">Preview — this post is not live yet</div>}
     </main>
-    </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CommentNode } from "@/lib/comments";
 
 interface ApiCommentNode {
@@ -75,23 +75,26 @@ export function CommentsClient({
   }
 
   return (
-    <div className="blog-comments-section">
-      <div className="blog-comments-container">
-        {comments.map((c) => (
-          <CommentItem key={c.id} comment={c} depth={0} onReply={setReplyTo} />
-        ))}
-      </div>
-
-      {topLevelCount < total && (
-        <div className="load-more-btn-cont">
-          <button type="button" className="load-more-cmt-btn" onClick={loadMore} disabled={loadingMore}>
-            {loadingMore ? "Loading…" : "Load more comments"}
-          </button>
-        </div>
-      )}
-
+    <>
       <CommentForm postId={postId} replyTo={replyTo} onCancelReply={() => setReplyTo(null)} onPosted={handlePosted} />
-    </div>
+      {total > 0 && (
+        <section className="blog-comments-section">
+          <h2>Comments ({total})</h2>
+          <div className="blog-comments-container">
+            {comments.map((c) => (
+              <CommentItem key={c.id} comment={c} depth={0} onReply={setReplyTo} />
+            ))}
+          </div>
+          {topLevelCount < total && (
+            <div className="load-more-btn-cont">
+              <button type="button" className="load-more-cmt-btn" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? "Loading…" : "Show more ＋"}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+    </>
   );
 }
 
@@ -159,6 +162,15 @@ function CommentForm({
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [remember, setRemember] = useState(true);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("nb_commenter") ?? "null");
+      if (saved?.name) setName(saved.name);
+      if (saved?.email) setEmail(saved.email);
+    } catch {}
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -184,6 +196,10 @@ function CommentForm({
         return;
       }
 
+      try {
+        if (remember) localStorage.setItem("nb_commenter", JSON.stringify({ name, email }));
+        else localStorage.removeItem("nb_commenter");
+      } catch {}
       onPosted(data.comment, data.parentName ?? null);
       setContent("");
     } catch {
@@ -194,7 +210,7 @@ function CommentForm({
   }
 
   return (
-    <div className="blog-comment-form-container">
+    <section className="blog-comment-form-container" id="comment-form">
       <h2>Leave a Comment</h2>
       <form id="blog-comment-form" onSubmit={handleSubmit}>
         {replyTo && (
@@ -203,52 +219,39 @@ function CommentForm({
               Replying to <strong>{replyTo.name}</strong>
             </span>
             <button type="button" className="blog-comment-cancel-reply" onClick={onCancelReply}>
-              Cancel
+              ✕ Cancel
             </button>
           </div>
         )}
         <div className="blog-comment-form-group">
-          <input
-            id="comment-name"
-            type="text"
-            placeholder="Name"
-            aria-label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={60}
-            required
-          />
+          <label className="screen-reader-text" htmlFor="comment-content">
+            Comment
+          </label>
+          <textarea id="comment-content" placeholder="Share your thoughts..." value={content} onChange={(e) => setContent(e.target.value)} maxLength={1000} required />
         </div>
         <div className="blog-comment-form-group">
-          <input
-            id="comment-email"
-            type="email"
-            placeholder="Email (not published)"
-            aria-label="Email (not published)"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <label className="screen-reader-text" htmlFor="comment-name">
+            Name
+          </label>
+          <input id="comment-name" type="text" placeholder="Name *" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required autoComplete="name" />
         </div>
-        {/* Honeypot field — hidden from real users via CSS, left blank by
-            them; bots that auto-fill every field trip the server-side check. */}
+        <div className="blog-comment-form-group">
+          <label className="screen-reader-text" htmlFor="comment-email">
+            Email
+          </label>
+          <input id="comment-email" type="email" placeholder="Email *" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+        </div>
+        {/* Honeypot: hidden from people, filled by bots. */}
         <input type="text" name="website" tabIndex={-1} autoComplete="off" style={{ display: "none" }} />
-        <div className="blog-comment-form-group">
-          <textarea
-            id="comment-content"
-            placeholder="Write a comment…"
-            aria-label="Comment"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            maxLength={1000}
-            required
-          />
+        <div className="blog-comment-remember">
+          <input type="checkbox" id="blog-comment-remember" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          <label htmlFor="blog-comment-remember">Save my name and email in this browser for the next time I comment.</label>
         </div>
         {error && <div className="blog-comment-alert blog-comment-alert-error show">{error}</div>}
         <button type="submit" className="blog-comment-submit-btn" disabled={submitting}>
           {submitting ? "Posting…" : "Post Comment"}
         </button>
       </form>
-    </div>
+    </section>
   );
 }

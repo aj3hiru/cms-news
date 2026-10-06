@@ -21,7 +21,6 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/admin/dashboard": { title: "Dashboard", subtitle: "" }, // special-cased below (date + site name)
   "/admin/blogs-manager": { title: "Blogs Manager", subtitle: "Manage all your blog posts" },
   "/admin/file-manager": { title: "Media Manager", subtitle: "Upload and manage all your files" },
-  "/admin/ai-features": { title: "AI Features", subtitle: "Manage AI generation, API keys, feature toggles & cleanup" },
   "/admin/analytics": { title: "Analytics", subtitle: "Views, top posts, and traffic sources" },
   "/admin/analytics-adjustment": {
     title: "Traffic Adjustment",

@@ -44,10 +44,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  return buildPostMetadata(slug, 0);
+  return buildPostMetadata(slug);
 }
 
 export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  return <PostReader slug={slug} chapter={0} />;
+  return <PostReader slug={slug} />;
 }

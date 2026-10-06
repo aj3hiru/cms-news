@@ -22,6 +22,48 @@ export interface PostDetail {
   authorProfileImage: string | null;
   bannerPath: string | null;
   bannerAlt: string | null;
+  summary: string;
+  keyPoints: string[];
+  seo: PostSeoMeta;
+  tags: { id: number; name: string; slug: string }[];
+  authorSocials: { instagram: string | null; threads: string | null; linkedin: string | null; facebook: string | null; twitter: string | null };
+}
+
+/** Per-post SEO fields (Post Manager → SEO box), saved as post_meta rows. */
+export interface PostSeoMeta {
+  title: string;
+  focusKeyword: string;
+  schemaType: string;
+  canonical: string;
+  noindex: boolean;
+  ogTitle: string;
+  ogDescription: string;
+}
+
+export const POST_META_KEYS = [
+  "description",
+  "keywords",
+  "fb_description",
+  "summary",
+  "key_points",
+  "seo_title",
+  "focus_keyword",
+  "schema_type",
+  "canonical",
+  "noindex",
+  "og_title",
+  "og_description",
+] as const;
+
+export function parseKeyPoints(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean);
+  } catch {
+    // older plain-text value: one point per line
+  }
+  return raw.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 }
 
 /** Ports the main post SELECT in post.php (post + category + author + featured image joins).
@@ -38,7 +80,8 @@ export async function getPostBySlug(slug: string, includeUnpublished = false): P
       // handler are 'description' / 'keywords' / 'fb_description' — an
       // earlier pass of this port queried 'meta_description' here, which
       // never matched anything the admin form actually saved. Fixed.
-      postMeta: { where: { metaKey: { in: ["description", "keywords", "fb_description"] } } },
+      postMeta: { where: { metaKey: { in: [...POST_META_KEYS] } } },
+      postTags: { include: { tag: { select: { id: true, name: true, slug: true } } } },
     },
   });
   if (!post) return null;
@@ -67,6 +110,25 @@ export async function getPostBySlug(slug: string, includeUnpublished = false): P
     authorProfileImage: post.author.profileImage,
     bannerPath: post.featuredImage?.filePath ?? null,
     bannerAlt: post.featuredImage?.altText ?? null,
+    summary: metaByKey.summary ?? "",
+    keyPoints: parseKeyPoints(metaByKey.key_points),
+    seo: {
+      title: metaByKey.seo_title ?? "",
+      focusKeyword: metaByKey.focus_keyword ?? "",
+      schemaType: metaByKey.schema_type ?? "",
+      canonical: metaByKey.canonical ?? "",
+      noindex: metaByKey.noindex === "1",
+      ogTitle: metaByKey.og_title ?? "",
+      ogDescription: metaByKey.og_description ?? "",
+    },
+    tags: post.postTags.map((pt) => ({ id: Number(pt.tag.id), name: pt.tag.name, slug: pt.tag.slug })),
+    authorSocials: {
+      instagram: post.author.instagram,
+      threads: post.author.threads,
+      linkedin: post.author.linkedin,
+      facebook: post.author.facebook,
+      twitter: post.author.twitter,
+    },
   };
 }
 

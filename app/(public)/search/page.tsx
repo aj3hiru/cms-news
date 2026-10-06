@@ -1,96 +1,44 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { resolveSiteConfig } from "@/lib/config";
-import { searchPosts, searchTopics } from "@/lib/listings";
-import { PostGrid } from "@/components/shared/PostGrid";
-import { Pagination } from "@/components/shared/Pagination";
-import { categoryUrl, tagUrl } from "@/lib/urls";
-import { ListingAds } from "@/components/shared/ListingAds";
-import { getListAdSlots } from "@/lib/adRendering";
+import { getCardPosts } from "@/lib/theme/cards";
+import { getSiteContext } from "@/lib/theme/site";
+import { ArchiveView } from "@/components/theme/ArchiveView";
 
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}): Promise<Metadata> {
-  const { q } = await searchParams;
-  const query = q?.trim() ?? "";
-  const siteConfig = await resolveSiteConfig("");
-  return {
-    title: `Search Results for "${query}" | ${siteConfig.siteName}`,
-    description: `Search results for "${query}" on ${siteConfig.siteName}.`,
-    robots: { index: false, follow: true },
-  };
+type Props = { searchParams: Promise<{ q?: string; page?: string }> };
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const q = (await searchParams).q?.trim() ?? "";
+  const ctx = await getSiteContext();
+  return { title: { absolute: q ? `Search results for “${q}” – ${ctx.siteName}` : `Search – ${ctx.siteName}` }, robots: { index: false, follow: true } };
 }
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; page?: string }>;
-}) {
-  const { q, page: pageParam } = await searchParams;
-  const query = q?.trim() ?? "";
-  if (!query) redirect("/");
-
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
-
-  const [topics, { posts, total, totalPages }] = await Promise.all([
-    searchTopics(query),
-    searchPosts(query, page),
-  ]);
-
+export default async function SearchPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim().slice(0, 100);
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const ctx = await getSiteContext();
+  const res = q ? await getCardPosts({ kind: "search", q }, page, Math.max(2, Math.min(50, ctx.theme.archive.per_page))) : { posts: [], total: 0, totalPages: 1 };
+  const enc = encodeURIComponent(q);
   return (
-    <main>
-      <ListingAds page="search" position="before_post" />
-      <div className="container">
-        <div className="page-hero">
-          <h1 className="page-title">Search Results</h1>
-          <p className="page-hero-desc">Showing results for &ldquo;{query}&rdquo;</p>
-          <span className="page-hero-meta">
-            {total} {total === 1 ? "Post" : "Posts"}
-          </span>
-        </div>
-
-        {topics.length > 0 && (
-          <div className="search-topics-container">
-            <span className="topics-label">Related topics</span>
-            <div className="topics-list">
-              {topics.map((t) => (
-                <Link prefetch={false}
-                  href={t.type === "category" ? categoryUrl(t.slug) : tagUrl(t.slug, t.id)}
-                  className={`topic-badge ${t.type}`}
-                  key={`${t.type}-${String(t.id)}`}
-                >
-                  {t.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {posts.length === 0 ? (
-          <div className="no-results">
-            <p className="no-results-text">No posts found for &ldquo;{query}&rdquo;.</p>
-            <Link prefetch={false} href="/" className="no-results-btn">
-              Back to Home
-            </Link>
-          </div>
-        ) : (
-          <>
-            <ListingAds page="search" position="before_content" />
-            <PostGrid posts={posts} ads={await getListAdSlots("search")} />
-            <ListingAds page="search" position="after_content" />
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              buildHref={(p) => `/search?q=${encodeURIComponent(query)}${p > 1 ? `&page=${p}` : ""}`}
-            />
-          </>
-        )}
-      </div>
-      <ListingAds page="search" position="after_post" />
-      <ListingAds page="search" position="footer" />
-    </main>
+    <ArchiveView
+      adPage="search"
+      posts={res.posts}
+      page={page}
+      totalPages={res.totalPages}
+      href={(p) => `/search?q=${enc}${p > 1 ? `&page=${p}` : ""}`}
+      empty={q ? `Nothing found for “${q}”. Try different keywords.` : "Type something to search."}
+      head={
+        <header className="nb-archive-head">
+          <span className="nb-archive-kicker">Search{q ? ` · ${res.total} ${res.total === 1 ? "result" : "results"}` : ""}</span>
+          <h1>{q ? `Results for “${q}”` : "Search"}</h1>
+        </header>
+      }
+    >
+      <form className="nb-search-form" action="/search" method="get" role="search">
+        <input type="search" name="q" defaultValue={q} placeholder={ctx.theme.header.search_placeholder} aria-label="Search" />
+        <button type="submit" className="nb-btn">
+          Search
+        </button>
+      </form>
+    </ArchiveView>
   );
 }

@@ -1,3 +1,4 @@
+import { POST_META_KEYS, parseKeyPoints } from "@/lib/postDetail";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser, canEditPost, resolvePermissions } from "@/lib/auth";
@@ -27,7 +28,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
     include: {
       postTags: { include: { tag: true } },
       featuredImage: { select: { filePath: true } },
-      postMeta: { where: { metaKey: { in: ["description", "keywords", "fb_description", "thumbnail_prompt", "publish_at"] } } },
+      postMeta: { where: { metaKey: { in: [...POST_META_KEYS, "publish_at"] } } },
     },
   });
   if (!post) notFound();
@@ -50,8 +51,17 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
           featuredImagePath: post.featuredImage?.filePath ?? null,
           metaDescription: metaByKey.description ?? "",
           metaKeywords: metaByKey.keywords ?? "",
-          fbDescription: metaByKey.fb_description ?? "",
-          thumbnailPrompt: metaByKey.thumbnail_prompt ?? "",
+          summary: metaByKey.summary ?? "",
+          keyPoints: parseKeyPoints(metaByKey.key_points),
+          seo: {
+            title: metaByKey.seo_title ?? "",
+            focusKeyword: metaByKey.focus_keyword ?? "",
+            schemaType: metaByKey.schema_type ?? "",
+            canonical: metaByKey.canonical ?? "",
+            noindex: metaByKey.noindex === "1",
+            ogTitle: metaByKey.og_title ?? "",
+            ogDescription: metaByKey.og_description ?? "",
+          },
         }}
       />
   );

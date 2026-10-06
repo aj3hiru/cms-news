@@ -1,7 +1,6 @@
-import "./site.css";
-import "./post.css";
-import { HeaderSwitcher } from "@/components/layout/header/HeaderSwitcher";
-import { Footer } from "@/components/layout/Footer";
+import { SiteHeader } from "@/components/theme/SiteHeader";
+import { SiteFooter } from "@/components/theme/SiteFooter";
+import { ThemeHead } from "@/components/theme/ThemeHead";
 import { AdminBar, ADMIN_BAR_BOOT_SCRIPT } from "@/components/AdminBar";
 import { NativeNavigation } from "@/components/NativeNavigation";
 import { AdminHtml } from "@/components/AdminHtml";
@@ -48,6 +47,7 @@ export default async function PublicLayout({ children }: { children: React.React
           BROWSER's own loading indicator appears — see NativeNavigation.
           The previous custom progress bar is gone; it rendered as a second
           bar below the browser's own and wasn't what was wanted. */}
+      <ThemeHead />
       <NativeNavigation />
       {/* Load the next page while the reader is about to click (hover, touch, or a link sitting on
           screen) so it opens straight from memory. Prefetch only, never prerender — a prerendered
@@ -73,13 +73,13 @@ export default async function PublicLayout({ children }: { children: React.React
           this everywhere admin-saved HTML mixes into a real page. */}
       {snippets.header && <AdminHtml html={snippets.header} className="admin-snippet-slot" />}
       {ads.globalHeader && <AdminHtml html={ads.globalHeader} className="ad-slot ad-slot--global-header" allowFrame />}
-      <HeaderSwitcher />
+      <SiteHeader />
       {/* 'body' snippet — matches components/header.php echoing $_cs['body']
           right after the header markup. */}
       {snippets.body && <AdminHtml html={snippets.body} className="admin-snippet-slot" />}
-      {children}
+      <div className="nb-site">{children}</div>
       {ads.globalFooter && <AdminHtml html={ads.globalFooter} className="ad-slot ad-slot--global-footer" allowFrame />}
-      <Footer />
+      <SiteFooter />
       {/* 'footer' snippet — matches components/footer.php echoing
           $_cs['footer'] at the very end of the page. */}
       {snippets.footer && <AdminHtml html={snippets.footer} className="admin-snippet-slot" />}

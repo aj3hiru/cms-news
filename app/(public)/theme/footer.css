@@ -1,0 +1,60 @@
+.ftx-footer{--ftx-bg:#0c6878;--ftx-accent:#ffb700;background:var(--ftx-bg);margin-top:80px;position:relative}
+.ftx-wrap{max-width:1200px;margin-left:auto;margin-right:auto;padding:40px 10px 20px}
+@media(max-width:1024px){.ftx-wrap{padding-left:20px;padding-right:20px}}
+@media(max-width:767px){
+  .ftx-footer{margin-top:40px}
+  .ftx-wrap{padding:24px 16px 24px}
+}
+
+.ftx-grid{display:grid;grid-template-columns:1.5fr 2fr 1.5fr;column-gap:40px;row-gap:40px;
+  padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.18)}
+@media(max-width:1024px){.ftx-grid{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:20px}}
+@media(max-width:767px){.ftx-grid{grid-template-columns:1fr;column-gap:30px;row-gap:30px}}
+
+/* Brand */
+.ftx-brand{display:flex;flex-direction:column}
+.ftx-logo{height:auto;width:180px;max-width:100%;object-fit:cover;margin-bottom:10px}
+.ftx-desc{color:#ffffff;font-size:14px;font-weight:400;line-height:1.6;margin:0}
+.ftx-desc strong{font-weight:700}
+
+/* Link columns */
+.ftx-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;row-gap:20px}
+@media(max-width:767px){.ftx-columns{column-gap:20px}}
+.ftx-col{display:flex;flex-direction:column}
+.ftx-heading{color:#ffffff;font-size:18px;display:inline-flex;width:max-content;margin:0 0 20px;
+  padding-bottom:5px;border-bottom:1px solid var(--ftx-accent)}
+.ftx-heading:hover{color:#ffffff;transform:none}
+.ftx-link{align-items:center;color:#ffffff;column-gap:.5em;display:inline-flex;font-size:15px;
+  margin-bottom:10px;text-decoration:none}
+.ftx-link:hover{color:var(--ftx-accent);transition:color .3s ease}
+
+/* Follow us */
+.ftx-follow{display:flex;flex-direction:column}
+.ftx-cta-card{margin-bottom:15px;border:1px solid #ffffff;border-radius:10px;padding:15px 10px}
+.ftx-cta-top{display:grid;grid-template-columns:1fr 4fr;column-gap:5px;row-gap:5px;margin-bottom:15px}
+.ftx-cta-icon-wrap{align-items:center;display:flex;flex-direction:column;justify-content:center}
+.ftx-cta-icon .ftx-ico-lg{width:1em;height:1em;font-size:3em;fill:#ffffff;color:#ffffff}
+.ftx-cta-text{align-items:flex-start;display:flex;flex-direction:column;justify-content:center}
+.ftx-cta-title{color:#ffffff;font-size:17px;font-weight:700;text-align:left}
+.ftx-cta-subtitle{color:#ffffff;font-size:12px;font-weight:600;text-align:left}
+.ftx-cta-btn{align-items:center;color:#ffffff;column-gap:.5em;display:inline-flex;font-size:15px;
+  font-weight:700;justify-content:center;text-decoration:none;width:100%;border-radius:50px;padding:7px 0;
+  filter:brightness(1);transition:filter .3s ease}
+.ftx-cta-btn:hover{filter:none;transform:none}
+.ftx-cta-btn .ftx-ico{font-size:1.2em}
+
+.ftx-social-row{align-items:center;column-gap:7px;display:flex;flex-wrap:wrap;row-gap:7px}
+.ftx-social-btn{align-items:center;background:transparent !important;color:#ffffff;display:inline-flex;text-decoration:none;
+  border:0;border-radius:0;padding:7px 4px;transition:transform .3s ease}
+.ftx-social-btn:hover,
+.ftx-social-btn:focus,
+.ftx-social-btn:focus-visible{color:#ffffff !important;transform:none;filter:none}
+.ftx-social-btn .ftx-ico{font-size:1.2em}
+.ftx-social-btn:hover .ftx-ico,
+.ftx-social-btn:focus .ftx-ico,
+.ftx-social-btn:focus-visible .ftx-ico{color:#ffffff !important;fill:#ffffff !important}
+
+.ftx-ico{width:1em;height:1em;fill:currentColor;flex-shrink:0}
+.ftx-ico-sm{width:.85em;height:.85em}
+
+.ftx-copy{color:#ffffff;font-size:13px;margin:0;text-align:center}
