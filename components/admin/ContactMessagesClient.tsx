@@ -14,7 +14,7 @@ interface Msg {
   createdAt: string | null;
 }
 
-const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "");
+const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }) : "");
 
 /** Admin → Contact Messages: everything sent through [contact_form]. */
 export function ContactMessagesClient({ rows, total, page, pages, status, counts }: { rows: Msg[]; total: number; page: number; pages: number; status: string; counts: Record<string, number> }) {

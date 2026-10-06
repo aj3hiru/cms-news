@@ -20,7 +20,7 @@ type Overview = Awaited<ReturnType<typeof getPushOverview>>;
 type Tab = "compose" | "history" | "subscribers" | "settings";
 type PostHit = Awaited<ReturnType<typeof searchPostsForPush>>[number];
 
-const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "");
+const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }) : "");
 const src = (p: string) => (!p ? "" : /^https?:\/\//.test(p) || p.startsWith("/") ? p : p.startsWith("uploads/") ? `/upload/media/${p.slice(8)}` : `/${p}`);
 
 export function PushAdmin({ overview: initialOverview, campaigns: initialCampaigns, isAdmin, siteName }: { overview: Overview; campaigns: CampaignRow[]; isAdmin: boolean; siteName: string }) {

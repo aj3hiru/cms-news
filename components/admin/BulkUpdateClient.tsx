@@ -8,7 +8,7 @@ type Mode = "posts" | "categories" | "tags" | "all" | "pages";
 type Row = { id: number; title: string; type: "post" | "page"; at: string };
 
 const GAPS = [0, 1, 5, 10, 15, 30, 60];
-const fmt = (d: string | Date) => new Date(d).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const fmt = (d: string | Date) => new Date(d).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
 /** Tools → Bulk Update: give posts / pages fresh publish + modified dates, spaced by an interval. */
 export function BulkUpdateClient({ initial }: { initial: Sources }) {

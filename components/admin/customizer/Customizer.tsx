@@ -67,7 +67,7 @@ export function Customizer({ initial, identity: initialIdentity, siteUrl }: { in
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(true);
 
   // Two frames: the next preview loads hidden, then swaps in — no white flash.
   const frames = useRef<(HTMLIFrameElement | null)[]>([null, null]);
@@ -145,6 +145,7 @@ export function Customizer({ initial, identity: initialIdentity, siteUrl }: { in
         if (p) pathRef.current = p.pathname + p.search.replace(/[?&]_cz=\d+/, "").replace(/^&/, "?");
       } catch {}
     } else if (i === activeRef.current) {
+      setRefreshing(false);
       try {
         const p = f?.contentWindow?.location;
         if (p) pathRef.current = p.pathname + p.search.replace(/[?&]_cz=\d+/, "").replace(/^&/, "?");
@@ -287,6 +288,11 @@ export function Customizer({ initial, identity: initialIdentity, siteUrl }: { in
             </a>
           </div>
           <div className={`cz-frame-wrap cz-dev-${device}`}>
+            {refreshing && (
+              <div className="cz-loading" aria-live="polite">
+                <span className="cz-spinner" /> Loading preview…
+              </div>
+            )}
             {device === "m" && (
               <div className="cz-phone" aria-hidden="true">
                 <span className="cz-phone-notch" />

@@ -109,7 +109,7 @@ export async function resolveSiteConfig(currentDomain: string): Promise<Resolved
   // logo link, passes through resolveMediaUrl() unchanged, so that case
   // still works too).
   const rawLogo = siteSettings.site_logo?.trim();
-  const siteLogo = rawLogo ? resolveMediaUrl(rawLogo) : `${siteUrl}/assets/img/logo.webp`;
+  const siteLogo = rawLogo ? resolveMediaUrl(rawLogo) : "";
   // OpenGraph/Twitter meta tags require an ABSOLUTE URL, unlike siteLogo
   // above (used as a same-origin <img src>, where a relative path is
   // fine) — prepend siteUrl unless resolveMediaUrl() already returned a
