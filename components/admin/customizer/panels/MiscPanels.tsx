@@ -46,6 +46,21 @@ export function ArchivePanel() {
         <Toggle label="Excerpt / summary" checked={a.show_excerpt} onChange={(v) => update((t) => void (t.archive.show_excerpt = v))} />
       </Section>
       <Section title="Homepage" defaultOpen>
+        <Segmented
+          label="Layout"
+          value={a.home_layout}
+          onChange={(v) => update((t) => void (t.archive.home_layout = v))}
+          options={[
+            ["featured", "Lead card + 3 per row"],
+            ["grid", "Same as Post grid"],
+          ]}
+        />
+        {a.home_layout === "featured" && (
+          <>
+            <Hint>The newest post shows as a large card (image left, text right), the rest three per row with category, excerpt and a button. On phones every card is full width.</Hint>
+            <Text label="Button text" value={a.home_read_more} onChange={(v) => update((t) => void (t.archive.home_read_more = v))} hint="Empty = no button." />
+          </>
+        )}
         <Text label="Heading above the posts (optional)" value={a.home_heading} onChange={(v) => update((t) => void (t.archive.home_heading = v))} hint="Shortcodes allowed. Empty = no heading." />
       </Section>
       <Hint>Where the sidebar shows is set in Sidebar.</Hint>

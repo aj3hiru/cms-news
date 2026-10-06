@@ -13,6 +13,8 @@ export interface CardPost {
   bannerPath: string | null;
   bannerAlt: string | null;
   excerpt: string;
+  categoryName: string;
+  categorySlug: string;
 }
 
 type Filter = { kind: "all" } | { kind: "category"; id: number } | { kind: "tag"; id: number } | { kind: "author"; id: number } | { kind: "search"; q: string };
@@ -49,6 +51,7 @@ async function load(f: Filter, page: number, perPage: number): Promise<{ posts: 
         date: true,
         excerpt: true,
         author: { select: { name: true, slug: true } },
+        category: { select: { name: true, slug: true } },
         featuredImage: { select: { filePath: true, altText: true } },
         postMeta: { where: { metaKey: { in: ["summary", "description"] } }, select: { metaKey: true, metaValue: true } },
       },
@@ -68,12 +71,14 @@ async function load(f: Filter, page: number, perPage: number): Promise<{ posts: 
         bannerPath: r.featuredImage?.filePath ?? null,
         bannerAlt: r.featuredImage?.altText ?? null,
         excerpt: (meta.summary || meta.description || r.excerpt || "").trim().slice(0, 200),
+        categoryName: r.category?.name ?? "",
+        categorySlug: r.category?.slug ?? "",
       };
     }),
   };
 }
 
-const cached = unstable_cache(load, ["nb-card-posts"], { revalidate: 60, tags: [POSTS_TAG] });
+const cached = unstable_cache(load, ["nb-card-posts-v2"], { revalidate: 60, tags: [POSTS_TAG] });
 
 /** Posts for the home / archive card grids (cached; search is not cached). */
 export async function getCardPosts(f: Filter, page: number, perPage: number) {

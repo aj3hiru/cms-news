@@ -1,6 +1,7 @@
 import type { AdPageType } from "@/lib/adInserterTypes";
 import { getListAdSlots } from "@/lib/adRendering";
 import { getSiteContext } from "@/lib/theme/site";
+import { tl } from "@/lib/i18n/public";
 import type { CardPost } from "@/lib/theme/cards";
 import { ListingAds } from "@/components/shared/ListingAds";
 import { NewsGrid, NewsPagination } from "./NewsGrid";
@@ -32,6 +33,12 @@ export async function ArchiveView({
   const { theme, t, locale } = await getSiteContext();
   const showSidebar = theme.sidebar[`on_${sidebarOn}`];
   const ads = await getListAdSlots(adPage);
+  const a = theme.archive;
+  // Homepage "featured" layout: lead card on page 1, then three per row.
+  const featured =
+    sidebarOn === "home" && a.home_layout === "featured"
+      ? { lead: page === 1, readMore: a.home_read_more.trim() ? tl(a.home_read_more, "readMore", t) : "" }
+      : undefined;
   return (
     <main className="nb-archive">
       <ListingAds page={adPage} position="before_post" />
@@ -40,7 +47,7 @@ export async function ArchiveView({
           {head}
           {children}
           <ListingAds page={adPage} position="before_content" />
-          {posts.length ? <NewsGrid posts={posts} archive={theme.archive} ads={ads} byLabel={t.by} locale={locale} /> : <p className="nb-empty">{empty === "No posts found." ? t.noPosts : empty}</p>}
+          {posts.length ? <NewsGrid posts={posts} archive={a} ads={ads} byLabel={t.by} locale={locale} featured={featured} /> : <p className="nb-empty">{empty === "No posts found." ? t.noPosts : empty}</p>}
           <ListingAds page={adPage} position="after_content" />
           <NewsPagination page={page} totalPages={totalPages} href={href} labels={{ prev: t.previous, next: t.next }} />
         </div>

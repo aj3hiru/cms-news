@@ -314,6 +314,10 @@ export interface ThemeSettings {
     show_date: boolean;
     show_excerpt: boolean;
     home_heading: string;
+    /** "featured": one large lead card, then cards three per row (brandsfever). "grid": the plain grid above. */
+    home_layout: "featured" | "grid";
+    /** Button under each homepage card; empty = no button. */
+    home_read_more: string;
   };
 }
 
@@ -544,7 +548,7 @@ export const DEFAULT_THEME: ThemeSettings = {
     style: "classic",
   },
   post: DEFAULT_POST_TEMPLATE,
-  archive: { columns: 2, per_page: 10, show_author: true, show_date: true, show_excerpt: false, home_heading: "" },
+  archive: { columns: 2, per_page: 10, show_author: true, show_date: true, show_excerpt: false, home_heading: "", home_layout: "featured", home_read_more: "Read more" },
 };
 
 /** Deep-merges a saved (possibly partial / older) value over the defaults. */
