@@ -157,6 +157,14 @@ export function alsoReadGroupHtml(posts: AlsoReadPost[], style: AlsoReadStyle, l
     .join("");
   const many = posts.length > 1;
   return `<figure class="nb-also nb-also--card${many ? " nb-also--slider" : ""}" aria-label="${lbl}"><div class="nb-also-label">${lbl}</div><div class="nb-also-track">${cards}</div>${
-    many ? `<div class="nb-also-bar" aria-hidden="true"><span style="width:${(100 / posts.length).toFixed(2)}%"></span></div><div class="nb-also-count" aria-hidden="true">1 / ${posts.length}</div>` : ""
+    many ? `<div class="nb-also-dots">${posts.map((_, i) => `<button type="button" aria-label="${i + 1}"${i === 0 ? ' class="is-active"' : ""}></button>`).join("")}</div>` : ""
   }</figure>`;
+}
+
+/** The Key Points box as HTML (it is placed between paragraphs of the post body). */
+export function keyPointsHtml(points: string[], title: string, style: "check" | "number" | "dot"): string {
+  if (!points.length) return "";
+  const list = points.map((p) => `<li>${escHtml(p)}</li>`).join("");
+  const tag = style === "number" ? "ol" : "ul";
+  return `<section class="nb-keypoints nb-keypoints--${style}" aria-label="${escHtml(title)}"><h2 class="nb-keypoints-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 21h6v-1H9v1Zm3-19a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2Z"/></svg>${escHtml(title)}</h2><${tag}>${list}</${tag}></section>`;
 }

@@ -7,7 +7,7 @@ import { postUrl, authorUrl, categoryUrl, tagUrl, resolveMediaUrl, staticPagePat
 import { getAdHtmlFor, getParagraphAdBlocks, injectAfterParagraph, injectBeforeParagraph } from "@/lib/adRendering";
 import { getSiteContext } from "@/lib/theme/site";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
-import { addHeadingIds, alsoReadGroupHtml, getAlsoReadPosts } from "@/lib/content/postContent";
+import { addHeadingIds, alsoReadGroupHtml, getAlsoReadPosts, keyPointsHtml } from "@/lib/content/postContent";
 import { ALSO_READ_SLIDER_SCRIPT } from "@/components/theme/alsoReadSlider";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
 import { buildPostSchema } from "@/lib/seo/schema";
@@ -164,6 +164,12 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
     }
     // Insert from the last paragraph backwards so earlier paragraph numbers stay valid.
     for (const f of filled.reverse()) contentHtml = injectAfterParagraph(contentHtml, f.after, f.html);
+  }
+
+  // Key Points inside the article, after paragraph N (falls back to the end of a short article).
+  if (pt.key_points && post.keyPoints.length > 0 && pt.key_points_after > 0) {
+    const html = keyPointsHtml(post.keyPoints.map((k) => applyShortcodesText(k, ctx.sc)), tl(pt.key_points_title, "keyPoints", ctx.t), pt.key_points_style);
+    contentHtml = injectAfterParagraph(contentHtml, pt.key_points_after, html);
   }
 
   const [adBeforePost, adBeforeContent, adAfterContent, adAfterPost, adBeforeComments, adAfterComments, adBeforeImg, adAfterImg, adBeforePara, adAfterPara, adFooter] =
@@ -349,28 +355,8 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                 </section>
               )}
 
-              {pt.key_points && post.keyPoints.length > 0 && (
-                <section className={`nb-keypoints nb-keypoints--${pt.key_points_style}`} aria-label={tl(pt.key_points_title, "keyPoints", t)}>
-                  <h2 className="nb-keypoints-title">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path fill="currentColor" d="M9 21h6v-1H9v1Zm3-19a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2Z" />
-                    </svg>
-                    {tl(pt.key_points_title, "keyPoints", t)}
-                  </h2>
-                  {pt.key_points_style === "number" ? (
-                    <ol>
-                      {post.keyPoints.map((k, i) => (
-                        <li key={i}>{applyShortcodesText(k, ctx.sc)}</li>
-                      ))}
-                    </ol>
-                  ) : (
-                    <ul>
-                      {post.keyPoints.map((k, i) => (
-                        <li key={i}>{applyShortcodesText(k, ctx.sc)}</li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
+              {pt.key_points && post.keyPoints.length > 0 && pt.key_points_after <= 0 && (
+                <div dangerouslySetInnerHTML={{ __html: keyPointsHtml(post.keyPoints.map((k) => applyShortcodesText(k, ctx.sc)), tl(pt.key_points_title, "keyPoints", t), pt.key_points_style) }} />
               )}
 
               {pt.toc && headings.length > 1 && (
@@ -428,7 +414,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
                 </div>
               )}
 
-              {pt.share_buttons && <ShareButtons url={fullUrl} title={post.title} />}
+              {pt.share_buttons && <ShareButtons url={fullUrl} title={post.title} labels={{ share: t.share, copy: t.copyLink, copied: t.copied }} />}
 
               {pt.author_box && (
                 <div className="author-bio">
@@ -514,7 +500,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
           </div>
         </article>
       </div>
-      {pt.reading_progress && headings.some((h) => h.level === 2) && (
+      {pt.reading_progress && (
         <ReadingProgress label={tl(pt.reading_progress_label, "inThisArticle", t)} backToTop={t.backToTop} minutes={readingMinutes} desktop={pt.reading_progress_desktop} />
       )}
       {!preview && <ViewTracker postId={post.id} slug={post.slug} />}

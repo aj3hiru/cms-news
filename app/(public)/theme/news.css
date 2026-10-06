@@ -399,3 +399,53 @@ details[open] > summary .nb-toc-toggle::after { content: attr(data-hide); }
   .nb-also--card .nb-also-slide .nb-also-excerpt { font-size: 14.5px; }
 }
 .single-post .content .nb-also img, .entry-content .nb-also img { max-width: 100% !important; width: 100% !important; height: 100% !important; margin: 0 !important; }
+
+/* Comment form: room above and below "Save my name…" */
+.blog-comment-form-container .blog-comment-remember { display: flex; align-items: flex-start; gap: 9px; margin: 16px 0 20px; line-height: 1.45; }
+.blog-comment-form-container .blog-comment-remember input { flex-shrink: 0; width: 16px; height: 16px; margin: 3px 0 0; }
+.blog-comment-form-container .blog-comment-remember label { margin: 0; font-size: 14.5px; }
+
+/* Also Read slider: the next card peeks in, dash indicators */
+.nb-also--slider .nb-also-track { gap: 14px; scroll-padding-left: 0; }
+.nb-also--slider .nb-also-slide { flex: 0 0 88%; }
+.nb-also--card .nb-also-more { font-weight: 700; }
+.nb-also-dots { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; }
+.nb-also-dots button { width: 14px; height: 4px; padding: 0; border: 0; border-radius: 999px; background: #d1d5db; cursor: pointer; transition: width .25s ease, background .25s ease; }
+.nb-also-dots button.is-active { width: 30px; background: var(--gc-accent, #0c6878); }
+@media (max-width: 767px) { .nb-also--slider .nb-also-slide { flex-basis: 90%; } }
+.single-post #blog-comment-form .blog-comment-remember { height: auto; min-height: 26px; margin: 16px 0 22px; align-items: flex-start; gap: 9px; }
+.single-post #blog-comment-form .blog-comment-remember input { margin: 5px 0 0; flex-shrink: 0; }
+.single-post #blog-comment-form .blog-comment-remember label { line-height: 1.5; }
+@media (max-width: 767px) { .single-post #blog-comment-form .blog-comment-remember label { font-size: 15px; } }
+
+/* Mobile tables: full width, scroll sideways only when wider than the screen */
+@media (max-width: 767px) {
+  .entry-content table { display: block; overflow-x: auto; white-space: normal; }
+  .entry-content table > tbody, .entry-content table > thead { display: table; width: 100%; min-width: max-content; }
+  .entry-content table td, .entry-content table th { min-width: 90px; }
+}
+
+/* Sidebar items without an image: no empty thumbnail gap */
+.trending-item.nb-no-thumb { grid-template-columns: 1fr !important; }
+.trending-item.nb-no-thumb .trending-item-info { padding-left: 0; }
+/* Key Points inside the article: keep its own look (not the article list/heading styles) */
+.entry-content .nb-keypoints { margin: 26px 0; }
+.entry-content .nb-keypoints ul, .entry-content .nb-keypoints ol { list-style: none !important; padding: 0 !important; margin: 0 !important; }
+.entry-content .nb-keypoints li::marker { content: ""; }
+.single-post .content .nb-keypoints h2.nb-keypoints-title, .entry-content .nb-keypoints h2.nb-keypoints-title { border: 0; padding: 0; background: none; text-align: left; }
+
+/* ── Share buttons (after the article) ── */
+.nb-share { width: 815px; max-width: 100%; box-sizing: border-box; margin: 30px 0 32px; padding: 18px 0 0; border-top: 1px solid #e5e7eb; }
+.nb-share-title { margin: 0 0 14px !important; font-size: 18px !important; line-height: 1.3 !important; font-weight: 700 !important; color: var(--t-content-title, #111827); }
+.nb-share-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.nb-share-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 16px; border: 0; border-radius: 8px; color: #fff !important; font: inherit; font-size: 14.5px; font-weight: 600; line-height: 1; cursor: pointer; transition: filter .15s, transform .15s; }
+.nb-share-btn:hover { filter: brightness(.92); transform: translateY(-1px); }
+.nb-share-ico { width: 18px; height: 18px; flex-shrink: 0; }
+.nb-share--facebook { background: #1877f2; } .nb-share--x { background: #000; } .nb-share--whatsapp { background: #25d366; }
+.nb-share--telegram { background: #229ed9; } .nb-share--linkedin { background: #0a66c2; }
+.nb-share--email, .nb-share--copy { background: #f3f4f6; color: #1f2937 !important; border: 1px solid #d1d5db; }
+@media (max-width: 767px) {
+  .nb-share { margin: 24px 0 26px; }
+  .nb-share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .nb-share-btn { width: 100%; min-height: 46px; }
+}

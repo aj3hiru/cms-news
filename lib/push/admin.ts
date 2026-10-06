@@ -196,3 +196,78 @@ function browserName(ua: string, endpoint: string): string {
   const b = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : endpoint.includes("mozilla") ? "Firefox" : endpoint.includes("apple") ? "Safari" : "Browser";
   return os ? `${b} · ${os}` : b;
 }
+
+function isPrivateIp(ip: string): boolean {
+  if (ip.includes(":")) {
+    const v = ip.toLowerCase();
+    return v === "::1" || v.startsWith("fc") || v.startsWith("fd") || v.startsWith("fe80") || v === "::" || v.startsWith("::ffff:127.") || v.startsWith("::ffff:10.") || v.startsWith("::ffff:192.168.");
+  }
+  const [a, b] = ip.split(".").map(Number);
+  return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+}
+
+/** Reads title / description / image of any public article URL (Open Graph tags first). */
+export async function fetchArticleMeta(rawUrl: string): Promise<{ ok: true; title: string; body: string; image: string; url: string } | { ok: false; error: string }> {
+  await staff();
+  let url: URL;
+  try {
+    url = new URL(rawUrl.trim());
+  } catch {
+    return { ok: false, error: "That doesn't look like a web address." };
+  }
+  if (!/^https?:$/.test(url.protocol)) return { ok: false, error: "Only http(s) links can be fetched." };
+  try {
+    const { lookup } = await import("dns/promises");
+    const addrs = await lookup(url.hostname, { all: true });
+    if (!addrs.length || addrs.some((a) => isPrivateIp(a.address))) return { ok: false, error: "This address can't be fetched." };
+  } catch {
+    return { ok: false, error: "Couldn't find that website." };
+  }
+  let html = "";
+  try {
+    const res = await fetch(url, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(9000),
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; NewsCMS-PushPreview/1.0)", Accept: "text/html,application/xhtml+xml" },
+    });
+    if (!res.ok) return { ok: false, error: `The site answered ${res.status}.` };
+    const reader = res.body?.getReader();
+    if (reader) {
+      const dec = new TextDecoder();
+      let size = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.length;
+        html += dec.decode(value, { stream: true });
+        if (size > 1_500_000 || /<\/head>/i.test(html)) break;
+      }
+      reader.cancel().catch(() => {});
+    }
+  } catch {
+    return { ok: false, error: "Couldn't load that page (timeout or blocked)." };
+  }
+  const meta = (names: string[]) => {
+    for (const n of names) {
+      const re = new RegExp(`<meta[^>]+(?:property|name)=["']${n}["'][^>]*>`, "i");
+      const tag = re.exec(html)?.[0];
+      const content = tag && /content=["']([^"']*)["']/i.exec(tag)?.[1];
+      if (content) return content;
+    }
+    return "";
+  };
+  const decode = (s: string) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d))).trim();
+  const title = decode(meta(["og:title", "twitter:title"]) || /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1] || "");
+  const body = decode(meta(["og:description", "twitter:description", "description"]));
+  let image = decode(meta(["og:image", "og:image:url", "twitter:image", "twitter:image:src"]));
+  if (image) {
+    try {
+      image = new URL(image, url).toString();
+    } catch {
+      image = "";
+    }
+  }
+  const canonical = decode(meta(["og:url"])) || url.toString();
+  if (!title) return { ok: false, error: "No title found on that page." };
+  return { ok: true, title: title.slice(0, 200), body: body.slice(0, 300), image, url: canonical };
+}

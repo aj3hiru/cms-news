@@ -3019,3 +3019,15 @@ a.pf-st:hover { border-color: var(--primary); }
 .seo-box .seo-checks { margin-top: 4px; padding-top: 16px; border-top: 1px solid #f1f5f9; gap: 9px; line-height: 1.4; }
 .seo-box .field-hint { display: block; margin-top: 4px; line-height: 1.5; }
 .editor-sidebar-panel .seo-tabs button { padding: 9px 4px; }
+/* Push: wider page, article source tabs */
+.pn-wrap { max-width: 1560px; }
+.pn-compose { grid-template-columns: 340px minmax(0, 1fr) 330px; }
+.pn-src { display: flex; gap: 0; margin-bottom: 12px; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+.pn-src button { flex: 1; padding: 9px 8px; border: 0; background: #fff; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; display: flex; gap: 6px; align-items: center; justify-content: center; }
+.pn-src button + button { border-left: 1px solid #e2e8f0; }
+.pn-src button.active { background: var(--primary); color: #fff; }
+.pn-ext { display: flex; flex-direction: column; gap: 10px; }
+.pn-ext p { margin: 0; }
+.pn-ext .pn-btn { justify-content: center; }
+.pn-field { position: relative; }
+.pn-field em { position: absolute; top: 0; right: 0; margin: 0; }

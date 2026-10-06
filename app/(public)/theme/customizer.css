@@ -48,7 +48,6 @@ html body .single-post .breadcrumbs a:hover,
 html body .single-post .breadcrumbs a:focus-visible {
   text-decoration: none !important;
   text-decoration-line: none !important;
-  border-bottom-width: 0;
 }
 html body .entry-content a,
 html body .content a {

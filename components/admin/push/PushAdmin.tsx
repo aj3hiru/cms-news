@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   deletePushCampaign,
+  fetchArticleMeta,
   deletePushSubscriber,
   generatePushKeys,
   getPushCampaigns,
@@ -114,6 +115,24 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
   const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [source, setSource] = useState<"site" | "url">("site");
+  const [extUrl, setExtUrl] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [fetchErr, setFetchErr] = useState("");
+
+  async function fetchExternal() {
+    setFetching(true);
+    setFetchErr("");
+    const r = await fetchArticleMeta(extUrl);
+    setFetching(false);
+    if (!r.ok) return setFetchErr(r.error);
+    setTitle(r.title);
+    setBody(r.body);
+    setUrl(r.url);
+    setImage(r.image);
+    setPostId(null);
+    setMsg(null);
+  }
 
   useEffect(() => {
     const t = setTimeout(() => searchPostsForPush(q).then(setHits).catch(() => setHits([])), 250);
@@ -148,8 +167,27 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
     <div className="pn-compose">
       <div className="pn-card">
         <h3>
-          <i className="fas fa-newspaper" /> Pick a post
+          <i className="fas fa-newspaper" /> Pick an article
         </h3>
+        <div className="pn-src">
+          <button type="button" className={source === "site" ? "active" : ""} onClick={() => setSource("site")}>
+            <i className="fas fa-house" /> This site
+          </button>
+          <button type="button" className={source === "url" ? "active" : ""} onClick={() => setSource("url")}>
+            <i className="fas fa-globe" /> Any website
+          </button>
+        </div>
+        {source === "url" ? (
+          <div className="pn-ext">
+            <p className="pn-muted">Paste the link of any article (any website). Its title, description and image are filled in for you.</p>
+            <input className="pn-input" placeholder="https://example.com/article…" value={extUrl} onChange={(e) => setExtUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && extUrl && void fetchExternal()} />
+            <button type="button" className="pn-btn" onClick={fetchExternal} disabled={!extUrl.trim() || fetching}>
+              <i className={`fas ${fetching ? "fa-spinner fa-spin" : "fa-cloud-arrow-down"}`} /> {fetching ? "Fetching…" : "Fetch article"}
+            </button>
+            {fetchErr && <p className="pn-err">{fetchErr}</p>}
+          </div>
+        ) : (
+        <>
         <input className="pn-input" placeholder="Search posts…" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="pn-posts">
           {hits.map((p) => (
@@ -170,6 +208,8 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
           ))}
           {!hits.length && <p className="pn-muted">No posts found.</p>}
         </div>
+        </>
+        )}
       </div>
 
       <div className="pn-card">

@@ -27,15 +27,15 @@ export async function TrendingSidebar({ excludeId }: { excludeId?: number }) {
         </div>
         <div className="trending-list">
           {posts.map((p) => (
-            <div className="trending-item" key={p.id}>
-              <div className="trending-item-thumb">
-                <a href={postUrl(p.slug)} tabIndex={-1} aria-hidden="true">
-                  {p.bannerPath && (
-                    // eslint-disable-next-line @next/next/no-img-element
+            <div className={`trending-item${p.bannerPath ? "" : " nb-no-thumb"}`} key={p.id}>
+              {p.bannerPath && (
+                <div className="trending-item-thumb">
+                  <a href={postUrl(p.slug)} tabIndex={-1} aria-hidden="true">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={optimizedImage(p.bannerPath, 256)} alt="" loading="lazy" decoding="async" width={200} height={120} />
-                  )}
-                </a>
-              </div>
+                  </a>
+                </div>
+              )}
               <div className="trending-item-info">
                 <p className="trending-item-title">
                   <a href={postUrl(p.slug)}>{p.title}</a>

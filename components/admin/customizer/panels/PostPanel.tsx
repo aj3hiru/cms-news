@@ -104,6 +104,7 @@ export function PostPanel() {
         {pt.key_points && (
           <>
             <Text label="Key Points heading" value={pt.key_points_title} onChange={(v) => set("key_points_title", v)} />
+            <Range label="Show after paragraph (0 = above the article)" min={0} max={10} value={pt.key_points_after} onChange={(v) => set("key_points_after", v)} />
             <Segmented
               label="Bullet style"
               value={pt.key_points_style}

@@ -204,6 +204,8 @@ export interface PostTemplate {
   key_points: boolean;
   key_points_title: string;
   key_points_style: "check" | "number" | "dot";
+  /** Show the Key Points box after this paragraph (0 = above the article text). */
+  key_points_after: number;
   toc: boolean;
   toc_title: string;
   toc_collapsed: boolean;
@@ -441,6 +443,7 @@ export const DEFAULT_POST_TEMPLATE: PostTemplate = {
   key_points: true,
   key_points_title: "Key Points",
   key_points_style: "check",
+  key_points_after: 2,
   toc: true,
   toc_title: "Table of Contents",
   toc_collapsed: false,
