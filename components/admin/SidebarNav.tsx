@@ -116,6 +116,15 @@ export function SidebarNav({
           ? [
               { label: "Customize", href: "/admin/customize", icon: "fa-palette" } as NavLink,
               {
+                label: "SEO",
+                icon: "fa-magnifying-glass-chart",
+                href: "#",
+                items: [
+                  { label: "Settings", href: "/admin/seo", icon: "fa-sliders-h" },
+                  { label: "Setup Wizard", href: "/admin/seo/wizard", icon: "fa-wand-magic-sparkles" },
+                ],
+              } as NavSubmenu,
+              {
                 label: "Settings",
                 icon: "fa-cogs",
                 href: "#",
@@ -128,6 +137,7 @@ export function SidebarNav({
               } as NavSubmenu,
             ]
           : []),
+        ...(isAdmin || role === "editor" ? [{ label: "Contact Messages", href: "/admin/contact-messages", icon: "fa-envelope" } as NavLink] : []),
         ...(can(permissions?.ads.manage_ads) ? [{ label: "Ad Inserter", href: "/admin/ad-inserter", icon: "fa-ad" } as NavLink] : []),
       ],
     },

@@ -4,6 +4,7 @@ import "./globals.css";
 import { FA_HREF } from "@/lib/assets";
 import { resolveSiteConfig, getAppConfig, getPerfSettings } from "@/lib/config";
 import { resolveMediaUrl } from "@/lib/urls";
+import { getSeoSettings } from "@/lib/seo/settings";
 
 // Design tokens (--font-body / --font-heading in globals.css) call for
 // "Inter" — matches the original site's font-family stack in
@@ -52,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
   // plain empty-string literal isn't a Dynamic API call, only wrapping
   // headers() around it here was the problem.)
   const currentDomain = process.env.APP_URL?.trim() || "http://localhost:3000";
-  const [siteConfig, appConfig] = await Promise.all([resolveSiteConfig(currentDomain), getAppConfig()]);
+  const [siteConfig, appConfig, seo] = await Promise.all([resolveSiteConfig(currentDomain), getAppConfig(), getSeoSettings()]);
   const favicon = appConfig.site_favicon?.trim();
 
   // Critical defensive fix: site_url is a free-text admin field — any
@@ -80,7 +81,15 @@ export async function generateMetadata(): Promise<Metadata> {
     // Pages without their own openGraph block still say which site they belong to.
     openGraph: { siteName: siteConfig.siteName, type: "website" },
     // Large image previews in Search and Discover; full snippets.
-    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": seo.max_image_preview, "max-snippet": -1, "max-video-preview": -1 } },
+    verification: {
+      google: seo.google_verification || undefined,
+      yandex: seo.yandex_verification || undefined,
+      other: {
+        ...(seo.bing_verification ? { "msvalidate.01": seo.bing_verification } : {}),
+        ...(seo.pinterest_verification ? { "p:domain_verify": seo.pinterest_verification } : {}),
+      },
+    },
     alternates: { types: { "application/rss+xml": [{ url: "/feed", title: `${siteConfig.siteName} » Feed` }] } },
     icons: favicon ? { icon: resolveMediaUrl(favicon) } : undefined,
   };
@@ -134,7 +143,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             CDN build here since this project doesn't vendor the font
             files locally. */}
         {/* Icons never hold up the first paint of public pages; the admin layouts load the same file blocking. */}
-        <link id="fa-css" rel="stylesheet" href={FA_HREF} media="print" />
+        <link id="fa-css" rel="stylesheet" href={FA_HREF} media="print" suppressHydrationWarning />
         <script dangerouslySetInnerHTML={{ __html: DEFER_ICONS_SCRIPT }} />
         {perf.systemFont && <style dangerouslySetInnerHTML={{ __html: SYSTEM_FONT_CSS }} />}
         <script dangerouslySetInnerHTML={{ __html: DARK_MODE_INIT_SCRIPT }} />

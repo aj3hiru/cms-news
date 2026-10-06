@@ -119,3 +119,13 @@ export function formatTitle(format: string, vars: { title?: string; term?: strin
   const sep = (vars.sep || "–").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return out.replace(new RegExp(`^(${sep}\\s*)+|(\\s*${sep})+$`, "g"), "").trim();
 }
+
+/** Straight from the database (admin screens, so they always show what is saved). */
+export async function loadSeoSettingsFresh(): Promise<SeoSettings> {
+  const row = await prisma.appConfig.findUnique({ where: { configKey: SEO_KEY } });
+  try {
+    return { ...SEO_DEFAULTS, ...(row?.configValue ? JSON.parse(row.configValue) : {}) };
+  } catch {
+    return SEO_DEFAULTS;
+  }
+}
