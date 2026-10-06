@@ -92,6 +92,24 @@ const EN = {
   next: "Next",
   page: "Page",
   minRead: "min read",
+  cTitle: "We value your privacy",
+  cMessage: 'We use cookies to enhance your browsing experience, serve personalized ads or content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies.',
+  cAccept: "Accept All",
+  cReject: "Reject All",
+  cCustomize: "Customize",
+  cSave: "Save my choices",
+  cPrivacy: "Privacy Policy",
+  cNecessary: "Necessary",
+  cNecessaryDesc: "Needed for the site to work (security, your settings). Always on.",
+  cAnalytics: "Analytics",
+  cAnalyticsDesc: "Helps us understand how visitors use the site, so we can improve it.",
+  cAds: "Advertising",
+  cAdsDesc: "Lets ads be shown and measured, and limits how often you see the same ad.",
+  cPersonal: "Personalized ads",
+  cPersonalDesc: "Ads based on your interests and browsing.",
+  cSettings: "Cookie settings",
+  cAlwaysOn: "Always on",
+  cClose: "Close",
   writtenBy: "Written by",
   readingTime: "Est. reading time",
   minutes: "minutes",
@@ -103,6 +121,7 @@ export type Dict = typeof EN;
 
 const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
   hi: {
+    cTitle: "हम आपकी निजता का सम्मान करते हैं", cMessage: "हम आपके ब्राउज़िंग अनुभव को बेहतर बनाने, आपके लिए विज्ञापन या सामग्री दिखाने और ट्रैफ़िक समझने के लिए कुकीज़ का उपयोग करते हैं। \"सभी स्वीकार करें\" पर क्लिक करके आप कुकीज़ के उपयोग की सहमति देते हैं।", cAccept: "सभी स्वीकार करें", cReject: "सभी अस्वीकार करें", cCustomize: "पसंद चुनें", cSave: "मेरी पसंद सेव करें", cPrivacy: "गोपनीयता नीति", cNecessary: "ज़रूरी", cNecessaryDesc: "साइट चलाने के लिए ज़रूरी (सुरक्षा, आपकी सेटिंग)। हमेशा चालू।", cAnalytics: "एनालिटिक्स", cAnalyticsDesc: "इससे हमें पता चलता है कि पाठक साइट कैसे इस्तेमाल करते हैं, ताकि हम उसे बेहतर बना सकें।", cAds: "विज्ञापन", cAdsDesc: "विज्ञापन दिखाने और मापने के लिए, और एक ही विज्ञापन बार-बार न दिखे।", cPersonal: "आपकी रुचि के विज्ञापन", cPersonalDesc: "आपकी रुचि और ब्राउज़िंग के आधार पर विज्ञापन।", cSettings: "कुकी सेटिंग", cAlwaysOn: "हमेशा चालू", cClose: "बंद करें",
     writtenBy: "लेखक", readingTime: "पढ़ने का अनुमानित समय", minutes: "मिनट",
     share: "शेयर करें", copyLink: "लिंक कॉपी करें", copied: "कॉपी हो गया!",
     home: "होम", search: "खोजें", searchFor: "खोजें:", searchPlaceholder: "कीवर्ड लिखें....", by: "द्वारा", on: "दिनांक:", logIn: "लॉग इन", subscribe: "सब्सक्राइब करें",
@@ -118,6 +137,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     notFoundTitle: "यह पेज मौजूद नहीं है या हटा दिया गया है।", goHome: "होमपेज पर जाएँ", previous: "पिछला", next: "अगला", page: "पेज", minRead: "मिनट पढ़ें",
   },
   bn: {
+    cTitle: "আমরা আপনার গোপনীয়তাকে গুরুত্ব দিই", cAccept: "সব গ্রহণ করুন", cReject: "সব প্রত্যাখ্যান করুন", cCustomize: "নিজে বাছুন", cSave: "আমার পছন্দ সেভ করুন", cPrivacy: "গোপনীয়তা নীতি", cSettings: "কুকি সেটিংস", cAlwaysOn: "সবসময় চালু", cClose: "বন্ধ করুন",
     writtenBy: "লিখেছেন", readingTime: "আনুমানিক পড়ার সময়", minutes: "মিনিট",
     share: "শেয়ার করুন", copyLink: "লিংক কপি করুন", copied: "কপি হয়েছে!",
     home: "হোম", search: "খুঁজুন", searchFor: "খুঁজুন:", searchPlaceholder: "কীওয়ার্ড লিখুন....", by: "লিখেছেন", on: "তারিখ:", logIn: "লগ ইন", subscribe: "সাবস্ক্রাইব",
@@ -132,6 +152,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "ধন্যবাদ! আপনার বার্তা পাঠানো হয়েছে।", notFoundTitle: "এই পেজটি নেই বা সরানো হয়েছে।", goHome: "হোমপেজে যান", previous: "আগের", next: "পরের", page: "পেজ", minRead: "মিনিট পড়া",
   },
   mr: {
+    cTitle: "आम्ही तुमच्या गोपनीयतेचा आदर करतो", cAccept: "सर्व स्वीकारा", cReject: "सर्व नाकारा", cCustomize: "निवड करा", cSave: "माझी निवड सेव्ह करा", cPrivacy: "गोपनीयता धोरण", cSettings: "कुकी सेटिंग्ज", cAlwaysOn: "नेहमी चालू", cClose: "बंद करा",
     writtenBy: "लेखक", readingTime: "वाचनाचा अंदाजे वेळ", minutes: "मिनिटे",
     share: "शेअर करा", copyLink: "लिंक कॉपी करा", copied: "कॉपी झाले!",
     home: "मुख्यपृष्ठ", search: "शोधा", searchFor: "शोधा:", searchPlaceholder: "कीवर्ड लिहा....", by: "लेखक", on: "दिनांक:", logIn: "लॉग इन", subscribe: "सबस्क्राईब करा",
@@ -146,6 +167,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "धन्यवाद! तुमचा संदेश पाठवला गेला आहे.", notFoundTitle: "हे पान अस्तित्वात नाही किंवा हलवले आहे.", goHome: "मुख्यपृष्ठावर जा", previous: "मागील", next: "पुढील", page: "पान", minRead: "मिनिटे वाचन",
   },
   te: {
+    cTitle: "మీ గోప్యతకు మేము విలువ ఇస్తాము", cAccept: "అన్నీ అంగీకరించండి", cReject: "అన్నీ తిరస్కరించండి", cCustomize: "ఎంచుకోండి", cSave: "నా ఎంపికలు సేవ్ చేయండి", cPrivacy: "గోప్యతా విధానం", cSettings: "కుకీ సెట్టింగ్‌లు", cAlwaysOn: "ఎల్లప్పుడూ ఆన్", cClose: "మూసివేయండి",
     writtenBy: "రచయిత", readingTime: "చదవడానికి అంచనా సమయం", minutes: "నిమిషాలు",
     share: "షేర్ చేయండి", copyLink: "లింక్ కాపీ", copied: "కాపీ అయింది!",
     home: "హోమ్", search: "వెతకండి", searchFor: "వెతకండి:", searchPlaceholder: "కీవర్డ్స్ టైప్ చేయండి....", by: "రచయిత", on: "తేదీ:", logIn: "లాగిన్", subscribe: "సబ్‌స్క్రైబ్",
@@ -160,6 +182,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "ధన్యవాదాలు! మీ సందేశం పంపబడింది.", notFoundTitle: "ఈ పేజీ లేదు లేదా తరలించబడింది.", goHome: "హోమ్‌పేజీకి వెళ్ళండి", previous: "మునుపటి", next: "తదుపరి", page: "పేజీ", minRead: "నిమిషాల పఠనం",
   },
   ta: {
+    cTitle: "உங்கள் தனியுரிமையை மதிக்கிறோம்", cAccept: "அனைத்தையும் ஏற்கவும்", cReject: "அனைத்தையும் நிராகரிக்கவும்", cCustomize: "தேர்வு செய்யவும்", cSave: "என் தேர்வுகளைச் சேமி", cPrivacy: "தனியுரிமைக் கொள்கை", cSettings: "குக்கீ அமைப்புகள்", cAlwaysOn: "எப்போதும் இயக்கத்தில்", cClose: "மூடு",
     writtenBy: "எழுதியவர்", readingTime: "படிக்கும் நேரம் (தோராயமாக)", minutes: "நிமிடங்கள்",
     share: "பகிர்", copyLink: "இணைப்பை நகலெடு", copied: "நகலெடுக்கப்பட்டது!",
     home: "முகப்பு", search: "தேடு", searchFor: "தேடு:", searchPlaceholder: "முக்கிய சொற்களை தட்டச்சு செய்யவும்....", by: "எழுதியவர்", on: "தேதி:", logIn: "உள்நுழை", subscribe: "சந்தா",
@@ -174,6 +197,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "நன்றி! உங்கள் செய்தி அனுப்பப்பட்டது.", notFoundTitle: "இந்தப் பக்கம் இல்லை அல்லது நகர்த்தப்பட்டது.", goHome: "முகப்புக்குச் செல்", previous: "முந்தைய", next: "அடுத்த", page: "பக்கம்", minRead: "நிமிட வாசிப்பு",
   },
   es: {
+    cTitle: "Valoramos tu privacidad", cMessage: "Usamos cookies para mejorar tu experiencia, mostrar anuncios o contenido personalizados y analizar nuestro tráfico. Al hacer clic en \"Aceptar todo\", aceptas el uso de cookies.", cAccept: "Aceptar todo", cReject: "Rechazar todo", cCustomize: "Personalizar", cSave: "Guardar mis preferencias", cPrivacy: "Política de privacidad", cNecessary: "Necesarias", cAnalytics: "Analítica", cAds: "Publicidad", cPersonal: "Anuncios personalizados", cSettings: "Configuración de cookies", cAlwaysOn: "Siempre activas", cClose: "Cerrar",
     writtenBy: "Escrito por", readingTime: "Tiempo de lectura", minutes: "minutos",
     share: "Compartir", copyLink: "Copiar enlace", copied: "¡Copiado!",
     home: "Inicio", search: "Buscar", searchFor: "Buscar:", searchPlaceholder: "Escribe palabras clave....", by: "Por", on: "El:", logIn: "Iniciar sesión", subscribe: "Suscribirse",
@@ -188,6 +212,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "¡Gracias! Tu mensaje ha sido enviado.", notFoundTitle: "Esta página no existe o se ha movido.", goHome: "Ir al inicio", previous: "Anterior", next: "Siguiente", page: "Página", minRead: "min de lectura",
   },
   fr: {
+    cTitle: "Nous respectons votre vie privée", cMessage: "Nous utilisons des cookies pour améliorer votre navigation, afficher des publicités ou contenus personnalisés et analyser notre trafic. En cliquant sur « Tout accepter », vous consentez à l’utilisation des cookies.", cAccept: "Tout accepter", cReject: "Tout refuser", cCustomize: "Personnaliser", cSave: "Enregistrer mes choix", cPrivacy: "Politique de confidentialité", cNecessary: "Nécessaires", cAnalytics: "Mesure d’audience", cAds: "Publicité", cPersonal: "Publicités personnalisées", cSettings: "Paramètres des cookies", cAlwaysOn: "Toujours actifs", cClose: "Fermer",
     writtenBy: "Écrit par", readingTime: "Durée de lecture estimée", minutes: "minutes",
     share: "Partager", copyLink: "Copier le lien", copied: "Copié !",
     home: "Accueil", search: "Rechercher", searchFor: "Rechercher :", searchPlaceholder: "Tapez des mots-clés....", by: "Par", on: "Le :", logIn: "Se connecter", subscribe: "S'abonner",
@@ -202,6 +227,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "Merci ! Votre message a été envoyé.", notFoundTitle: "Cette page n'existe pas ou a été déplacée.", goHome: "Retour à l'accueil", previous: "Précédent", next: "Suivant", page: "Page", minRead: "min de lecture",
   },
   pt: {
+    cTitle: "Valorizamos sua privacidade", cMessage: "Usamos cookies para melhorar sua navegação, exibir anúncios ou conteúdo personalizados e analisar nosso tráfego. Ao clicar em \"Aceitar tudo\", você concorda com o uso de cookies.", cAccept: "Aceitar tudo", cReject: "Rejeitar tudo", cCustomize: "Personalizar", cSave: "Salvar minhas escolhas", cPrivacy: "Política de privacidade", cNecessary: "Necessários", cAnalytics: "Análise", cAds: "Publicidade", cPersonal: "Anúncios personalizados", cSettings: "Configurações de cookies", cAlwaysOn: "Sempre ativos", cClose: "Fechar",
     writtenBy: "Escrito por", readingTime: "Tempo de leitura", minutes: "minutos",
     share: "Compartilhar", copyLink: "Copiar link", copied: "Copiado!",
     home: "Início", search: "Pesquisar", searchFor: "Pesquisar:", searchPlaceholder: "Digite palavras-chave....", by: "Por", on: "Em:", logIn: "Entrar", subscribe: "Assinar",
@@ -216,6 +242,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "Obrigado! Sua mensagem foi enviada.", notFoundTitle: "Esta página não existe ou foi movida.", goHome: "Ir para o início", previous: "Anterior", next: "Próximo", page: "Página", minRead: "min de leitura",
   },
   ar: {
+    cTitle: "نحن نحترم خصوصيتك", cMessage: "نستخدم ملفات تعريف الارتباط لتحسين تجربتك وعرض إعلانات أو محتوى مخصص وتحليل الزيارات. بالنقر على \"قبول الكل\" فإنك توافق على استخدامها.", cAccept: "قبول الكل", cReject: "رفض الكل", cCustomize: "تخصيص", cSave: "حفظ اختياراتي", cPrivacy: "سياسة الخصوصية", cNecessary: "ضرورية", cAnalytics: "التحليلات", cAds: "الإعلانات", cPersonal: "إعلانات مخصصة", cSettings: "إعدادات ملفات تعريف الارتباط", cAlwaysOn: "مفعّلة دائمًا", cClose: "إغلاق",
     writtenBy: "كتبه", readingTime: "وقت القراءة المقدّر", minutes: "دقائق",
     share: "مشاركة", copyLink: "نسخ الرابط", copied: "تم النسخ!",
     home: "الرئيسية", search: "بحث", searchFor: "ابحث عن:", searchPlaceholder: "اكتب كلمات البحث....", by: "بقلم", on: "في:", logIn: "تسجيل الدخول", subscribe: "اشترك",

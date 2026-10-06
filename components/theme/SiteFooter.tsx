@@ -82,6 +82,13 @@ export async function SiteFooter() {
           </div>
         </div>
         <div className="ftx-copy" dangerouslySetInnerHTML={{ __html: applyShortcodes(f.copyright, ctx.sc) }} />
+        {ctx.theme.consent.enabled && ctx.theme.consent.footer_link && (
+          <p className="ftx-cookie">
+            <button type="button" data-nb-consent="">
+              {tl(ctx.theme.consent.footer_link_label, "cSettings", ctx.t)}
+            </button>
+          </p>
+        )}
       </div>
     </footer>
   );

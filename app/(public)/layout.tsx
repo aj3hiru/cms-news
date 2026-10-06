@@ -8,6 +8,7 @@ import { NativeNavigation } from "@/components/NativeNavigation";
 import { AdminHtml } from "@/components/AdminHtml";
 import { getCodeSnippets } from "@/lib/codeSnippets";
 import { getAdInserterConfig } from "@/lib/adInserterSettings";
+import { ConsentBoot, CookieConsent } from "@/components/theme/consent/CookieConsent";
 
 const SPECULATION_RULES = JSON.stringify({
   prefetch: [
@@ -32,6 +33,8 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <div dir={LOCALE[ctx.lang].dir} className="nb-root">
+      {/* Cookie consent defaults for Google tags — before anything else that could load one. */}
+      <ConsentBoot />
       {/* Floating staff toolbar — ports the `if (!empty($_SESSION['user_id']))`
           admin-bar check at the top of the original components/header.php.
           IMPORTANT: this is a client component that fetches its own
@@ -85,6 +88,7 @@ export default async function PublicLayout({ children }: { children: React.React
       {/* 'footer' snippet — matches components/footer.php echoing
           $_cs['footer'] at the very end of the page. */}
       {snippets.footer && <AdminHtml html={snippets.footer} className="admin-snippet-slot" />}
+      <CookieConsent />
     </div>
   );
 }

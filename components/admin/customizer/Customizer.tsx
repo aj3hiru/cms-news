@@ -15,8 +15,9 @@ import { SidebarPanel } from "./panels/SidebarPanel";
 import { PostPanel } from "./panels/PostPanel";
 import { AlsoReadPanel } from "./panels/AlsoReadPanel";
 import { ProgressPanel, ArchivePanel, ShortcodesPanel } from "./panels/MiscPanels";
+import { ConsentPanel } from "./panels/ConsentPanel";
 
-export type Panel = "home" | "identity" | "colors" | "typography" | "header" | "menus" | "footer" | "sidebar" | "post" | "alsoread" | "progress" | "archive" | "shortcodes";
+export type Panel = "home" | "identity" | "colors" | "typography" | "header" | "menus" | "footer" | "sidebar" | "post" | "alsoread" | "progress" | "archive" | "consent" | "shortcodes";
 
 const PANELS: { id: Exclude<Panel, "home">; label: string; icon: string; desc: string }[] = [
   { id: "identity", label: "Site Identity", icon: "fa-id-card", desc: "Title, tagline, logo, site icon" },
@@ -30,6 +31,7 @@ const PANELS: { id: Exclude<Panel, "home">; label: string; icon: string; desc: s
   { id: "alsoread", label: "Also Read", icon: "fa-newspaper", desc: "Related-post boxes inside articles" },
   { id: "progress", label: "Reading Progress", icon: "fa-circle-notch", desc: "Floating progress button on mobile" },
   { id: "archive", label: "Homepage & Archives", icon: "fa-table-cells-large", desc: "Post grids and lists" },
+  { id: "consent", label: "Cookie Consent", icon: "fa-cookie-bite", desc: "Privacy popup for Google & AdSense" },
   { id: "shortcodes", label: "Shortcodes", icon: "fa-code", desc: "Codes you can use anywhere" },
 ];
 
@@ -244,6 +246,7 @@ export function Customizer({ initial, identity: initialIdentity, siteUrl }: { in
             {panel === "alsoread" && <AlsoReadPanel />}
             {panel === "progress" && <ProgressPanel />}
             {panel === "archive" && <ArchivePanel />}
+            {panel === "consent" && <ConsentPanel />}
             {panel === "shortcodes" && <ShortcodesPanel />}
           </div>
 

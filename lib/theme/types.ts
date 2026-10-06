@@ -231,6 +231,37 @@ export interface PostTemplate {
 
 /* ── Whole theme ───────────────────────────────────────────────── */
 
+/** Cookie consent popup (Google Consent Mode v2 + AdSense ad-request controls). */
+export interface ConsentSettings {
+  enabled: boolean;
+  /** Who sees it. "outside_eea" when Google's certified CMP (AdSense → Privacy & messaging) handles EEA/UK/CH. */
+  show_to: "all" | "outside_eea" | "eea_only";
+  /** Ask before ads/analytics cookies everywhere (otherwise only EEA/UK/CH wait for a choice). */
+  opt_in_everywhere: boolean;
+  position: "bottom" | "bottom-left" | "center" | "bar";
+  title: string;
+  message: string;
+  accept_label: string;
+  reject_label: string;
+  customize_label: string;
+  save_label: string;
+  privacy_label: string;
+  privacy_url: string;
+  necessary_title: string;
+  necessary_desc: string;
+  analytics_title: string;
+  analytics_desc: string;
+  ads_title: string;
+  ads_desc: string;
+  personal_title: string;
+  personal_desc: string;
+  /** "Cookie settings" link in the footer so visitors can change their choice. */
+  footer_link: boolean;
+  footer_link_label: string;
+  /** Days the choice is remembered. */
+  days: number;
+}
+
 export interface ThemeSettings {
   identity: {
     hide_title: boolean;
@@ -307,6 +338,7 @@ export interface ThemeSettings {
     style: "classic" | "card";
   };
   post: PostTemplate;
+  consent: ConsentSettings;
   archive: {
     columns: 1 | 2 | 3;
     per_page: number;
@@ -475,6 +507,32 @@ export const DEFAULT_POST_TEMPLATE: PostTemplate = {
   font_p: 17,
 };
 
+export const DEFAULT_CONSENT: ConsentSettings = {
+  enabled: false,
+  show_to: "all",
+  opt_in_everywhere: false,
+  position: "bottom",
+  title: "We value your privacy",
+  message: 'We use cookies to enhance your browsing experience, serve personalized ads or content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies.',
+  accept_label: "Accept All",
+  reject_label: "Reject All",
+  customize_label: "Customize",
+  save_label: "Save my choices",
+  privacy_label: "Privacy Policy",
+  privacy_url: "/privacy-policy",
+  necessary_title: "Necessary",
+  necessary_desc: "Needed for the site to work (security, your settings). Always on.",
+  analytics_title: "Analytics",
+  analytics_desc: "Helps us understand how visitors use the site, so we can improve it.",
+  ads_title: "Advertising",
+  ads_desc: "Lets ads be shown and measured, and limits how often you see the same ad.",
+  personal_title: "Personalized ads",
+  personal_desc: "Ads based on your interests and browsing.",
+  footer_link: true,
+  footer_link_label: "Cookie settings",
+  days: 180,
+};
+
 export const DEFAULT_THEME: ThemeSettings = {
   identity: { hide_title: true, hide_tagline: true, retina_logo: "", logo_width: 146, site_icon: "" },
   global_colors: DEFAULT_GLOBAL_COLORS,
@@ -553,6 +611,7 @@ export const DEFAULT_THEME: ThemeSettings = {
   },
   post: DEFAULT_POST_TEMPLATE,
   archive: { columns: 2, per_page: 10, show_author: true, show_date: true, show_excerpt: false, home_heading: "", home_layout: "featured", home_read_more: "Read more", home_grid_read_more: true, home_count: 30 },
+  consent: DEFAULT_CONSENT,
 };
 
 /** Deep-merges a saved (possibly partial / older) value over the defaults. */
@@ -576,6 +635,7 @@ export function mergeTheme(saved: unknown): ThemeSettings {
     sidebar: mergeSidebar(s as Parameters<typeof mergeSidebar>[0]),
     footer: { ...DEFAULT_THEME.footer, ...(s.footer ?? {}) },
     post: mergePost(s.post),
+    consent: { ...DEFAULT_CONSENT, ...(s.consent ?? {}) },
     archive: (({ sidebar: _drop, ...rest }) => rest)({ ...DEFAULT_THEME.archive, ...(s.archive ?? {}) } as ThemeSettings["archive"] & { sidebar?: unknown }),
   };
 }
