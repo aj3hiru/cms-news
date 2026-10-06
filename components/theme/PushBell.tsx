@@ -60,6 +60,7 @@ function canPromptWithoutGesture(): boolean {
  * First visit: the browser's own Allow/Block prompt (Chrome after a short
  * delay, Firefox/Safari on the first tap); not asked again for 3 days.
  */
+const GUIDE_IMG = "/push-allow.webp";
 const PUSH_EN = { get: "Get notifications", enabled: "Notifications enabled!", blocked: "Notifications are blocked", help: "Tap the 🔒 icon next to the web address, allow Notifications, then reload the page." };
 
 export function PushBell({ className = "", label, labels = PUSH_EN, ready = false }: { className?: string; label?: string; labels?: typeof PUSH_EN; ready?: boolean }) {
@@ -142,6 +143,14 @@ export function PushBell({ className = "", label, labels = PUSH_EN, ready = fals
     };
   }, [subscribe]);
 
+  // Blocked: fetch the guide picture now, so it appears instantly when the bell is tapped.
+  useEffect(() => {
+    if (state !== "denied") return;
+    const img = new Image();
+    img.src = GUIDE_IMG;
+    img.decode?.().catch(() => {});
+  }, [state]);
+
   const visible = showBell && (state === "default" || state === "denied");
   return (
     <>
@@ -162,16 +171,19 @@ export function PushBell({ className = "", label, labels = PUSH_EN, ready = fals
             {state !== "denied" && <span className="nb-bell-dot" aria-hidden="true" />}
             {label && <span className="nb-bell-label">{label}</span>}
           </button>
-          {help && (
-            <span className="nb-bell-help" role="dialog">
-              <button type="button" onClick={() => setHelp(false)} aria-label="Close">
-                ×
-              </button>
-              <b>{labels.blocked}</b>
-              {labels.help}
-            </span>
-          )}
         </span>
+      )}
+      {help && (
+        // Picture guide pointing at the 🔒 next to the address bar (public/push-allow.webp, ~10 KB, fetched in advance).
+        <div className="nb-allow-guide" role="dialog" aria-label={labels.blocked} onClick={() => setHelp(false)}>
+          <div className="nb-allow-card">
+            <button type="button" className="nb-allow-close" onClick={() => setHelp(false)} aria-label="Close">
+              ×
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={GUIDE_IMG} width={640} height={358} alt={`${labels.blocked}. ${labels.help}`} decoding="sync" fetchPriority="high" />
+          </div>
+        </div>
       )}
       {toast && (
         <div className="nb-push-toast" role="status">

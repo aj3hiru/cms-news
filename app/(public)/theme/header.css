@@ -3,7 +3,7 @@
 
 /* ── Signed-in staff: the fixed admin bar (36px) sits above the sticky header ── */
 body:has(#site-admin-bar) .nb-header.is-sticky,
-body:has(#site-admin-bar) #site-navigation:not(.nb-not-sticky) { top: 36px; }
+body:has(#site-admin-bar) #site-navigation:not(.nb-not-sticky):not(.nb-h-racing) { top: 36px; }
 body:has(#site-admin-bar) .mnav { top: 36px; }
 body:has(#site-admin-bar) .mnav-overlay { top: 36px; }
 html.nb-in-customizer body:has(#site-admin-bar) .nb-header { top: 0; }
@@ -17,8 +17,6 @@ html.nb-in-customizer body:has(#site-admin-bar) .nb-header { top: 0; }
 .nb-h-racing .nb-bell-dot { border-color: #fff; }
 .nb-bell-label { font-size: 13px; font-weight: 600; }
 @keyframes nbRing { 0%, 60%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(14deg); } 20%, 40% { transform: rotate(-14deg); } }
-.nb-bell-help { position: absolute; top: 44px; right: -40px; z-index: 700; width: 260px; padding: 12px 30px 12px 12px; border-radius: 10px; background: #fff; color: #1f2937; box-shadow: 0 10px 30px rgba(0, 0, 0, .18); font-size: 13px; line-height: 1.45; display: flex; flex-direction: column; gap: 4px; }
-.nb-bell-help button { position: absolute; top: 4px; right: 6px; border: 0; background: none; font-size: 18px; cursor: pointer; color: #9ca3af; }
 .nb-push-toast { position: fixed; left: 50%; bottom: 24px; z-index: 10001; transform: translateX(-50%); padding: 11px 20px; border-radius: 999px; background: var(--gc-accent, #0c6878); color: #fff; font-weight: 700; font-size: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); animation: nbToast .3s ease; }
 @keyframes nbToast { from { opacity: 0; transform: translate(-50%, 12px); } }
 .main-navigation .menu-bar-item .nb-bell { color: var(--hd-text, #fff); height: var(--hd-h); }
@@ -162,3 +160,10 @@ body:has(#site-admin-bar) #site-navigation.nb-h-racing.is-sticky { top: 36px; }
 @media (max-width: 980px) { .nb-hr-sub { padding: 5px 11px; font-size: 13px; } }
 /* Bell: drawn with the page (no late pop-in); hidden at once for readers already subscribed. */
 html.nb-push-sub .nb-bell-wrap { display: none !important; }
+
+/* Notifications blocked: picture guide pointing at the 🔒 beside the address bar. */
+.nb-allow-guide { position: fixed; inset: 0; z-index: 2147483000; background: rgba(15, 23, 42, .45); animation: nb-allow-in .15s ease-out; }
+.nb-allow-card { position: absolute; top: 10px; left: 10px; width: min(380px, calc(100vw - 20px)); padding: 8px; box-sizing: border-box; border-radius: 14px; background: #fff; box-shadow: 0 16px 40px rgba(0, 0, 0, .3); }
+.nb-allow-card img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.nb-allow-close { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: #f1f5f9; color: #334155; font-size: 20px; line-height: 1; cursor: pointer; }
+@keyframes nb-allow-in { from { opacity: 0; } to { opacity: 1; } }

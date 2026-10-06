@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
     // Self-hosted vendor files (Font Awesome) never change at the same path.
     return [
       { source: "/vendor/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+      { source: "/push-allow.webp", headers: [{ key: "Cache-Control", value: "public, max-age=2592000" }] },
       {
         source: "/:path*",
         headers: [
