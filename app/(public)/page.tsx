@@ -3,12 +3,14 @@ import { getSiteContext } from "@/lib/theme/site";
 import { getCardPosts, getCardPostsRange } from "@/lib/theme/cards";
 import { HOME_BATCH, HOME_FIRST } from "@/lib/theme/homeFeed";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
-import { publisherNode } from "@/lib/seo/schema";
+import { publisherNode, publisherLogoPath, websiteNode } from "@/lib/seo/schema";
+import { getImageInfo } from "@/lib/seo/imageSize";
 import { applyShortcodesText } from "@/lib/shortcodes";
 import { resolveMediaUrl } from "@/lib/urls";
-import { resolveSiteConfig } from "@/lib/config";
+import { resolveSiteConfig, getAppConfig } from "@/lib/config";
 import { ArchiveView } from "@/components/theme/ArchiveView";
 import { LOCALE } from "@/lib/i18n/public";
+import { robotsMeta, alternatesWithFeed } from "@/lib/seo/meta";
 
 export const revalidate = 60;
 
@@ -25,8 +27,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: url, types: { "application/rss+xml": [{ url: "/feed", title: `${ctx.siteName} » Feed` }] } },
-    robots: page > 1 && seo.noindex_paginated ? { index: false, follow: true } : undefined,
+    alternates: alternatesWithFeed(url, ctx.siteName),
+    robots: robotsMeta(seo, page > 1 && seo.noindex_paginated),
     openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: ctx.siteName, images: [{ url: image, width: 1200, height: 630, alt: ctx.siteName }] },
     twitter: { card: "summary_large_image", title, description, images: [image] },
   };
@@ -43,19 +45,25 @@ export default async function HomePage({ searchParams }: Props) {
     ? await getCardPostsRange({ kind: "all" }, (page - 1) * perPage, first).then((r) => ({ ...r, totalPages: Math.max(1, Math.ceil(r.total / perPage)) }))
     : await getCardPosts({ kind: "all" }, page, perPage);
   const home = `${ctx.siteUrl}/`;
+  const logoPath = publisherLogoPath(ctx, seo, (await getAppConfig()).site_favicon?.trim());
+  const publisher = publisherNode(ctx, seo, { path: logoPath, info: await getImageInfo(logoPath) });
+  const homeTitle = applyShortcodesText(seo.home_title, ctx.sc) || ctx.siteName;
+  const homeDesc = applyShortcodesText(seo.home_description, ctx.sc) || ctx.tagline;
   const schema = {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "WebSite",
-        "@id": `${home}#website`,
-        name: ctx.siteName,
+        "@type": "CollectionPage",
+        "@id": home,
         url: home,
-        ...(ctx.tagline ? { description: ctx.tagline } : {}),
-        publisher: { "@id": publisherNode(ctx, seo)["@id"] },
-        potentialAction: { "@type": "SearchAction", target: `${ctx.siteUrl}/search?q={search_term_string}`, "query-input": "required name=search_term_string" },
+        name: homeTitle,
+        isPartOf: { "@id": `${home}#website` },
+        about: { "@id": publisher["@id"] },
+        ...(homeDesc ? { description: homeDesc } : {}),
+        inLanguage: ctx.locale,
       },
-      publisherNode(ctx, seo),
+      websiteNode(ctx, publisher["@id"] as string),
+      publisher,
     ],
   };
   const heading = ctx.theme.archive.home_heading;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { robotsMeta } from "@/lib/seo/meta";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { FA_HREF } from "@/lib/assets";
@@ -82,7 +83,7 @@ export async function generateMetadata(): Promise<Metadata> {
     // Pages without their own openGraph block still say which site they belong to.
     openGraph: { siteName: siteConfig.siteName, type: "website", locale: LOCALE[normLang(appConfig.site_language)].og },
     // Large image previews in Search and Discover; full snippets.
-    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": seo.max_image_preview, "max-snippet": -1, "max-video-preview": -1 } },
+    robots: robotsMeta(seo),
     verification: {
       google: seo.google_verification || undefined,
       yandex: seo.yandex_verification || undefined,

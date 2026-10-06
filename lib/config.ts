@@ -98,7 +98,12 @@ export async function resolveSiteConfig(currentDomain: string): Promise<Resolved
   // crashed every single page. Guaranteeing a non-empty fallback HERE,
   // once, protects every caller at once rather than special-casing each
   // of the 23 call sites individually.
-  const siteUrl = (appConfig.site_url?.trim() || process.env.APP_URL?.trim() || currentDomain || "http://localhost:3000").replace(/\/+$/, "");
+  // In production a local address (e.g. a site_url copied over with a local database) is skipped, so links,
+  // canonicals, sitemaps and feeds never point at localhost.
+  const isLocal = (u: string) => /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(u);
+  const pick = [appConfig.site_url?.trim(), process.env.APP_URL?.trim(), currentDomain].filter((u): u is string => Boolean(u));
+  const live = process.env.NODE_ENV === "production" ? pick.filter((u) => !isLocal(u)) : pick;
+  const siteUrl = (live[0] || pick[0] || "http://localhost:3000").replace(/\/+$/, "");
   // site_logo is stored as a RAW local-storage key (e.g. "uploads/x.png",
   // same convention as media.filePath) when uploaded through the admin —
   // resolveMediaUrl() turns that into the actual public URL

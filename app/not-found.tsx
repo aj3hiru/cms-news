@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSeoSettings } from "@/lib/seo/settings";
@@ -20,6 +21,9 @@ import { dict, normLang } from "@/lib/i18n/public";
  * single 404 across the whole site, the worst possible place for an
  * unvalidated value to cause a crash.
  */
+// Only "noindex" — without this the layout's "index, follow" tag is printed next to Next's own noindex.
+export const metadata: Metadata = { robots: { index: false, follow: true } };
+
 export default async function NotFound() {
   const [pt, app] = await Promise.all([getSeoSettings(), getAppConfig()]);
   const t = dict(normLang(app.site_language));

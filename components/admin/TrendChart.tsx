@@ -16,7 +16,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, 
  * instead of hand-rolling straight-line SVG paths.
  */
 export function TrendChart({ data }: { data: { date: string; views: number; label?: string }[] }) {
-  const labels = data.map((d) => d.label ?? new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+  const labels = data.map((d) => d.label ?? new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "Asia/Kolkata" }));
   const values = data.map((d) => d.views);
   const peak = Math.max(0, ...values);
 

@@ -57,7 +57,7 @@ function pageMetaFor(pathname: string | null, siteName: string): { title: string
   if (!pathname) return { title: "Admin Panel", subtitle: "" };
 
   if (pathname === "/admin/dashboard") {
-    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Kolkata" });
     return { title: "Dashboard", subtitle: `${today} — ${siteName} Admin Panel` };
   }
 
@@ -104,7 +104,7 @@ export function TopNav({
         </span>
         <div className="page-heading">
           <h1>{title}</h1>
-          {subtitle && <p>{subtitle}</p>}
+          {subtitle && <p suppressHydrationWarning>{subtitle}</p>}
         </div>
       </div>
       <div className="nav-right" />

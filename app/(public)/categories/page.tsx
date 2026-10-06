@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { categoryUrl } from "@/lib/urls";
 import { getSiteContext } from "@/lib/theme/site";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
+import { robotsMeta, alternatesWithFeed } from "@/lib/seo/meta";
 
 export const revalidate = 120;
 
@@ -11,7 +12,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: formatTitle(seo.archive_title_format, { term: ctx.t.allCategories, sitename: ctx.siteName, sep: seo.separator }) },
     description: `Browse every topic on ${ctx.siteName}.`,
-    alternates: { canonical: "/categories" },
+    alternates: alternatesWithFeed("/categories", ctx.siteName),
+    robots: robotsMeta(seo),
   };
 }
 

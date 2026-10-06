@@ -10,7 +10,10 @@ import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
 import { addHeadingIds, alsoReadGroupHtml, getAlsoReadPosts, keyPointsHtml } from "@/lib/content/postContent";
 import { ALSO_READ_SLIDER_SCRIPT } from "@/components/theme/alsoReadSlider";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
-import { buildPostSchema } from "@/lib/seo/schema";
+import { getAppConfig } from "@/lib/config";
+import { buildPostSchema, publisherLogoPath } from "@/lib/seo/schema";
+import { getImageInfo } from "@/lib/seo/imageSize";
+import { robotsMeta, alternatesWithFeed } from "@/lib/seo/meta";
 import { RichContent } from "@/components/shortcodes/RichContent";
 import { TrendingSidebar } from "@/components/theme/TrendingSidebar";
 import { ReadingProgress } from "@/components/theme/ReadingProgress";
@@ -36,12 +39,16 @@ export async function buildPostMetadata(slug: string): Promise<Metadata> {
   const imageUrl = post.bannerPath ? resolveMediaUrl(post.bannerPath) : seo.default_og_image ? resolveMediaUrl(seo.default_og_image) : undefined;
   const canonical = post.seo.canonical || postUrl(post.slug);
   const published = post.date ? new Date(post.date).toISOString() : undefined;
+  const img = await getImageInfo(post.bannerPath || seo.default_og_image);
+  const authorPage = post.authorSlug ? `${ctx.siteUrl}${authorUrl(post.authorSlug)}` : undefined;
+  const minutes = estimateReadingMinutes(stripTags(post.content));
   return {
     title: { absolute: title },
     description: desc,
     keywords: post.metaKeywords?.trim() || post.seo.focusKeyword || undefined,
-    alternates: { canonical },
-    robots: post.seo.noindex ? { index: false, follow: true } : undefined,
+    authors: [{ name: post.authorName, url: authorPage }],
+    alternates: alternatesWithFeed(canonical, ctx.siteName),
+    robots: robotsMeta(seo, post.seo.noindex),
     openGraph: {
       type: "article",
       locale: LOCALE[ctx.lang].og,
@@ -49,10 +56,10 @@ export async function buildPostMetadata(slug: string): Promise<Metadata> {
       description: desc,
       url: canonical,
       siteName: ctx.siteName,
-      images: imageUrl ? [{ url: imageUrl, width: 1200, height: 675, alt: post.bannerAlt || post.title }] : undefined,
+      images: imageUrl ? [{ url: imageUrl, width: img?.width ?? 1200, height: img?.height ?? 675, type: img?.type, alt: post.bannerAlt || post.title }] : undefined,
       publishedTime: published,
       modifiedTime: post.updatedAt ? new Date(post.updatedAt).toISOString() : published,
-      authors: [post.authorName],
+      authors: [authorPage ?? post.authorName],
       section: post.categoryName,
       tags: post.tags.map((t) => t.name),
     },
@@ -62,6 +69,13 @@ export async function buildPostMetadata(slug: string): Promise<Metadata> {
       description: desc,
       images: imageUrl ? [imageUrl] : undefined,
       site: seo.twitter_username ? `@${seo.twitter_username.replace(/^@/, "")}` : undefined,
+    },
+    // Shown under the link on X, Slack, Discord… (as Yoast does).
+    other: {
+      "twitter:label1": ctx.t.writtenBy,
+      "twitter:data1": post.authorName,
+      "twitter:label2": ctx.t.readingTime,
+      "twitter:data2": `${minutes} ${ctx.t.minutes}`,
     },
   };
 }
@@ -198,7 +212,27 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
 
   const fullUrl = `${ctx.siteUrl.replace(/\/+$/, "")}${postUrl(post.slug)}`;
   const authorImg = post.authorProfileImage ? optimizedImage(post.authorProfileImage, 128) : "";
-  const schema = buildPostSchema({ post, ctx, seo, faq: pt.faq ? faq : [], url: fullUrl, description: description(post) });
+  const schemaUrl = post.seo.canonical && /^https?:\/\//i.test(post.seo.canonical) ? post.seo.canonical : fullUrl;
+  const imagePath = post.bannerPath || seo.default_og_image || "";
+  const logoPath = publisherLogoPath(ctx, seo, (await getAppConfig()).site_favicon?.trim());
+  const [imageInfo, logoInfo, commentCount] = await Promise.all([
+    getImageInfo(imagePath),
+    getImageInfo(logoPath),
+    pt.comments ? prisma.comment.count({ where: { postId: post.id, status: "approved", hidden: false } }) : Promise.resolve(0),
+  ]);
+  const schema = buildPostSchema({
+    post,
+    ctx,
+    seo,
+    faq: pt.faq ? faq : [],
+    url: schemaUrl,
+    description: description(post),
+    image: imagePath ? { path: imagePath, info: imageInfo } : null,
+    logo: { path: logoPath, info: logoInfo },
+    wordCount: stripTags(post.content).split(/\s+/).filter(Boolean).length,
+    commentCount,
+    comments: pt.comments,
+  });
   const card = pt.design === "card";
   const joinUrl = pt.pill_join_url || pt.join_whatsapp_url;
   const metaDate = pt.show_updated_date ? post.updatedAt ?? post.date : post.date;

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { robotsMeta, alternatesWithFeed } from "@/lib/seo/meta";
 import type { Metadata } from "next";
 import { getPublishedPageBySlug } from "@/lib/pages";
 import { getSiteContext } from "@/lib/theme/site";
@@ -22,7 +23,8 @@ export async function buildPageMetadata(slug: string): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: url },
+    alternates: alternatesWithFeed(url, siteConfig.siteName),
+    robots: robotsMeta(seo),
     openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: siteConfig.siteName, images: [{ url: siteConfig.seoDefaultImage }] },
     twitter: { card: "summary_large_image", title, description, images: [siteConfig.seoDefaultImage] },
   };

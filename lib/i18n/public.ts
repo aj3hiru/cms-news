@@ -92,6 +92,9 @@ const EN = {
   next: "Next",
   page: "Page",
   minRead: "min read",
+  writtenBy: "Written by",
+  readingTime: "Est. reading time",
+  minutes: "minutes",
   share: "Share",
   copyLink: "Copy link",
   copied: "Copied!",
@@ -100,6 +103,7 @@ export type Dict = typeof EN;
 
 const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
   hi: {
+    writtenBy: "लेखक", readingTime: "पढ़ने का अनुमानित समय", minutes: "मिनट",
     share: "शेयर करें", copyLink: "लिंक कॉपी करें", copied: "कॉपी हो गया!",
     home: "होम", search: "खोजें", searchFor: "खोजें:", searchPlaceholder: "कीवर्ड लिखें....", by: "द्वारा", on: "दिनांक:", logIn: "लॉग इन", subscribe: "सब्सक्राइब करें",
     darkMode: "डार्क मोड", helloReader: "नमस्ते, पाठक", followUs: "हमें फॉलो करें", followUsSocial: "सोशल मीडिया पर हमें फॉलो करें", latestOnSocial: "सोशल मीडिया पर ताज़ा अपडेट पाएं",
@@ -114,6 +118,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     notFoundTitle: "यह पेज मौजूद नहीं है या हटा दिया गया है।", goHome: "होमपेज पर जाएँ", previous: "पिछला", next: "अगला", page: "पेज", minRead: "मिनट पढ़ें",
   },
   bn: {
+    writtenBy: "লিখেছেন", readingTime: "আনুমানিক পড়ার সময়", minutes: "মিনিট",
     share: "শেয়ার করুন", copyLink: "লিংক কপি করুন", copied: "কপি হয়েছে!",
     home: "হোম", search: "খুঁজুন", searchFor: "খুঁজুন:", searchPlaceholder: "কীওয়ার্ড লিখুন....", by: "লিখেছেন", on: "তারিখ:", logIn: "লগ ইন", subscribe: "সাবস্ক্রাইব",
     darkMode: "ডার্ক মোড", helloReader: "নমস্কার, পাঠক", followUs: "আমাদের ফলো করুন", followUsSocial: "সোশ্যাল মিডিয়ায় আমাদের ফলো করুন", latestOnSocial: "সোশ্যাল মিডিয়ায় সর্বশেষ আপডেট পান",
@@ -127,6 +132,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "ধন্যবাদ! আপনার বার্তা পাঠানো হয়েছে।", notFoundTitle: "এই পেজটি নেই বা সরানো হয়েছে।", goHome: "হোমপেজে যান", previous: "আগের", next: "পরের", page: "পেজ", minRead: "মিনিট পড়া",
   },
   mr: {
+    writtenBy: "लेखक", readingTime: "वाचनाचा अंदाजे वेळ", minutes: "मिनिटे",
     share: "शेअर करा", copyLink: "लिंक कॉपी करा", copied: "कॉपी झाले!",
     home: "मुख्यपृष्ठ", search: "शोधा", searchFor: "शोधा:", searchPlaceholder: "कीवर्ड लिहा....", by: "लेखक", on: "दिनांक:", logIn: "लॉग इन", subscribe: "सबस्क्राईब करा",
     darkMode: "डार्क मोड", helloReader: "नमस्कार, वाचक", followUs: "आम्हाला फॉलो करा", followUsSocial: "सोशल मीडियावर आम्हाला फॉलो करा", latestOnSocial: "सोशल मीडियावर ताजे अपडेट मिळवा",
@@ -140,6 +146,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "धन्यवाद! तुमचा संदेश पाठवला गेला आहे.", notFoundTitle: "हे पान अस्तित्वात नाही किंवा हलवले आहे.", goHome: "मुख्यपृष्ठावर जा", previous: "मागील", next: "पुढील", page: "पान", minRead: "मिनिटे वाचन",
   },
   te: {
+    writtenBy: "రచయిత", readingTime: "చదవడానికి అంచనా సమయం", minutes: "నిమిషాలు",
     share: "షేర్ చేయండి", copyLink: "లింక్ కాపీ", copied: "కాపీ అయింది!",
     home: "హోమ్", search: "వెతకండి", searchFor: "వెతకండి:", searchPlaceholder: "కీవర్డ్స్ టైప్ చేయండి....", by: "రచయిత", on: "తేదీ:", logIn: "లాగిన్", subscribe: "సబ్‌స్క్రైబ్",
     darkMode: "డార్క్ మోడ్", helloReader: "నమస్కారం, పాఠకుడా", followUs: "మమ్మల్ని ఫాలో అవ్వండి", followUsSocial: "సోషల్ మీడియాలో మమ్మల్ని ఫాలో అవ్వండి", latestOnSocial: "సోషల్ మీడియాలో తాజా అప్‌డేట్స్ పొందండి",
@@ -153,6 +160,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "ధన్యవాదాలు! మీ సందేశం పంపబడింది.", notFoundTitle: "ఈ పేజీ లేదు లేదా తరలించబడింది.", goHome: "హోమ్‌పేజీకి వెళ్ళండి", previous: "మునుపటి", next: "తదుపరి", page: "పేజీ", minRead: "నిమిషాల పఠనం",
   },
   ta: {
+    writtenBy: "எழுதியவர்", readingTime: "படிக்கும் நேரம் (தோராயமாக)", minutes: "நிமிடங்கள்",
     share: "பகிர்", copyLink: "இணைப்பை நகலெடு", copied: "நகலெடுக்கப்பட்டது!",
     home: "முகப்பு", search: "தேடு", searchFor: "தேடு:", searchPlaceholder: "முக்கிய சொற்களை தட்டச்சு செய்யவும்....", by: "எழுதியவர்", on: "தேதி:", logIn: "உள்நுழை", subscribe: "சந்தா",
     darkMode: "இருண்ட பயன்முறை", helloReader: "வணக்கம், வாசகரே", followUs: "எங்களைப் பின்தொடருங்கள்", followUsSocial: "சமூக ஊடகங்களில் எங்களைப் பின்தொடருங்கள்", latestOnSocial: "சமூக ஊடகங்களில் சமீபத்திய செய்திகள்",
@@ -166,6 +174,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "நன்றி! உங்கள் செய்தி அனுப்பப்பட்டது.", notFoundTitle: "இந்தப் பக்கம் இல்லை அல்லது நகர்த்தப்பட்டது.", goHome: "முகப்புக்குச் செல்", previous: "முந்தைய", next: "அடுத்த", page: "பக்கம்", minRead: "நிமிட வாசிப்பு",
   },
   es: {
+    writtenBy: "Escrito por", readingTime: "Tiempo de lectura", minutes: "minutos",
     share: "Compartir", copyLink: "Copiar enlace", copied: "¡Copiado!",
     home: "Inicio", search: "Buscar", searchFor: "Buscar:", searchPlaceholder: "Escribe palabras clave....", by: "Por", on: "El:", logIn: "Iniciar sesión", subscribe: "Suscribirse",
     darkMode: "Modo oscuro", helloReader: "Hola, lector", followUs: "Síguenos", followUsSocial: "Síguenos en redes sociales", latestOnSocial: "Recibe las últimas novedades en redes sociales",
@@ -179,6 +188,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "¡Gracias! Tu mensaje ha sido enviado.", notFoundTitle: "Esta página no existe o se ha movido.", goHome: "Ir al inicio", previous: "Anterior", next: "Siguiente", page: "Página", minRead: "min de lectura",
   },
   fr: {
+    writtenBy: "Écrit par", readingTime: "Durée de lecture estimée", minutes: "minutes",
     share: "Partager", copyLink: "Copier le lien", copied: "Copié !",
     home: "Accueil", search: "Rechercher", searchFor: "Rechercher :", searchPlaceholder: "Tapez des mots-clés....", by: "Par", on: "Le :", logIn: "Se connecter", subscribe: "S'abonner",
     darkMode: "Mode sombre", helloReader: "Bonjour, lecteur", followUs: "Suivez-nous", followUsSocial: "Suivez-nous sur les réseaux sociaux", latestOnSocial: "Les dernières actualités sur les réseaux",
@@ -192,6 +202,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "Merci ! Votre message a été envoyé.", notFoundTitle: "Cette page n'existe pas ou a été déplacée.", goHome: "Retour à l'accueil", previous: "Précédent", next: "Suivant", page: "Page", minRead: "min de lecture",
   },
   pt: {
+    writtenBy: "Escrito por", readingTime: "Tempo de leitura", minutes: "minutos",
     share: "Compartilhar", copyLink: "Copiar link", copied: "Copiado!",
     home: "Início", search: "Pesquisar", searchFor: "Pesquisar:", searchPlaceholder: "Digite palavras-chave....", by: "Por", on: "Em:", logIn: "Entrar", subscribe: "Assinar",
     darkMode: "Modo escuro", helloReader: "Olá, leitor", followUs: "Siga-nos", followUsSocial: "Siga-nos nas redes sociais", latestOnSocial: "Receba as últimas novidades nas redes",
@@ -205,6 +216,7 @@ const T: Record<Exclude<Lang, "en">, Partial<Dict>> = {
     thankYou: "Obrigado! Sua mensagem foi enviada.", notFoundTitle: "Esta página não existe ou foi movida.", goHome: "Ir para o início", previous: "Anterior", next: "Próximo", page: "Página", minRead: "min de leitura",
   },
   ar: {
+    writtenBy: "كتبه", readingTime: "وقت القراءة المقدّر", minutes: "دقائق",
     share: "مشاركة", copyLink: "نسخ الرابط", copied: "تم النسخ!",
     home: "الرئيسية", search: "بحث", searchFor: "ابحث عن:", searchPlaceholder: "اكتب كلمات البحث....", by: "بقلم", on: "في:", logIn: "تسجيل الدخول", subscribe: "اشترك",
     darkMode: "الوضع الداكن", helloReader: "مرحبًا أيها القارئ", followUs: "تابعنا", followUsSocial: "تابعنا على وسائل التواصل", latestOnSocial: "احصل على آخر التحديثات",
