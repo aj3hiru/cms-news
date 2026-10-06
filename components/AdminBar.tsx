@@ -1,0 +1,300 @@
+"use client";
+
+/* eslint-disable @next/next/no-html-link-for-pages --
+   Deliberate: every /admin/* link in this bar uses a plain <a> so it
+   triggers a REAL page load rather than a client-side transition.
+   Two real bugs this fixes, both reported live:
+   1. Navigating homepage -> admin bar -> Dashboard left the admin layout
+      collapsed/narrow until a manual refresh. The admin shell's grid
+      (`.admin-container`) is styled by a route-level CSS chunk that
+      Next.js loads asynchronously on a client-side transition, so the
+      page rendered before its own layout CSS arrived. A real navigation
+      has the stylesheet in the initial HTML, so the layout is correct
+      on first paint.
+   2. Third-party ad scripts (AdSense, MGID) only initialise on a real
+      document load; a client-side transition out of a public page and
+      back would leave slots unfilled.
+   The lint rule exists to stop accidental full reloads, which is normally
+   right — this is the documented exception, not an oversight. */
+
+import { useEffect, useLayoutEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { Permissions } from "@/lib/auth";
+import { clearHomepageCacheAction } from "@/lib/adminBarActions";
+
+interface MeResponse {
+  loggedIn: boolean;
+  username?: string;
+  role?: string;
+  permissions?: Permissions;
+}
+
+/**
+ * Floating top toolbar shown to logged-in staff on EVERY page (both the
+ * public site and inside /admin itself) — ported from the #site-admin-bar
+ * block in components shared across every admin/public PHP template.
+ * Previously just a TODO comment in HeaderSwitcher.tsx ("render
+ * <AdminBar /> here when a staff session is active") — never actually
+ * built until this pass.
+ *
+ * Self-fetches its own session state from /api/auth/me on mount instead
+ * of receiving it as a prop from a server-rendered layout — see the
+ * comment in app/(public)/layout.tsx for why: the public pages are
+ * ISR-cached for millisecond loads, and baking a per-visitor auth check
+ * into that cached HTML would either leak one visitor's admin bar into
+ * everyone else's cached copy of the page, or require disabling caching
+ * entirely. This renders nothing until it confirms a staff session,
+ * so anonymous visitors never see a flash of loading state.
+ */
+/** Saved copy of the bar, shown by ADMIN_BAR_BOOT_SCRIPT before the page first paints. */
+const BAR_HTML_KEY = "st_ab_html";
+const BAR_ME_KEY = "st_ab_me";
+
+/**
+ * Runs inline at the top of every public page (before first paint): puts the
+ * last rendered admin bar back in place straight away, so a signed-in user
+ * never sees the page jump down when the bar arrives. React then takes over
+ * with the real bar and checks the session again.
+ */
+export const ADMIN_BAR_BOOT_SCRIPT = `try{var h=localStorage.getItem("${BAR_HTML_KEY}");if(h){document.getElementById("ab-boot").innerHTML=h}}catch(e){}`;
+
+export function forgetAdminBar() {
+  try {
+    localStorage.removeItem(BAR_HTML_KEY);
+    localStorage.removeItem(BAR_ME_KEY);
+  } catch {}
+  const boot = typeof document !== "undefined" ? document.getElementById("ab-boot") : null;
+  if (boot) boot.innerHTML = "";
+}
+
+export function AdminBar() {
+  const [me, setMe] = useState<MeResponse | null>(null);
+
+  // Before paint: show the bar from the saved copy (no flash), then confirm with the server.
+  useLayoutEffect(() => {
+    try {
+      const cached = localStorage.getItem(BAR_ME_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (cached) setMe(JSON.parse(cached) as MeResponse);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: MeResponse) => {
+        if (cancelled) return;
+        if (data.loggedIn) {
+          try {
+            localStorage.setItem(BAR_ME_KEY, JSON.stringify(data));
+          } catch {}
+        } else {
+          forgetAdminBar();
+        }
+        setMe(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!me?.loggedIn || !me.username || !me.role || !me.permissions) return null;
+
+  return <AdminBarContent username={me.username} role={me.role} permissions={me.permissions} />;
+}
+
+export function AdminBarContent({
+  username,
+  role,
+  permissions,
+}: {
+  username: string;
+  role: string;
+  permissions: Permissions;
+}) {
+  const [cacheState, setCacheState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const pathname = usePathname();
+  const inAdminArea = pathname?.startsWith("/admin") ?? false;
+  const canManagePosts = permissions.blogs.edit_all || permissions.blogs.edit_own || permissions.blogs.create;
+  const isAdmin = role === "admin";
+  const canViewAnalytics = permissions.analytics.view_basic || permissions.analytics.view_advanced;
+  const initial = username.charAt(0).toUpperCase();
+
+  // The real bar is on screen now: drop the boot copy and keep a fresh
+  // snapshot of this one for the next page (public site only).
+  useLayoutEffect(() => {
+    const boot = document.getElementById("ab-boot");
+    if (boot) boot.innerHTML = "";
+    if (inAdminArea) return;
+    try {
+      const html = document.getElementById("site-admin-bar")?.outerHTML;
+      if (html) localStorage.setItem(BAR_HTML_KEY, html);
+    } catch {}
+  });
+
+  async function handleClearCache() {
+    setCacheState("loading");
+    try {
+      await clearHomepageCacheAction();
+      setCacheState("success");
+    } catch {
+      setCacheState("error");
+    } finally {
+      setTimeout(() => setCacheState("idle"), 2000);
+    }
+  }
+
+  return (
+    <div id="site-admin-bar" role="navigation" aria-label="Admin Bar" data-role={role}>
+      <div className="ab-inner">
+        <div className="ab-left">
+          {/* Real UX gap fixed here: this link always said "Homepage",
+              even while already viewing the admin panel — clicking it
+              from inside /admin just took you to the public site, with
+              no equally-quick way back. Context-aware now: shows
+              "Dashboard" (→ /admin/dashboard) when browsing the public
+              site, and "Homepage" (→ /) when already inside /admin. */}
+          {inAdminArea ? (
+            <a href="/" className="ab-logo" title="Go to Homepage">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <span>Homepage</span>
+            </a>
+          ) : (
+            <a href="/admin/dashboard" className="ab-logo" title="Go to Dashboard">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="9" rx="1" />
+                <rect x="14" y="3" width="7" height="5" rx="1" />
+                <rect x="14" y="12" width="7" height="9" rx="1" />
+                <rect x="3" y="16" width="7" height="5" rx="1" />
+              </svg>
+              <span>Dashboard</span>
+            </a>
+          )}
+
+          {canManagePosts && (
+            <div className="ab-item ab-has-sub">
+              <a href="/admin/blogs-manager">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                Posts
+                <svg className="ab-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </a>
+              <div className="ab-sub">
+                <a href="/admin/blogs-manager">All Posts</a>
+                <a href="/admin/post-manager/new">Add New</a>
+                <a href="/admin/categories-manager">Categories</a>
+                <a href="/admin/comments-manager">Comments</a>
+              </div>
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="ab-item ab-has-sub">
+              <a href="/admin/general-settings">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+                </svg>
+                Settings
+                <svg className="ab-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </a>
+              <div className="ab-sub">
+                <a href="/admin/general-settings">General</a>
+                <a href="/admin/performance-settings">Performance</a>
+                <a href="/admin/header-customizer">Header</a>
+                <a href="/admin/ad-inserter">Ads</a>
+                <a href="/admin/cache-manager">Cache</a>
+                <a href="/admin/cron-manager">Cron Jobs</a>
+              </div>
+            </div>
+          )}
+
+          {canViewAnalytics && (
+            <a className="ab-item" href="/admin/analytics">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              Analytics
+            </a>
+          )}
+        </div>
+
+        <div className="ab-right">
+          {isAdmin && (
+            <button
+              type="button"
+              className={`ab-item ab-clear-cache${cacheState === "loading" ? " is-loading" : ""}${cacheState === "success" ? " is-success" : ""}${cacheState === "error" ? " is-error" : ""}`}
+              onClick={handleClearCache}
+              disabled={cacheState === "loading"}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+              </svg>
+              <span className="ab-cache-label">
+                {cacheState === "loading" ? "Clearing…" : cacheState === "success" ? "Cleared!" : cacheState === "error" ? "Failed" : "Clear Cache"}
+              </span>
+            </button>
+          )}
+
+          <Link className="ab-item ab-view-site" href="/" target="_blank" rel="noopener noreferrer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            View Site
+          </Link>
+
+          <div className="ab-item ab-has-sub ab-user">
+            <a href="/admin/my-profile">
+              <span className="ab-avatar">{initial}</span>
+              <span className="ab-username">{username}</span>
+              <span className={`ab-role-badge ${role}`}>{role}</span>
+              <svg className="ab-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </a>
+            <div className="ab-sub ab-sub-right">
+              <div className="ab-sub-header">
+                <strong>{username}</strong>
+                <span style={{ textTransform: "capitalize" }}>{role}</span>
+              </div>
+              <a href="/admin/dashboard">Dashboard</a>
+              <a href="/admin/my-profile">Edit Profile</a>
+              <div className="ab-sub-divider" />
+              {/* Same critical fix as SidebarNav.tsx — see
+                  app/api/auth/logout/route.ts for the full explanation.
+                  This one mattered even more: AdminBar renders on every
+                  PUBLIC page too, so a prefetched GET here logged staff
+                  out while they were just browsing the live site. */}
+              <form method="POST" action="/api/auth/logout" onSubmit={() => forgetAdminBar()}>
+                <button type="submit" className="ab-logout">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Log Out
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
