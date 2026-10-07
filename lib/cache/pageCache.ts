@@ -1,9 +1,10 @@
 import "server-only";
 import fs from "fs";
 import path from "path";
-import { unstable_cache, updateTag, revalidateTag } from "next/cache";
+import { unstable_cache, updateTag, revalidateTag, revalidatePath } from "next/cache";
+import { POSTS_TAG } from "../posts";
 import { getCacheSettings, saveCacheSettings, isUrlExcluded } from "./cacheSettings";
-import { isRedisConfigured, objectCacheDelete, objectCacheInfo, objectCachePing } from "./objectCache";
+import { getRedisConfig, objectCacheDelete, objectCacheInfo, objectCachePing } from "./objectCache";
 import { resolveSiteConfig } from "../config";
 import { prisma } from "../db";
 
@@ -96,14 +97,15 @@ export async function getCacheOverview(): Promise<CacheOverviewStats> {
     nextAutoClearAt = new Date(next).toISOString();
   }
 
+  const redisOn = Boolean(await getRedisConfig(true));
   return {
     totalFiles: files.length,
     totalSize,
     ttlHomepageSeconds: settings.ttlHomepageSeconds,
     ttlPostSeconds: settings.ttlPostSeconds,
-    objectCacheAvailable: isRedisConfigured(),
-    objectCacheActive: isRedisConfigured() ? await objectCachePing() : false,
-    redis: isRedisConfigured() ? await objectCacheInfo() : null,
+    objectCacheAvailable: redisOn,
+    objectCacheActive: redisOn ? await objectCachePing() : false,
+    redis: redisOn ? await objectCacheInfo() : null,
     enabled: settings.enabled,
     lastClearedAt: settings.lastClearedAt,
     nextAutoClearAt,
@@ -139,16 +141,23 @@ export async function clearAllCache(opts: { fromRoute?: boolean } = {}): Promise
   // Actions (lib/cacheManagerAdmin.ts), and updateTag gives immediate
   // read-your-own-writes semantics there instead of a background revalidate.
   // Route handlers (the cron job) can't call updateTag; they revalidate instead.
-  if (opts.fromRoute) revalidateTag(CACHE_TAG, "max");
-  else updateTag(CACHE_TAG);
+  // Every cached page and every cached list/post query (not just the old page-cache tag, which nothing used).
+  const tags = [CACHE_TAG, POSTS_TAG, "theme-settings", "app-config", "site-settings", "seo-settings", "push-settings", "header-settings", "footer-settings"];
+  for (const t of tags) {
+    if (opts.fromRoute) revalidateTag(t, "max");
+    else updateTag(t);
+  }
+  revalidatePath("/", "layout");
   // Redis (when set up): the site's own keys go too.
-  await objectCacheDelete("st:*");
+  await objectCacheDelete("*");
   await saveCacheSettings({ lastClearedAt: new Date().toISOString() });
   return before;
 }
 
+/** OFF: every copy is thrown away now and pages are built from live data from then on (see pageCacheOn). */
 export async function toggleCacheEnabled(enabled: boolean): Promise<void> {
   await saveCacheSettings({ enabled });
+  if (!enabled) await clearAllCache();
 }
 
 /** Fires GET requests at the homepage + N most recent published post URLs

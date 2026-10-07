@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { pageCacheOn } from "../cache/cacheSettings";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { POSTS_TAG } from "../posts";
@@ -87,13 +88,13 @@ const cachedRange = unstable_cache(loadRange, ["nb-card-range"], { revalidate: 6
 
 /** `take` posts starting at `skip` (homepage load-on-scroll). */
 export async function getCardPostsRange(f: Exclude<Filter, { kind: "search" }>, skip: number, take: number) {
-  const res = await cachedRange(f, skip, take);
+  const res = (await pageCacheOn()) ? await cachedRange(f, skip, take) : await loadRange(f, skip, take);
   return { total: res.total, posts: res.posts.map((p) => ({ ...p, date: p.date ? new Date(p.date) : null })) };
 }
 
 /** Posts for the home / archive card grids (cached; search is not cached). */
 export async function getCardPosts(f: Filter, page: number, perPage: number) {
-  const res = f.kind === "search" ? await load(f, page, perPage) : await cached(f, page, perPage);
+  const res = f.kind === "search" || !(await pageCacheOn()) ? await load(f, page, perPage) : await cached(f, page, perPage);
   return {
     total: res.total,
     totalPages: Math.max(1, Math.ceil(res.total / perPage)),

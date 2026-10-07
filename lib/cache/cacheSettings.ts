@@ -43,9 +43,9 @@ const KEYS = {
  * request is a non-issue.
  */
 // Every cached page asks for these settings, so they are kept: 10 s in this process, 60 s in Redis (shared,
-// when REDIS_URL is set), instead of a database query on every page render. Saving clears both.
+// when Redis is on), instead of a database query on every page render. Saving clears both.
 let memo: { at: number; value: CacheSettings } | null = null;
-const REDIS_KEY = "st:cache-settings";
+const REDIS_KEY = "cache-settings";
 
 export async function getCacheSettings(): Promise<CacheSettings> {
   if (memo && Date.now() - memo.at < 10_000) return memo.value;
@@ -115,4 +115,9 @@ export async function saveCacheSettings(partial: Partial<CacheSettings>): Promis
 export function isUrlExcluded(pathname: string, excludeUrls: string): boolean {
   const patterns = excludeUrls.split("\n").map((l) => l.trim()).filter(Boolean);
   return patterns.some((p) => pathname.includes(p));
+}
+
+/** Cache Manager switch: false = posts and lists are read live from the database on every page build. */
+export async function pageCacheOn(): Promise<boolean> {
+  return (await getCacheSettings()).enabled;
 }

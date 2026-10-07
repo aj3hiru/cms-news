@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { pageCacheOn } from "./cache/cacheSettings";
 import { POSTS_TAG } from "./posts";
 import { prisma } from "./db";
 import { POSTS_PER_PAGE } from "./config";
@@ -51,7 +52,7 @@ async function loadCategoryPosts(categoryId: number, page: number) {
 const cachedCategoryPosts = unstable_cache(loadCategoryPosts, ["category-posts"], { revalidate: 60, tags: [POSTS_TAG] });
 
 export async function getCategoryPosts(categoryId: number, page: number) {
-  return cachedCategoryPosts(categoryId, page);
+  return (await pageCacheOn()) ? cachedCategoryPosts(categoryId, page) : loadCategoryPosts(categoryId, page);
 }
 
 // ── Tag (tag.php) ────────────────────────────────────────────────────────

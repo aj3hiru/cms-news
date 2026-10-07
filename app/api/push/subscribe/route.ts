@@ -1,17 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { getPushSettings } from "@/lib/push/settings";
+import { getPushClientConfig } from "@/lib/push/settings";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 /** What the browser needs to subscribe (no secrets). */
 export async function GET() {
-  const s = await getPushSettings();
-  return NextResponse.json(
-    { publicKey: s.configured ? s.publicKey : "", autoPrompt: s.autoPrompt, promptDelay: s.promptDelay, showBell: s.showBell },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+  return NextResponse.json(await getPushClientConfig(), { headers: { "Cache-Control": "no-store" } });
 }
 
 /** Saves (or refreshes) a browser's push subscription. */

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { RedisSettingsCard } from "./RedisSettingsCard";
+import type { RedisAdminView } from "@/lib/cacheManagerAdmin";
 import {
   getCacheDashboardData,
   getCacheFilesList,
@@ -40,7 +42,7 @@ function formatTtl(seconds: number): string {
 const HOMEPAGE_TTL_OPTIONS = [60, 300, 600, 1800, 3600];
 const POST_TTL_OPTIONS = [3600, 21600, 43200, 86400, 604800];
 
-export function CacheManagerClient({ isProduction, initial, initialFiles }: { isProduction: boolean; initial?: { overview: CacheOverviewStats; settings: CacheSettings }; initialFiles?: FileRow[] | null }) {
+export function CacheManagerClient({ isProduction, initial, initialFiles, initialRedis }: { isProduction: boolean; initial?: { overview: CacheOverviewStats; settings: CacheSettings }; initialFiles?: FileRow[] | null; initialRedis?: RedisAdminView | null }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [overview, setOverview] = useState<CacheOverviewStats | null>(initial?.overview ?? null);
   const [settings, setSettings] = useState<CacheSettings | null>(initial?.settings ?? null);
@@ -267,7 +269,10 @@ export function CacheManagerClient({ isProduction, initial, initialFiles }: { is
         )}
 
         {tab === "settings" && (
-          <SettingsPanel settings={settings} onSave={handleSaveSettings} disabled={isPending || locked} />
+          <>
+            <SettingsPanel settings={settings} onSave={handleSaveSettings} disabled={isPending || locked} />
+            {initialRedis && <RedisSettingsCard initial={initialRedis} />}
+          </>
         )}
 
         {tab === "diagnostics" && <DiagnosticsPanel overview={overview} settings={settings} isProduction={isProduction} />}
@@ -385,8 +390,8 @@ function DiagnosticsPanel({ overview, settings, isProduction }: { overview: Cach
       desc: overview.redis
         ? `Redis ${overview.redis.version} · ${overview.redis.usedMemory} in use · ${overview.redis.keys.toLocaleString("en-IN")} key(s). Cache settings are read from it instead of the database on every page.`
         : overview.objectCacheAvailable
-          ? "REDIS_URL is set but the server did not answer — check that redis-server is running."
-          : "Set REDIS_URL in the environment to enable it. Not required for the page cache to work.",
+          ? "Redis is switched on but did not answer — check the settings (Settings → Redis) and that redis-server is running. The site keeps working without it."
+          : "Optional. Turn it on under Settings → Redis object cache. Not required for the page cache to work.",
     },
     {
       ok: true,

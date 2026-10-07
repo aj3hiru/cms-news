@@ -179,11 +179,12 @@ async function getPublicCachePerf(): Promise<{ on: boolean; seconds: number; swr
   if (publicCachePerf && publicCachePerf.expiresAt > now) return publicCachePerf;
   try {
     const rows = await prisma.appConfig.findMany({
-      where: { configKey: { in: ["perf_cache_headers", "perf_cache_duration", "perf_cache_swr"] } },
+      where: { configKey: { in: ["perf_cache_headers", "perf_cache_duration", "perf_cache_swr", "cache_enabled"] } },
     });
     const get = (k: string) => rows.find((r) => r.configKey === k)?.configValue ?? null;
     publicCachePerf = {
-      on: get("perf_cache_headers") === "1",
+      // Cache Manager OFF also stops Cloudflare / browser copies of pages.
+      on: get("perf_cache_headers") === "1" && get("cache_enabled") !== "0",
       seconds: Math.max(0, Math.min(86400, parseInt(get("perf_cache_duration") ?? "60", 10) || 0)),
       swr: get("perf_cache_swr") !== "0",
       expiresAt: now + 30_000,

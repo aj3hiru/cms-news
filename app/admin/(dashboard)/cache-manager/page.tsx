@@ -3,7 +3,7 @@ import "./cache-manager.css";
 import { CacheManagerClient } from "@/components/admin/CacheManagerClient";
 import { ViewCountAuditPanel } from "@/components/admin/ViewCountAuditPanel";
 import { requireUser } from "@/lib/auth";
-import { getCacheDashboardData, getCacheFilesList } from "@/lib/cacheManagerAdmin";
+import { getCacheDashboardData, getCacheFilesList, getRedisAdmin } from "@/lib/cacheManagerAdmin";
 import { getTrafficSummary } from "@/lib/viewCountAudit";
 
 export default async function CacheManagerPage() {
@@ -12,10 +12,11 @@ export default async function CacheManagerPage() {
   if (denied) return denied;
 
   const user = await requireUser();
-  const [initial, summary, files] = await Promise.all([
+  const [initial, summary, files, redis] = await Promise.all([
     getCacheDashboardData().catch(() => undefined),
     user?.role === "admin" ? getTrafficSummary().catch(() => null) : Promise.resolve(null),
     getCacheFilesList().catch(() => null),
+    user?.role === "admin" ? getRedisAdmin().catch(() => null) : Promise.resolve(null),
   ]);
 
   return (
@@ -26,7 +27,7 @@ export default async function CacheManagerPage() {
           process.env.NODE_ENV directly from client code is unreliable
           across bundlers/deploy setups even though Next.js's own
           bundler typically inlines it safely. */}
-      <CacheManagerClient isProduction={process.env.NODE_ENV === "production"} initial={initial} initialFiles={files} />
+      <CacheManagerClient isProduction={process.env.NODE_ENV === "production"} initial={initial} initialFiles={files} initialRedis={redis} />
 
       {/* Admin-only, deliberately: this tool WRITES corrective rows into
           the stats tables, and its server actions enforce admin in their

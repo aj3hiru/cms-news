@@ -59,6 +59,16 @@ export const getPushPublic = unstable_cache(
   { revalidate: 300, tags: ["push-settings"] }
 );
 
+/** What every visitor's browser asks for (public key + prompt options), cached — no database query per pageview. */
+export const getPushClientConfig = unstable_cache(
+  async () => {
+    const s = await getPushSettings();
+    return { publicKey: s.configured ? s.publicKey : "", autoPrompt: s.autoPrompt, promptDelay: s.promptDelay, showBell: s.showBell };
+  },
+  ["push-client-config"],
+  { revalidate: 300, tags: ["push-settings"] }
+);
+
 /** Safe label for a key: a hash, never the key itself. */
 export function keyFingerprint(key: string): string {
   if (!key) return "";

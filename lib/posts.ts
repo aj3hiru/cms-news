@@ -1,4 +1,5 @@
 import { revalidateTag, unstable_cache } from "next/cache";
+import { pageCacheOn } from "./cache/cacheSettings";
 import { prisma } from "./db";
 
 /**
@@ -69,7 +70,7 @@ async function loadHomePosts(limit: number, offset: number): Promise<HomePostRow
 const cachedHomePosts = unstable_cache(loadHomePosts, ["home-posts"], { revalidate: 60, tags: [POSTS_TAG] });
 
 export async function getHomePosts(limit: number, offset: number): Promise<HomePostRow[]> {
-  return (await cachedHomePosts(limit, offset)).map((p) => ({ ...p, date: toDate(p.date) }));
+  return (await ((await pageCacheOn()) ? cachedHomePosts(limit, offset) : loadHomePosts(limit, offset))).map((p) => ({ ...p, date: toDate(p.date) }));
 }
 
 export const getHomePostsTotal = unstable_cache(() => prisma.post.count({ where: { status: "published" } }), ["home-posts-total"], {
@@ -132,7 +133,7 @@ async function loadPopularPosts(limit: number): Promise<PopularPostRow[]> {
 const cachedPopularPosts = unstable_cache(loadPopularPosts, ["popular-posts"], { revalidate: 300, tags: [POSTS_TAG] });
 
 export async function getPopularPosts(limit: number): Promise<PopularPostRow[]> {
-  return (await cachedPopularPosts(limit)).map((p) => ({ ...p, date: toDate(p.date) }));
+  return (await ((await pageCacheOn()) ? cachedPopularPosts(limit) : loadPopularPosts(limit))).map((p) => ({ ...p, date: toDate(p.date) }));
 }
 
 export interface LatestPostRow {
