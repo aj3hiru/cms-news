@@ -260,6 +260,11 @@ export interface ConsentSettings {
   footer_link_label: string;
   /** Days the choice is remembered. */
   days: number;
+  /** Floating cookie button for visitors who haven't clicked "Accept All" (opens the popup). */
+  sticky: boolean;
+  sticky_side: "left" | "right";
+  /** Show the popup again to visitors who haven't accepted everything (never in EEA/UK/CH). */
+  reask: "never" | "page" | "day" | "session";
 }
 
 export interface ThemeSettings {
@@ -531,6 +536,9 @@ export const DEFAULT_CONSENT: ConsentSettings = {
   footer_link: true,
   footer_link_label: "Cookie settings",
   days: 180,
+  sticky: true,
+  sticky_side: "left",
+  reask: "never",
 };
 
 export const DEFAULT_THEME: ThemeSettings = {

@@ -281,3 +281,11 @@
 .cz-loading { position: absolute; top: 14px; left: 50%; z-index: 5; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-radius: 999px; background: #fff; box-shadow: 0 6px 20px rgba(0, 0, 0, .15); font-size: 13px; font-weight: 600; color: #1d2327; }
 .cz-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #dcdcde; border-top-color: var(--cz-accent); animation: czSpin .7s linear infinite; }
 @keyframes czSpin { to { transform: rotate(360deg); } }
+/* Reset design (home panel) */
+.cz-reset { margin: 18px 16px 24px; padding: 14px; border: 1px solid #fecaca; border-radius: 8px; background: #fff7f7; display: flex; flex-direction: column; gap: 8px; }
+.cz-reset strong { font-size: 13px; color: #991b1b; }
+.cz-reset small { font-size: 12px; line-height: 1.5; color: #6b7280; }
+.cz-reset-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid #dc2626; border-radius: 6px; background: #fff; color: #dc2626; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cz-reset-btn:hover:not(:disabled) { background: #dc2626; color: #fff; }
+.cz-reset-undo { align-self: flex-start; padding: 0; border: 0; background: none; color: #2563eb; font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
+.cz-reset button:disabled { opacity: .6; cursor: default; }

@@ -13,6 +13,9 @@ export async function CookieConsent() {
     optInEverywhere: c.opt_in_everywhere,
     position: c.position,
     days: c.days,
+    sticky: c.sticky,
+    stickySide: c.sticky_side,
+    reask: c.reask,
     privacyUrl: c.privacy_url.trim(),
     labels: {
       title: tl(c.title, "cTitle", t),
@@ -32,6 +35,7 @@ export async function CookieConsent() {
       personalDesc: tl(c.personal_desc, "cPersonalDesc", t),
       alwaysOn: t.cAlwaysOn,
       close: t.cClose,
+      settings: tl(c.footer_link_label, "cSettings", t),
     },
   };
   return <CookieBanner cfg={cfg} />;

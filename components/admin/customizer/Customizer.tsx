@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ThemeSettings } from "@/lib/theme/types";
 import { buildThemeCss, googleFontsHref } from "@/lib/theme/css";
-import { discardThemeDraft, publishTheme, saveThemeDraft, type IdentityInput } from "@/lib/theme/actions";
+import { discardThemeDraft, publishTheme, resetTheme, saveThemeDraft, undoThemeReset, type IdentityInput } from "@/lib/theme/actions";
 import type { Device } from "./fields";
 import { IdentityPanel } from "./panels/IdentityPanel";
 import { ColorsPanel } from "./panels/ColorsPanel";
@@ -60,7 +60,7 @@ function structuralKey(t: ThemeSettings): string {
   return JSON.stringify(copy);
 }
 
-export function Customizer({ initial, identity: initialIdentity, siteUrl }: { initial: ThemeSettings; identity: IdentityInput; siteUrl: string }) {
+export function Customizer({ initial, identity: initialIdentity, siteUrl, backupAt }: { initial: ThemeSettings; identity: IdentityInput; siteUrl: string; backupAt: string | null }) {
   const [theme, setTheme] = useState<ThemeSettings>(initial);
   const [identity, setIdentityState] = useState<IdentityInput>(initialIdentity);
   const [panel, setPanel] = useState<Panel>("home");
@@ -183,6 +183,33 @@ export function Customizer({ initial, identity: initialIdentity, siteUrl }: { in
     } else setMessage({ ok: false, text: res.error });
   }
 
+  async function reset() {
+    if (
+      !confirm(
+        "Reset the whole design to the default theme?\n\nColours, fonts, header, menus, footer, post template, homepage layout, cookie popup and every other Customizer setting go back to the defaults (unpublished changes too).\n\nNOT touched: posts, pages, media, comments, push notifications & subscribers, SEO settings, and the site name / logo / icon.\n\nYou can undo this afterwards."
+      )
+    )
+      return;
+    setSaving(true);
+    const res = await resetTheme();
+    if (!res.ok) {
+      setSaving(false);
+      return setMessage({ ok: false, text: res.error ?? "Could not reset." });
+    }
+    location.reload();
+  }
+
+  async function undoReset() {
+    if (!confirm("Bring back the design from before the last reset? Changes made since then are replaced.")) return;
+    setSaving(true);
+    const res = await undoThemeReset();
+    if (!res.ok) {
+      setSaving(false);
+      return setMessage({ ok: false, text: res.error ?? "Could not undo." });
+    }
+    location.reload();
+  }
+
   async function close() {
     if (dirty && !confirm("You have unpublished changes. Leave without publishing?")) return;
     await discardThemeDraft();
@@ -234,6 +261,20 @@ export function Customizer({ initial, identity: initialIdentity, siteUrl }: { in
                   </button>
                 ))}
               </nav>
+            )}
+            {panel === "home" && (
+              <div className="cz-reset">
+                <strong>Reset design</strong>
+                <small>All Customizer settings back to the default theme. Posts, pages, media, push and SEO are not touched.</small>
+                <button type="button" className="cz-reset-btn" onClick={reset} disabled={saving}>
+                  <i className="fas fa-rotate-left" /> Reset to default
+                </button>
+                {backupAt && (
+                  <button type="button" className="cz-reset-undo" onClick={undoReset} disabled={saving}>
+                    Undo last reset ({new Date(backupAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" })})
+                  </button>
+                )}
+              </div>
             )}
             {panel === "identity" && <IdentityPanel />}
             {panel === "colors" && <ColorsPanel />}

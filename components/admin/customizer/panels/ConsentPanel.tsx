@@ -86,6 +86,38 @@ export function ConsentPanel() {
             <Hint>Any menu link to #cookie-settings also opens the settings.</Hint>
             <Range label="Remember the choice for" unit=" days" min={30} max={395} value={c.days} onChange={(v) => set("days", v)} />
           </Section>
+
+          <Section title="Visitors who didn’t accept" defaultOpen>
+            <Toggle
+              label="Sticky cookie button"
+              checked={c.sticky}
+              onChange={(v) => set("sticky", v)}
+              hint="A small round cookie button stays on screen for visitors who rejected or only partly accepted. Tapping it opens the choices. It disappears for good once they click Accept All."
+            />
+            {c.sticky && (
+              <Segmented
+                label="Button side"
+                value={c.sticky_side}
+                onChange={(v) => set("sticky_side", v)}
+                options={[
+                  ["left", "Bottom left"],
+                  ["right", "Bottom right"],
+                ]}
+              />
+            )}
+            <Select
+              label="Show the popup again"
+              value={c.reask}
+              onChange={(v) => set("reask", v)}
+              options={[
+                ["never", "Never (only the sticky button)"],
+                ["page", "On every page they open"],
+                ["day", "Once a day"],
+                ["session", "Once per visit"],
+              ]}
+              hint="Only for visitors who didn’t click Accept All. Never in the EEA, UK and Switzerland: asking again after a “no” counts as pressure there (and can get AdSense flagged). Visitors who accepted never see it again."
+            />
+          </Section>
           <Hint>The preview always shows the popup so you can style it; clicking its buttons there doesn’t save anything.</Hint>
         </>
       )}

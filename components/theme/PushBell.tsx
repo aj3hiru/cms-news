@@ -83,8 +83,6 @@ export function PushBell({ className = "", label, labels = PUSH_EN, ready = fals
   const [showBell, setShowBell] = useState(true);
   const [toast, setToast] = useState(false);
   const [help, setHelp] = useState(false);
-  // Trial: the guide alternates picture / CSS version on each opening (count kept for the browser session).
-  const [guide, setGuide] = useState<"img" | "css">("img");
   const ctx = useRef<{ reg: ServiceWorkerRegistration; key: string } | null>(null);
   const busy = useRef(false);
 
@@ -173,17 +171,6 @@ export function PushBell({ className = "", label, labels = PUSH_EN, ready = fals
     img.decode?.().catch(() => {});
   }, [state]);
 
-  const toggleHelp = () => {
-    if (help) return setHelp(false);
-    let n = 0;
-    try {
-      n = Number(sessionStorage.getItem("nb_guide_n") || 0);
-      sessionStorage.setItem("nb_guide_n", String(n + 1));
-    } catch {}
-    setGuide(n % 2 === 0 ? "img" : "css");
-    setHelp(true);
-  };
-
   const visible = showBell && (state === "default" || state === "denied");
   return (
     <>
@@ -192,7 +179,7 @@ export function PushBell({ className = "", label, labels = PUSH_EN, ready = fals
           <button
             type="button"
             className={`nb-bell${state === "denied" ? " is-denied" : ""}`}
-            onClick={() => (state === "denied" ? toggleHelp() : void subscribe())}
+            onClick={() => (state === "denied" ? setHelp((h) => !h) : void subscribe())}
             aria-label={state === "denied" ? labels.blocked : labels.get}
             title={state === "denied" ? labels.blocked : labels.get}
           >
@@ -215,12 +202,8 @@ export function PushBell({ className = "", label, labels = PUSH_EN, ready = fals
               <button type="button" className="nb-allow-close" onClick={() => setHelp(false)} aria-label="Close">
                 ×
               </button>
-              {guide === "img" ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={GUIDE_IMG} width={640} height={358} alt={`${labels.blocked}. ${labels.help}`} decoding="sync" fetchPriority="high" />
-              ) : (
-                <CssGuide label={`${labels.blocked}. ${labels.help}`} />
-              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={GUIDE_IMG} width={640} height={358} alt={`${labels.blocked}. ${labels.help}`} decoding="sync" fetchPriority="high" />
             </div>
           </div>,
           document.body,
@@ -231,32 +214,5 @@ export function PushBell({ className = "", label, labels = PUSH_EN, ready = fals
         </div>
       )}
     </>
-  );
-}
-
-/** Same guide as public/push-allow.webp, drawn with HTML + CSS (text) and inline SVG (arrows, ring). Scales with its box. */
-function CssGuide({ label }: { label: string }) {
-  return (
-    <div className="nb-ag" role="img" aria-label={label}>
-      <svg className="nb-ag-svg" viewBox="0 0 1280 716" aria-hidden="true">
-        <path className="nb-ag-arrow" d="M568 232C330 270 168 235 180 42" />
-        <path className="nb-ag-arrow" d="M138 88 180 34 228 84" />
-        <circle className="nb-ag-ring" cx="181" cy="377" r="92" />
-        <path className="nb-ag-arrow nb-ag-arrow--sm" d="M322 606C215 615 140 575 146 500" />
-        <path className="nb-ag-arrow nb-ag-arrow--sm" d="M118 528 146 492 176 524" />
-      </svg>
-      <span className="nb-ag-look">Look here</span>
-      <span className="nb-ag-lockhint">
-        <i>🔒</i> lock icon
-      </span>
-      <span className="nb-ag-bar">
-        <i>🔒</i>
-        <span>Your website address</span>
-      </span>
-      <span className="nb-ag-tip">
-        <b>Tap here to allow notifications</b>
-        <small>Tap the 🔒 lock icon → Notifications → Allow</small>
-      </span>
-    </div>
   );
 }

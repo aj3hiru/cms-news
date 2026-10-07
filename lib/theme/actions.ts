@@ -109,3 +109,52 @@ export async function getPostTitles(ids: number[]): Promise<Record<number, strin
   const rows = await prisma.post.findMany({ where: { id: { in: ids.slice(0, 100) } }, select: { id: true, title: true } });
   return Object.fromEntries(rows.map((r) => [r.id, r.title]));
 }
+
+const THEME_BACKUP_KEY = "theme_backup";
+const refreshTheme = () => {
+  for (const tag of ["theme-settings", "app-config", "site-settings", "header-settings", "footer-settings"]) revalidateTag(tag, "max");
+  revalidatePath("/", "layout");
+};
+
+/**
+ * Customizer → Reset: the design (colours, fonts, header, menus, footer, post template, cookie popup…) goes back
+ * to the defaults. Only the theme setting is touched — posts, pages, media, push, SEO and the site name stay.
+ * The previous design is kept as a backup so the reset can be undone.
+ */
+export async function resetTheme(): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  if (!user || user.role !== "admin") return { ok: false, error: "Only admins can change the site design." };
+  const current = await prisma.appConfig.findUnique({ where: { configKey: THEME_KEY } });
+  if (current?.configValue) await upsertConfig(THEME_BACKUP_KEY, JSON.stringify({ at: new Date().toISOString(), value: current.configValue }));
+  await prisma.appConfig.deleteMany({ where: { configKey: { in: [THEME_KEY, THEME_DRAFT_KEY] } } });
+  refreshTheme();
+  return { ok: true };
+}
+
+/** Puts back the design that was there before the last reset. */
+export async function undoThemeReset(): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  if (!user || user.role !== "admin") return { ok: false, error: "Only admins can change the site design." };
+  const row = await prisma.appConfig.findUnique({ where: { configKey: THEME_BACKUP_KEY } });
+  let value = "";
+  try {
+    value = row?.configValue ? (JSON.parse(row.configValue) as { value: string }).value : "";
+  } catch {}
+  if (!value) return { ok: false, error: "No earlier design was saved." };
+  await upsertConfig(THEME_KEY, JSON.stringify(mergeTheme(JSON.parse(value))));
+  await prisma.appConfig.deleteMany({ where: { configKey: { in: [THEME_BACKUP_KEY, THEME_DRAFT_KEY] } } });
+  refreshTheme();
+  return { ok: true };
+}
+
+/** When the last reset happened (for the "Undo" button), or null. */
+export async function getThemeBackupDate(): Promise<string | null> {
+  const user = await requireUser();
+  if (!user || user.role !== "admin") return null;
+  const row = await prisma.appConfig.findUnique({ where: { configKey: THEME_BACKUP_KEY } });
+  try {
+    return row?.configValue ? (JSON.parse(row.configValue) as { at: string }).at : null;
+  } catch {
+    return null;
+  }
+}

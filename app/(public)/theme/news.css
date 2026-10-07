@@ -565,3 +565,10 @@ details[open] > summary .nb-toc-toggle::after { content: attr(data-hide); }
 .ftx-cookie { margin: 6px 0 0; text-align: center; }
 .ftx-cookie button { padding: 4px 6px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--t-footer-bar-link, #fff); opacity: .85; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .ftx-cookie button:hover { opacity: 1; }
+/* Floating cookie button (visitors who haven't accepted everything) */
+.nbc-fab { position: fixed; bottom: 16px; z-index: 2147481000; width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--t-buttons-background, var(--gc-accent, #0c6878)); color: var(--t-buttons-text, #fff); box-shadow: 0 6px 18px rgba(15, 23, 42, .25); cursor: pointer; transition: transform .15s, box-shadow .15s; animation: nbc-in .25s ease-out; }
+.nbc-fab--left { left: 16px; }
+.nbc-fab--right { right: 16px; }
+.nbc-fab:hover { transform: scale(1.06); box-shadow: 0 8px 22px rgba(15, 23, 42, .3); }
+.nbc-fab svg { width: 24px; height: 24px; fill: currentColor; }
+@media (max-width: 520px) { .nbc-fab { width: 42px; height: 42px; bottom: 12px; } .nbc-fab--left { left: 12px; } .nbc-fab--right { right: 12px; } }

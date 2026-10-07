@@ -21,6 +21,7 @@ export interface ConsentLabels {
   personalDesc: string;
   alwaysOn: string;
   close: string;
+  settings: string;
 }
 
 export interface ConsentConfig {
@@ -28,6 +29,9 @@ export interface ConsentConfig {
   optInEverywhere: boolean;
   position: "bottom" | "bottom-left" | "center" | "bar";
   days: number;
+  sticky: boolean;
+  stickySide: "left" | "right";
+  reask: "never" | "page" | "day" | "session";
   privacyUrl: string;
   labels: ConsentLabels;
 }
@@ -37,6 +41,7 @@ interface Choice {
   ads: boolean;
   personal: boolean;
 }
+type Saved = Choice & { at: number };
 
 type Gtag = (...args: unknown[]) => void;
 type AdsQueue = unknown[] & { pauseAdRequests?: number; requestNonPersonalizedAds?: number };
@@ -48,11 +53,28 @@ declare global {
   }
 }
 
-function readChoice(): Choice | null {
+function readChoice(): Saved | null {
   const m = document.cookie.match(new RegExp(`(?:^|; )${CONSENT_COOKIE}=([^;]+)`));
   const v = m ? decodeURIComponent(m[1]).split(".") : null;
   if (!v || v[0] !== "1") return null;
-  return { analytics: v[1] === "1", ads: v[2] === "1", personal: v[2] === "1" && v[3] === "1" };
+  return { analytics: v[1] === "1", ads: v[2] === "1", personal: v[2] === "1" && v[3] === "1", at: Number(v[4]) || 0 };
+}
+
+/** "Accept All" was chosen (everything allowed). */
+const acceptedAll = (c: Choice | null) => Boolean(c && c.analytics && c.ads && c.personal);
+
+/** Visitors who said no (or only partly yes) see the popup again, as set in the Customizer. */
+function shouldAskAgain(reask: ConsentConfig["reask"], saved: Saved): boolean {
+  if (reask === "page") return true;
+  if (reask === "day") return Date.now() / 1000 - saved.at > 86400;
+  if (reask === "session") {
+    try {
+      return !sessionStorage.getItem("nb_c_asked");
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 /** Country from Cloudflare (via /api/geo), remembered for the browser session. */
@@ -99,12 +121,15 @@ export function CookieBanner({ cfg }: { cfg: ConsentConfig }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"main" | "prefs">("main");
   const [prefs, setPrefs] = useState<Choice>({ analytics: false, ads: false, personal: false });
+  // Floating cookie button: only while the visitor hasn't accepted everything.
+  const [sticky, setSticky] = useState(false);
   const strictRef = useRef(true);
   const previewRef = useRef(false);
   const L = cfg.labels;
 
   const openPrefs = useCallback(() => {
-    setPrefs(readChoice() ?? { analytics: false, ads: false, personal: false });
+    const c = readChoice();
+    setPrefs(c ? { analytics: c.analytics, ads: c.ads, personal: c.personal } : { analytics: false, ads: false, personal: false });
     setView("prefs");
     setOpen(true);
   }, []);
@@ -140,17 +165,33 @@ export function CookieBanner({ cfg }: { cfg: ConsentConfig }) {
         return;
       }
       applyChoice(saved, strictRef.current);
-      if (!saved) setOpen(true);
+      if (!saved) {
+        try {
+          sessionStorage.setItem("nb_c_asked", "1"); // this visit has been asked ("Once per visit")
+        } catch {}
+        return setOpen(true);
+      }
+      if (acceptedAll(saved)) return;
+      // Not everything accepted: ask again (never in EEA/UK/CH — repeated asking after a "no" isn't allowed there) and/or show the cookie button.
+      if (!inStrict && shouldAskAgain(cfg.reask, saved)) {
+        try {
+          sessionStorage.setItem("nb_c_asked", "1");
+        } catch {}
+        setView("main");
+        setOpen(true);
+      }
+      setSticky(cfg.sticky);
     })();
     return () => {
       alive = false;
       document.removeEventListener("click", onClick);
     };
-  }, [cfg.optInEverywhere, cfg.showTo, openPrefs]);
+  }, [cfg.optInEverywhere, cfg.showTo, cfg.reask, cfg.sticky, openPrefs]);
 
   const decide = (c: Choice) => {
     setOpen(false);
     setView("main");
+    setSticky(cfg.sticky && !acceptedAll(c));
     if (previewRef.current) return;
     const days = Math.max(1, Math.min(395, cfg.days || 180));
     const value = ["1", c.analytics ? 1 : 0, c.ads ? 1 : 0, c.ads && c.personal ? 1 : 0, Math.floor(Date.now() / 1000)].join(".");
@@ -160,7 +201,14 @@ export function CookieBanner({ cfg }: { cfg: ConsentConfig }) {
   const all = { analytics: true, ads: true, personal: true };
   const none = { analytics: false, ads: false, personal: false };
 
-  if (!open) return null;
+  if (!open)
+    return sticky ? (
+      <button type="button" className={`nbc-fab nbc-fab--${cfg.stickySide}`} onClick={openPrefs} aria-label={L.settings} title={L.settings}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21.6 11.2a1 1 0 0 0-1.1-.8 2.5 2.5 0 0 1-2.8-2.4 1 1 0 0 0-1-1A2.5 2.5 0 0 1 14.2 4a1 1 0 0 0-1.1-1.4A9.5 9.5 0 1 0 21.6 11.2ZM7.5 10.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm1.5 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm4-4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm3 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
+        </svg>
+      </button>
+    ) : null;
   const row = (title: string, desc: string, k?: keyof Choice) => (
     <div className="nbc-row" key={title}>
       <div className="nbc-row-text">
