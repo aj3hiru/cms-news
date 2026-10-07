@@ -115,8 +115,8 @@ export const SOCIAL_LABELS: Record<SocialNetwork, string> = {
 export function SocialIcon({ network, className = "ftx-ico" }: { network: SocialNetwork; className?: string }) {
   const def = ICONS[network] ?? ICONS.rss;
   return def.stroke ? (
-    // Inline fill:none — icon CSS like `.ftx-ico { fill: currentColor }` would otherwise fill outline icons (Instagram became a solid square).
-    <svg className={className} viewBox={def.vb} fill="none" style={{ fill: "none" }} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    // Inline fill/stroke: icon CSS (`.ftx-ico { fill }`, `.author-social-link svg { stroke-width: 0 }`) would otherwise fill or hide outline icons.
+    <svg className={className} viewBox={def.vb} fill="none" style={{ fill: "none", stroke: "currentColor", strokeWidth: 2 }} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {def.body}
     </svg>
   ) : (
