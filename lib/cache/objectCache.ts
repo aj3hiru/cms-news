@@ -73,8 +73,17 @@ async function connect(s: RedisSettings): Promise<Client | null> {
     enableOfflineQueue: false,
     retryStrategy: (times: number) => Math.min(times * 500, 5000),
   });
-  client.on("error", () => {}); // reported through the commands' own failures
-  await client.connect();
+  // ioredis reports e.g. a wrong password only as an "error" event, then fails connect() with "Connection is closed".
+  let lastError: Error | null = null;
+  client.on("error", (e: Error) => {
+    lastError = e;
+  });
+  try {
+    await client.connect();
+  } catch (err) {
+    client.disconnect();
+    throw lastError ?? err;
+  }
   return client;
 }
 
@@ -185,7 +194,6 @@ export async function testRedisConnection(s: RedisSettings): Promise<{ ok: boole
     return pong === "PONG" ? { ok: true, message: `Connected — Redis ${version}, database ${s.db}.` } : { ok: false, message: "Redis answered unexpectedly." };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("redis test failed:", err);
     if (/WRONGPASS|NOAUTH|invalid password/i.test(msg)) return { ok: false, message: "Wrong password." };
     if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND/i.test(msg)) return { ok: false, message: `Can't reach Redis at ${s.host}:${s.port} (${msg.slice(0, 80)}).` };
     return { ok: false, message: msg.slice(0, 160) };
