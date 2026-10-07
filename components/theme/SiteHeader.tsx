@@ -1,4 +1,5 @@
 import { getSiteContext } from "@/lib/theme/site";
+import { navHref } from "@/lib/theme/navHref";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
 import { categoryUrl } from "@/lib/urls";
 import type { MenuLink } from "@/lib/theme/types";
@@ -37,7 +38,7 @@ function DesktopMenu({ items, darkMode, darkLabel }: { items: MenuLink[]; darkMo
         const subs = (m.children ?? []).filter((c) => c.label);
         return (
           <li className={`menu-item${subs.length ? " menu-item-has-children" : ""}`} key={i}>
-            <a href={m.url || "#"} {...(m.newTab ? { target: "_blank", rel: "noopener" } : {})}>
+            <a href={navHref(m.url)} {...(m.newTab ? { target: "_blank", rel: "noopener" } : {})}>
               {m.label}
               {subs.length > 0 && <span className="nb-caret" aria-hidden="true" />}
             </a>
@@ -45,7 +46,7 @@ function DesktopMenu({ items, darkMode, darkLabel }: { items: MenuLink[]; darkMo
               <ul className="sub-menu">
                 {subs.map((s, j) => (
                   <li key={j}>
-                    <a href={s.url || "#"} {...(s.newTab ? { target: "_blank", rel: "noopener" } : {})}>
+                    <a href={navHref(s.url)} {...(s.newTab ? { target: "_blank", rel: "noopener" } : {})}>
                       {s.label}
                     </a>
                   </li>
@@ -57,7 +58,7 @@ function DesktopMenu({ items, darkMode, darkLabel }: { items: MenuLink[]; darkMo
       })}
       {darkMode && (
         <li className="menu-item">
-          <a href="#" className="dark-mode-toggle" role="button">
+          <a className="dark-mode-toggle" role="button" tabIndex={0}>
             {darkLabel}
           </a>
         </li>
@@ -151,7 +152,7 @@ export async function SiteHeader() {
     <div className={`inb-scroll-menu nb-strip nb-strip--${h.strip_style} nb-strip--${h.strip_align}`}>
       <div className="inb-scroll-menu-inner">
         {strip.map((s, i) => (
-          <a key={i} href={s.url || "#"} {...(s.newTab ? { target: "_blank", rel: "noopener" } : {})}>
+          <a key={i} href={navHref(s.url)} {...(s.newTab ? { target: "_blank", rel: "noopener" } : {})}>
             {s.label}
           </a>
         ))}
@@ -183,14 +184,14 @@ export async function SiteHeader() {
               {h.bell && <PushBell ready={push.bell} className="nb-hr-bell" labels={{ get: t.getNotifications, enabled: t.notificationsEnabled, blocked: t.notificationsBlocked, help: t.notificationsHelp }} />}
               {searchIcon}
               {login && (
-                <a className="nb-hr-login" href={login.url || "#"}>
+                <a className="nb-hr-login" href={navHref(login.url)}>
                   <UserIcon />
                   <span>{login.label}</span>
                 </a>
               )}
               {login && subscribe && <span className="nb-hr-div" aria-hidden="true" />}
               {subscribe && (
-                <a className="nb-hr-sub" href={subscribe.url || "#"}>
+                <a className="nb-hr-sub" href={navHref(subscribe.url)}>
                   {subscribe.label}
                 </a>
               )}
@@ -236,13 +237,13 @@ export async function SiteHeader() {
                 {(login || subscribe) && (
                   <span className="menu-bar-item nb-hc-auth">
                     {login && (
-                      <a className="nb-hc-login" href={login.url || "#"}>
+                      <a className="nb-hc-login" href={navHref(login.url)}>
                         <UserIcon />
                         <span>{login.label}</span>
                       </a>
                     )}
                     {subscribe && (
-                      <a className="nb-hc-sub" href={subscribe.url || "#"}>
+                      <a className="nb-hc-sub" href={navHref(subscribe.url)}>
                         {subscribe.label}
                       </a>
                     )}

@@ -169,3 +169,5 @@ html.nb-push-sub .nb-bell-wrap { display: none !important; }
 @keyframes nb-allow-in { from { opacity: 0; } to { opacity: 1; } }
 /* Desktop: the 🔒 sits further right (after the back/reload buttons), so the guide moves 100px in. */
 @media (min-width: 768px) { .nb-allow-card { left: 110px; } }
+/* Header / menu links without a URL (no "#" in the address bar) still look clickable. */
+#site-navigation a:not([href]), .mnav a:not([href]), .nb-strip a:not([href]), .dark-mode-toggle { cursor: pointer; }

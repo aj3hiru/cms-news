@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { navHref } from "@/lib/theme/navHref";
 import type { MenuLink, SocialLink } from "@/lib/theme/types";
 import { SocialIcon, SOCIAL_LABELS } from "./icons";
 
@@ -125,12 +126,12 @@ export function MobileNav({
           {(login || subscribe) && (
             <div className="mnav-hello-btns">
               {login && (
-                <a href={login.url || "#"} className="mnav-btn outline" onClick={close}>
+                <a href={navHref(login.url)} className="mnav-btn outline" onClick={close}>
                   <i className="fas fa-right-to-bracket" /> {login.label}
                 </a>
               )}
               {subscribe && (
-                <a href={subscribe.url || "#"} className="mnav-btn solid" onClick={close}>
+                <a href={navHref(subscribe.url)} className="mnav-btn solid" onClick={close}>
                   <i className="fas fa-bell" /> {subscribe.label}
                 </a>
               )}
@@ -150,7 +151,7 @@ export function MobileNav({
               return (
                 <li key={i} className={isActive(path, item.url) ? "active" : undefined}>
                   <div className="mnav-row">
-                    <a href={item.url || "#"} onClick={close} className="mnav-link" target={external ? "_blank" : undefined} rel={external ? "noopener" : undefined}>
+                    <a href={navHref(item.url)} onClick={close} className="mnav-link" target={external ? "_blank" : undefined} rel={external ? "noopener" : undefined}>
                       <i className={`fas ${iconFor(item)} mnav-icon`} />
                       <span>{item.label}</span>
                     </a>
@@ -166,7 +167,7 @@ export function MobileNav({
                     <ul className={`mnav-sub${expanded ? " open" : ""}`}>
                       {children.map((c, j) => (
                         <li key={j} className={isActive(path, c.url) ? "active" : undefined}>
-                          <a href={c.url || "#"} onClick={close}>
+                          <a href={navHref(c.url)} onClick={close}>
                             <span>{c.label}</span>
                           </a>
                         </li>
@@ -181,7 +182,7 @@ export function MobileNav({
 
         {darkMode && (
           <div className="mnav-foot">
-            <a href="#" role="button" className="mnav-dark dark-mode-toggle">
+            <a role="button" tabIndex={0} className="mnav-dark dark-mode-toggle">
               <i className="fas fa-moon mnav-icon" />
               <span>{darkLabel}</span>
               <span className="mnav-switch" aria-hidden />
