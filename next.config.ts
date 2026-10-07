@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
   // archiver bundled is also what turns its CJS export into a namespace
   // object rather than the callable factory it actually is — see
   // lib/postExportImport.ts. Resolved via Node's own require() instead.
-  serverExternalPackages: ["unzipper", "archiver"],
+  serverExternalPackages: ["unzipper", "archiver", "ioredis"],
   // inlineCss was tried: it put ~180 KB of CSS into every HTML page (twice — also
   // in the page data) and made pages slower overall, so the CSS stays in cached files.
   // Posts sitemap pages: /sitemap-posts-1.xml, /sitemap-posts-2.xml, …

@@ -186,7 +186,7 @@ export async function testRedisConnection(s: RedisSettings): Promise<{ ok: boole
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (/WRONGPASS|NOAUTH|invalid password/i.test(msg)) return { ok: false, message: "Wrong password." };
-    if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|connect/i.test(msg)) return { ok: false, message: `Can't reach Redis at ${s.host}:${s.port}.` };
+    if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND/i.test(msg)) return { ok: false, message: `Can't reach Redis at ${s.host}:${s.port} (${msg.slice(0, 80)}).` };
     return { ok: false, message: msg.slice(0, 160) };
   } finally {
     try {
