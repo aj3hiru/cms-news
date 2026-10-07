@@ -263,14 +263,14 @@ export function Customizer({ initial, identity: initialIdentity, siteUrl, backup
               </nav>
             )}
             {panel === "home" && (
-              <div className="cz-reset">
+              <div className="cz-dreset">
                 <strong>Reset design</strong>
                 <small>All Customizer settings back to the default theme. Posts, pages, media, push and SEO are not touched.</small>
-                <button type="button" className="cz-reset-btn" onClick={reset} disabled={saving}>
+                <button type="button" className="cz-dreset-btn" onClick={reset} disabled={saving}>
                   <i className="fas fa-rotate-left" /> Reset to default
                 </button>
                 {backupAt && (
-                  <button type="button" className="cz-reset-undo" onClick={undoReset} disabled={saving}>
+                  <button type="button" className="cz-dreset-undo" onClick={undoReset} disabled={saving}>
                     Undo last reset ({new Date(backupAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" })})
                   </button>
                 )}

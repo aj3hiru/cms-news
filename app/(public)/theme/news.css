@@ -435,18 +435,23 @@ details[open] > summary .nb-toc-toggle::after { content: attr(data-hide); }
 .single-post .content .nb-keypoints h2.nb-keypoints-title, .entry-content .nb-keypoints h2.nb-keypoints-title { border: 0; padding: 0; background: none; text-align: left; }
 
 /* ── Share buttons (after the article) ── */
-.nb-share { width: 815px; max-width: 100%; box-sizing: border-box; margin: 28px 0 30px; padding: 18px 0 0; border-top: 1px solid #e5e7eb; }
-.nb-share-grid { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.nb-share-btn { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; padding: 0; border: 0; border-radius: 50%; color: #fff !important; font: inherit; line-height: 1; cursor: pointer; box-sizing: border-box; transition: filter .15s, transform .15s; }
-.nb-share-btn:hover { filter: brightness(.92); transform: translateY(-1px); }
-.nb-share-ico { width: 18px; height: 18px; flex-shrink: 0; }
-.nb-share--facebook { background: #1877f2; } .nb-share--x { background: #000; } .nb-share--whatsapp { background: #25d366; }
-.nb-share--telegram { background: #229ed9; } .nb-share--linkedin { background: #0a66c2; }
-.nb-share--email, .nb-share--copy { background: #f3f4f6; color: #1f2937 !important; border: 1px solid #d1d5db; }
+.nb-share { width: 815px; max-width: 100%; box-sizing: border-box; margin: 28px 0 30px; padding: 16px 0 0; border-top: 1px solid #e5e7eb; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.nb-share-label { font-size: 17px; font-weight: 700; color: var(--t-content-title, #111827); }
+.nb-share-grid { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+/* Plain icons in brand colours — no background. */
+.nb-share-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 8px; background: none !important; font: inherit; line-height: 1; cursor: pointer; box-sizing: border-box; transition: transform .15s, opacity .15s; }
+.nb-share-btn:hover { transform: translateY(-2px); opacity: .8; }
+.nb-share-btn:focus-visible { outline: 2px solid var(--gc-accent, #0c6878); outline-offset: 1px; }
+.nb-share-ico { width: 22px; height: 22px; flex-shrink: 0; }
+.nb-share--device { color: var(--gc-accent, #0c6878) !important; }
+.nb-share--facebook { color: #1877f2 !important; } .nb-share--x { color: #000 !important; } .nb-share--whatsapp { color: #25d366 !important; }
+.nb-share--telegram { color: #229ed9 !important; } .nb-share--linkedin { color: #0a66c2 !important; }
+.nb-share--email, .nb-share--copy { color: #4b5563 !important; }
+[data-theme="dark"] .nb-share--x { color: #f3f4f6 !important; }
 @media (max-width: 767px) {
-  .nb-share { margin: 24px 0 26px; padding-top: 16px; }
-  .nb-share-grid { gap: 9px; }
-  .nb-share-btn { width: 40px; height: 40px; }
+  .nb-share { margin: 24px 0 26px; padding-top: 14px; gap: 6px 10px; }
+  .nb-share-grid { gap: 2px; }
+  .nb-share-btn { width: 36px; height: 36px; }
 }
 
 /* ── Homepage "featured" layout (brandsfever): one large lead card, then three per row ── */
