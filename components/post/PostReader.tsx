@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { AdminHtml } from "@/components/AdminHtml";
 import { getPostBySlug, getRelatedPosts, estimateReadingMinutes, stripTags, type PostDetail } from "@/lib/postDetail";
-import { postUrl, authorUrl, categoryUrl, tagUrl, resolveMediaUrl, staticPagePath, optimizedImage, imageSrcSet } from "@/lib/urls";
+import { postUrl, authorUrl, categoryUrl, tagUrl, resolveMediaUrl, staticPagePath, optimizedImage, imageSrcSet, fixContentMediaUrls } from "@/lib/urls";
 import { getAdHtmlFor, getParagraphAdBlocks, injectAfterParagraph, injectBeforeParagraph } from "@/lib/adRendering";
 import { getSiteContext } from "@/lib/theme/site";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
@@ -157,7 +157,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
   } catch {}
 
   // Body: shortcodes → heading ids (TOC + reading progress) → "Also Read" cards → ads.
-  const withIds = addHeadingIds(applyShortcodes(post.content, ctx.sc));
+  const withIds = addHeadingIds(applyShortcodes(fixContentMediaUrls(post.content), ctx.sc));
   let contentHtml = withIds.html;
   const headings = withIds.headings;
   const readingMinutes = estimateReadingMinutes(stripTags(contentHtml));

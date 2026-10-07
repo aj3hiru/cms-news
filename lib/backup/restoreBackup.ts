@@ -11,7 +11,6 @@ import { revokeAllSessions } from "../authSession";
 import { UPLOADS_DIR } from "./createBackup";
 
 const INSERT_BATCH_SIZE = 300;
-const MAX_MEDIA_FILE_BYTES = 100 * 1024 * 1024; // 100MB, same ceiling as the PHP version
 const DANGEROUS_EXTENSIONS = new Set([
   "php", "php3", "php4", "php5", "php7", "phtml", "pht", "phar",
   "cgi", "pl", "py", "sh", "asp", "aspx", "jsp", "exe", "dll", "htaccess", "ini",
@@ -243,8 +242,6 @@ export async function restoreFromBackupZip(
     fs.mkdirSync(destDir, { recursive: true });
     const destDirReal = fs.realpathSync(destDir);
     if (!(destDirReal + path.sep).startsWith(uploadsReal + path.sep) && destDirReal !== uploadsReal) continue;
-
-    if (entry.uncompressedSize > MAX_MEDIA_FILE_BYTES) continue;
 
     await new Promise<void>((resolve, reject) => {
       const out = fs.createWriteStream(destPath);

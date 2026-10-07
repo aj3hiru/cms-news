@@ -4,6 +4,8 @@ import fs from "fs";
 import { createZipArchive } from "./zipArchive";
 import { prisma } from "./db";
 import { resolveLocalPath, saveImportedFile } from "./localStorage";
+import { POST_META_KEYS } from "./postDetail";
+import { uploadPathFromUrl } from "./urls";
 
 // See lib/zipArchive.ts (archiver 8 exports classes, not a factory).
 const createArchive = (_format: "zip", options: { zlib: { level: number } }) => createZipArchive(options.zlib.level);
@@ -19,26 +21,20 @@ const createArchive = (_format: "zip", options: { zlib: { level: number } }) => 
 
 // ── Shared helpers ──────────────────────────────────────────────────────
 
-/** This app's own media URL convention is `/upload/media/<relative>` →
- *  local disk path `uploads/<relative>` (see lib/localStorage.ts's
- *  buildPublicUrl()). Only images served through that convention are
- *  bundled into the export archive — external/CDN images are left as-is
- *  in the exported HTML, same as the PHP version only bundling images
- *  under SITE_URL. */
-function mediaUrlToLocalPath(src: string): string | null {
-  if (src.startsWith("/upload/media/")) {
-    return "uploads/" + src.slice("/upload/media/".length);
-  }
-  return null;
+/** Upload paths of every file of ours the HTML points at (img src/srcset, links, video posters). */
+function extractMediaRefs(html: string): { url: string; path: string }[] {
+  const out = new Map<string, string>();
+  const add = (u: string) => {
+    const path = uploadPathFromUrl(u);
+    if (path && !out.has(u)) out.set(u, path);
+  };
+  for (const m of html.matchAll(/\s(?:src|href|poster)=["']([^"']+)["']/gi)) add(m[1]);
+  for (const m of html.matchAll(/\ssrcset=["']([^"']+)["']/gi)) for (const part of m[1].split(",")) add(part.trim().split(/\s+/)[0]);
+  return [...out].map(([url, path]) => ({ url, path }));
 }
 
-function extractImgSrcs(html: string): string[] {
-  const out: string[] = [];
-  const re = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html))) out.push(m[1]);
-  return out;
-}
+/** Zip path for an upload, keeping its folders so two files with the same name don't collide. */
+const zipPathFor = (uploadPath: string) => `media/${uploadPath.replace(/^uploads\//, "")}`;
 
 interface SiteMeta {
   siteName: string;
@@ -90,14 +86,15 @@ export async function buildPostsExportArchive(categoryIds: number[], meta: SiteM
   const categoryNames = new Set<string>();
   const stats: ExportStats = { items: posts.length, media: 0, bytes: 0 };
 
-  const addLocalFile = (relativeUploadsPath: string, zipPath: string) => {
-    if (mediaTracker.has(zipPath)) return;
+  const addLocalFile = (relativeUploadsPath: string, zipPath: string): boolean => {
+    if (mediaTracker.has(zipPath)) return true;
     const abs = resolveLocalPath(relativeUploadsPath);
-    if (!abs) return;
+    if (!abs || !fs.existsSync(abs)) return false;
     archive.file(abs, { name: zipPath });
     mediaTracker.add(zipPath);
     stats.media++;
     stats.bytes += fileSize(abs);
+    return true;
   };
 
   for (const post of posts) {
@@ -124,24 +121,25 @@ export async function buildPostsExportArchive(categoryIds: number[], meta: SiteM
       author_name: post.author.name,
       meta_keywords: keywords,
       meta_description: description,
+      // Every post field: summary, key points, SEO title / keyword / schema / canonical / noindex, social texts.
+      meta: Object.fromEntries(post.postMeta.filter((m) => (POST_META_KEYS as readonly string[]).includes(m.metaKey) && m.metaValue != null).map((m) => [m.metaKey, m.metaValue])),
+      featured_image_alt: post.featuredImage?.altText ?? null,
       featured_image: null as string | null,
       content_media: [] as { original_src: string; zip_path: string }[],
       tags: post.postTags.map((pt) => ({ name: pt.tag.name, slug: pt.tag.slug })),
     };
 
     if (post.featuredImage?.filePath) {
-      const zipPath = `media/${post.featuredImage.filePath.split("/").pop()}`;
-      addLocalFile(post.featuredImage.filePath, zipPath);
-      entry.featured_image = zipPath;
+      const zipPath = zipPathFor(post.featuredImage.filePath);
+      if (addLocalFile(post.featuredImage.filePath, zipPath)) entry.featured_image = zipPath;
 
       if (post.featuredImage.responsiveSet) {
         try {
           const respSet: Record<string, string> = JSON.parse(post.featuredImage.responsiveSet);
           const respOut: Record<string, string> = {};
           for (const [size, relPath] of Object.entries(respSet)) {
-            const zp = `media/${relPath.split("/").pop()}`;
-            addLocalFile(relPath, zp);
-            respOut[size] = zp;
+            const zp = zipPathFor(relPath);
+            if (addLocalFile(relPath, zp)) respOut[size] = zp;
           }
           entry.featured_image_responsive = respOut;
         } catch {
@@ -151,12 +149,9 @@ export async function buildPostsExportArchive(categoryIds: number[], meta: SiteM
     }
 
     if (post.content) {
-      for (const src of extractImgSrcs(post.content)) {
-        const localPath = mediaUrlToLocalPath(src);
-        if (!localPath) continue;
-        const zp = `media/${localPath.split("/").pop()}`;
-        addLocalFile(localPath, zp);
-        (entry.content_media as unknown[]).push({ original_src: src, zip_path: zp });
+      for (const ref of extractMediaRefs(post.content)) {
+        const zp = zipPathFor(ref.path);
+        if (addLocalFile(ref.path, zp)) (entry.content_media as unknown[]).push({ original_src: ref.url, zip_path: zp });
       }
     }
 
@@ -206,20 +201,17 @@ export async function buildPagesExportArchive(meta: SiteMeta) {
     };
 
     if (page.content) {
-      for (const src of extractImgSrcs(page.content)) {
-        const localPath = mediaUrlToLocalPath(src);
-        if (!localPath) continue;
-        const zp = `media/${localPath.split("/").pop()}`;
+      for (const ref of extractMediaRefs(page.content)) {
+        const zp = zipPathFor(ref.path);
         if (!mediaTracker.has(zp)) {
-          const abs = resolveLocalPath(localPath);
-          if (abs) {
-            archive.file(abs, { name: zp });
-            mediaTracker.add(zp);
-            stats.media++;
-            stats.bytes += fileSize(abs);
-          }
+          const abs = resolveLocalPath(ref.path);
+          if (!abs || !fs.existsSync(abs)) continue;
+          archive.file(abs, { name: zp });
+          mediaTracker.add(zp);
+          stats.media++;
+          stats.bytes += fileSize(abs);
         }
-        (entry.content_media as unknown[]).push({ original_src: src, zip_path: zp });
+        (entry.content_media as unknown[]).push({ original_src: ref.url, zip_path: zp });
       }
     }
 
@@ -331,6 +323,27 @@ export async function commitImportZip(
   let renamed = 0;
   let skipped = 0;
 
+  // Each file in the ZIP is stored once per import, however many posts use it.
+  const savedMedia = new Map<string, string>();
+  const saveContentMedia = async (zipPath: string): Promise<string | null> => {
+    if (savedMedia.has(zipPath)) return savedMedia.get(zipPath)!;
+    const newPath = await writeZipEntryToUploads(zip, zipPath, "img");
+    if (!newPath) return null;
+    await prisma.media.create({ data: { filePath: newPath, fileType: "image", uploadedBy: userId } });
+    savedMedia.set(zipPath, newPath);
+    return newPath;
+  };
+  const replaceContentMedia = async (html: string, list: unknown): Promise<string> => {
+    if (!Array.isArray(list)) return html;
+    let out = html;
+    for (const cm of list as { original_src: string; zip_path: string }[]) {
+      if (!cm?.original_src || !cm.zip_path) continue;
+      const newPath = await saveContentMedia(cm.zip_path);
+      if (newPath) out = out.split(cm.original_src).join(`/upload/media/${newPath.replace(/^uploads\//, "")}`);
+    }
+    return out;
+  };
+
   if (type === "posts_export") {
     const fallbackAuthor = await prisma.author.findFirst({ orderBy: { id: "asc" } });
 
@@ -382,7 +395,7 @@ export async function commitImportZip(
             data: {
               filePath: newPath,
               fileType: "banner",
-              altText: `${title} banner`,
+              altText: post.featured_image_alt ? String(post.featured_image_alt).slice(0, 200) : `${title} banner`,
               responsiveSet: Object.keys(respSetDb).length ? JSON.stringify(respSetDb) : null,
               uploadedBy: userId,
             },
@@ -392,16 +405,7 @@ export async function commitImportZip(
       }
 
       // Content images
-      let content: string = post.content ?? "";
-      if (Array.isArray(post.content_media)) {
-        for (const cm of post.content_media as { original_src: string; zip_path: string }[]) {
-          const newPath = await writeZipEntryToUploads(zip, cm.zip_path, "img");
-          if (!newPath) continue;
-          const newSrc = `/upload/media/${newPath.replace(/^uploads\//, "")}`;
-          content = content.split(cm.original_src).join(newSrc);
-          await prisma.media.create({ data: { filePath: newPath, fileType: "image", uploadedBy: userId } });
-        }
-      }
+      const content = await replaceContentMedia(String(post.content ?? ""), post.content_media);
 
       // Category (primary)
       let categoryId: number;
@@ -472,11 +476,11 @@ export async function commitImportZip(
 
       // Meta (keywords / description) — no unique constraint on
       // (postId, metaKey) in this schema, so upsert manually.
-      for (const [key, value] of [
-        ["keywords", post.meta_keywords],
-        ["description", post.meta_description],
-      ] as const) {
-        if (!value) continue;
+      // All post fields (summary, key points, SEO…); older exports only had keywords + description.
+      const metaIn: Record<string, unknown> = { keywords: post.meta_keywords, description: post.meta_description, ...(post.meta && typeof post.meta === "object" ? post.meta : {}) };
+      for (const [key, raw] of Object.entries(metaIn)) {
+        if (!(POST_META_KEYS as readonly string[]).includes(key) || raw == null || raw === "") continue;
+        const value = String(raw);
         const existingMeta = await prisma.postMeta.findFirst({ where: { postId, metaKey: key } });
         if (existingMeta) {
           await prisma.postMeta.update({ where: { id: existingMeta.id }, data: { metaValue: value } });
@@ -566,14 +570,7 @@ export async function commitImportZip(
       }
 
       let content: string = page.content ?? "";
-      if (Array.isArray(page.content_media)) {
-        for (const cm of page.content_media as { original_src: string; zip_path: string }[]) {
-          const newPath = await writeZipEntryToUploads(zip, cm.zip_path, "img");
-          if (!newPath) continue;
-          const newSrc = `/upload/media/${newPath.replace(/^uploads\//, "")}`;
-          content = content.split(cm.original_src).join(newSrc);
-        }
-      }
+      content = await replaceContentMedia(content, page.content_media);
 
       if (existing && decision === "replace") {
         await prisma.page.update({

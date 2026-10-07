@@ -14,6 +14,7 @@ import { uploadImageFast } from "@/lib/clientUpload";
 import { useAdminDialogs } from "../AdminDialogProvider";
 import { ButtonBlock, CalloutBlock, EmbedBlock } from "./blocks";
 import { TableDialog } from "./TableDialog";
+import { fixContentMediaUrls, resolveMediaUrl } from "@/lib/urls";
 
 /** Tables keep a style class (is-style-stripes / bordered / minimal) like WP table block styles. */
 const StyledTable = Table.extend({
@@ -82,7 +83,7 @@ export function BlockEditor({
       CalloutBlock,
       EmbedBlock,
     ],
-    content: defaultValue ?? "",
+    content: fixContentMediaUrls(defaultValue ?? ""),
     editorProps: { attributes: { class: "rte-content be-content entry-content" } },
     onUpdate: ({ editor }) => {
       const next = editor.getHTML();
@@ -361,7 +362,7 @@ export function BlockEditor({
         open={libraryOpen}
         onClose={() => setLibraryOpen(false)}
         onSelect={(item: MediaLibraryItem) => {
-          editor.chain().focus().setImage({ src: `/${item.path.replace(/^\/+/, "")}`, alt: "" }).run();
+          editor.chain().focus().setImage({ src: resolveMediaUrl(item.path), alt: "" }).run();
           setLibraryOpen(false);
         }}
       />

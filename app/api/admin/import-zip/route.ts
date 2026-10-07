@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { requireUser, resolvePermissions } from "@/lib/auth";
 import { invalidatePosts } from "@/lib/posts";
 import { scanImportZip, commitImportZip, type ImportDecision } from "@/lib/postExportImport";
+import { dropUpload, uploadedFile } from "@/lib/chunkUpload";
+import fs from "fs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 3600;
@@ -25,9 +27,16 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ success: false, message: "Could not read the upload." }, { status: 400 });
   }
+  // Large files come in pieces first (lib/chunkUpload) and are referred to by `uploadId`.
+  const uploadId = String(form.get("uploadId") ?? "");
   const file = form.get("importFile");
-  if (!(file instanceof File)) return NextResponse.json({ success: false, message: "No file uploaded." }, { status: 400 });
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let buffer: Buffer;
+  if (uploadId) {
+    const p = uploadedFile(uploadId);
+    if (!p) return NextResponse.json({ success: false, message: "The upload has expired — please choose the file again." }, { status: 400 });
+    buffer = fs.readFileSync(p);
+  } else if (file instanceof File) buffer = Buffer.from(await file.arrayBuffer());
+  else return NextResponse.json({ success: false, message: "No file uploaded." }, { status: 400 });
 
   if (form.get("mode") !== "commit") {
     try {
@@ -61,6 +70,7 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         send({ t: "error", message: err instanceof Error ? err.message : "Import failed." });
       } finally {
+        if (uploadId) dropUpload(uploadId);
         controller.close();
       }
     },

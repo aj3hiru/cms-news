@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { fixContentMediaUrls } from "@/lib/urls";
 import { robotsMeta, alternatesWithFeed } from "@/lib/seo/meta";
 import type { Metadata } from "next";
 import { getPublishedPageBySlug } from "@/lib/pages";
@@ -46,7 +47,7 @@ export async function PageReader({ slug, preview = false }: { slug: string; prev
 
       <ListingAds page="page" position="before_content" />
 
-      <RichContent html={await injectParagraphAds("page", applyShortcodes(page.content ?? "", ctx.sc))} className="entry-content" />
+      <RichContent html={await injectParagraphAds("page", applyShortcodes(fixContentMediaUrls(page.content ?? ""), ctx.sc))} className="entry-content" />
 
       <ListingAds page="page" position="after_content" />
       <ListingAds page="page" position="after_post" />

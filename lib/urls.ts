@@ -99,3 +99,32 @@ export function imageSrcSet(path: string | null | undefined, widths: ImageWidth[
   if (!/^\/upload\/media\//.test(src) || /\.(svg|gif)$/i.test(src)) return undefined;
   return widths.map((w) => `${optimizedImage(path, w)} ${w}w`).join(", ");
 }
+
+/**
+ * Upload path ("uploads/x.webp") for any address this site uses for an uploaded file:
+ * /upload/media/x, /uploads/x (older editor inserts), /img/<w>/x and /i/<w>/x (resized copies),
+ * with or without a domain in front. Anything else → null.
+ */
+export function uploadPathFromUrl(src: string): string | null {
+  let path = src.trim();
+  if (/^https?:\/\//i.test(path)) {
+    try {
+      path = new URL(path).pathname;
+    } catch {
+      return null;
+    }
+  }
+  path = path.split(/[?#]/)[0];
+  const m = /^\/(?:upload\/media|uploads|img\/\d+|i\/\d+)\/(.+)$/.exec(path);
+  if (!m || m[1].includes("..")) return null;
+  try {
+    return `uploads/${decodeURIComponent(m[1])}`;
+  } catch {
+    return `uploads/${m[1]}`;
+  }
+}
+
+/** Older content linked images as "/uploads/x" (404); the public address is "/upload/media/x". */
+export function fixContentMediaUrls(html: string): string {
+  return html.replace(/(\s(?:src|href|srcset|poster)=["'])\/uploads\//gi, "$1/upload/media/");
+}

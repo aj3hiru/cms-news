@@ -8,6 +8,7 @@ import { verifyCsrfToken } from "@/lib/csrf";
 import { getBackupStats, deleteBackup, resolveBackupPath } from "@/lib/backup/manageBackups";
 import { scanRestoreZip } from "@/lib/backup/restoreBackup";
 import { startBackupJob, startRestoreJob, getJob } from "@/lib/backup/backupJobs";
+import { uploadedFile } from "@/lib/chunkUpload";
 
 const TMP_DIR = path.join(process.cwd(), "backups", ".tmp");
 
@@ -95,25 +96,30 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "scan" || action === "restore") {
+      // Large backups arrive in pieces first (lib/chunkUpload — no size limit) and are referred to by upload_id.
+      const uploadId = String(form.get("upload_id") ?? "");
       const file = form.get("restore_file");
-      if (!file || !(file instanceof File)) {
-        return NextResponse.json({ success: false, message: "No file uploaded." }, { status: 400 });
+      let tmpPath: string;
+      if (uploadId) {
+        const p = uploadedFile(uploadId);
+        if (!p) return NextResponse.json({ success: false, message: "The upload has expired — please choose the file again." }, { status: 400 });
+        tmpPath = p;
+      } else {
+        if (!file || !(file instanceof File)) {
+          return NextResponse.json({ success: false, message: "No file uploaded." }, { status: 400 });
+        }
+        if (!file.name.toLowerCase().endsWith(".zip")) {
+          return NextResponse.json({ success: false, message: "Please choose a .zip backup file." }, { status: 400 });
+        }
+        // Stream the upload straight to disk instead of buffering it in memory.
+        ensureTmpDir();
+        tmpPath = path.join(TMP_DIR, `${crypto.randomBytes(16).toString("hex")}.zip`);
+        await new Promise<void>((resolve, reject) => {
+          const nodeStream = Readable.fromWeb(file.stream() as import("stream/web").ReadableStream);
+          const out = fs.createWriteStream(tmpPath);
+          nodeStream.pipe(out).on("finish", () => resolve()).on("error", reject);
+        });
       }
-      if (!file.name.toLowerCase().endsWith(".zip")) {
-        return NextResponse.json({ success: false, message: "Please choose a .zip backup file." }, { status: 400 });
-      }
-
-      // Stream the upload straight to disk instead of buffering it in
-      // memory (a full-site backup with media can be very large) — Web
-      // File objects expose .stream(), piped via a Node Readable.
-      ensureTmpDir();
-      const tmpName = `${crypto.randomBytes(16).toString("hex")}.zip`;
-      const tmpPath = path.join(TMP_DIR, tmpName);
-      await new Promise<void>((resolve, reject) => {
-        const nodeStream = Readable.fromWeb(file.stream() as import("stream/web").ReadableStream);
-        const out = fs.createWriteStream(tmpPath);
-        nodeStream.pipe(out).on("finish", () => resolve()).on("error", reject);
-      });
 
       if (action === "scan") {
         try {
@@ -127,7 +133,8 @@ export async function POST(request: NextRequest) {
           // wrong manifest type, no database files inside).
           return NextResponse.json({ success: false, message: err instanceof Error ? err.message : "This doesn't look like a valid backup file." }, { status: 400 });
         } finally {
-          fs.unlink(tmpPath, () => {});
+          // A pieced upload is kept for the restore that follows (cleaned up after 24h if unused).
+          if (!uploadId) fs.unlink(tmpPath, () => {});
         }
       }
 

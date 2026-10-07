@@ -53,50 +53,51 @@ export async function getParagraphAdBlocks(
     });
 }
 
-/** Ports _inject_after_paragraph() from post.php: splits HTML on top-level
- *  <p> tags and inserts the given HTML right after the Nth paragraph. */
-export function injectAfterParagraph(html: string, afterN: number, insertHtml: string): string {
-  if (afterN < 1 || !insertHtml.trim() || !html.trim()) return html;
-  const parts = html.split(/(<p[\s>][\s\S]*?<\/p>)/i);
-  let count = 0;
-  let done = false;
-  let out = "";
-  for (const part of parts) {
-    out += part;
-    if (/^<p[\s>]/i.test(part)) {
-      count++;
-      if (!done && count === afterN) {
-        out += insertHtml;
-        done = true;
+const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+/** Containers whose paragraphs are not "article paragraphs" (quotes, lists, tables… and boxes we inject). */
+const NESTED_TAGS = new Set(["blockquote", "ul", "ol", "li", "table", "thead", "tbody", "tfoot", "tr", "td", "th", "figure", "figcaption", "aside", "details", "summary", "pre", "nav", "form"]);
+const INJECTED_CLASS = /\bclass=["'][^"']*\b(?:nb-|ai-block|ad-slot|ad-)/i;
+
+/** Start / end offsets of the article's own paragraphs — not ones inside quotes, lists, tables or injected boxes. */
+function topLevelParagraphs(html: string): { start: number; end: number }[] {
+  const out: { start: number; end: number }[] = [];
+  const stack: boolean[] = []; // per open element: does it make its contents "nested"?
+  let nested = 0;
+  let pStart = -1;
+  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*?(\/?)>|<!--[\s\S]*?-->/g;
+  for (let m; (m = re.exec(html)); ) {
+    if (!m[2]) continue; // comment
+    const tag = m[2].toLowerCase();
+    if (VOID_TAGS.has(tag) || m[3] === "/") continue;
+    if (m[1] !== "/") {
+      if (tag === "p" && nested === 0 && pStart < 0) pStart = m.index;
+      const isNested = NESTED_TAGS.has(tag) || ((tag === "div" || tag === "section") && INJECTED_CLASS.test(m[0]));
+      stack.push(isNested);
+      if (isNested) nested++;
+    } else {
+      if (tag === "p" && pStart >= 0 && nested === 0) {
+        out.push({ start: pStart, end: m.index + m[0].length });
+        pStart = -1;
       }
+      // Close up to the matching open tag (tolerates unclosed children).
+      if (stack.length && stack.pop()) nested = Math.max(0, nested - 1);
     }
   }
-  if (!done) out += insertHtml;
   return out;
 }
 
-/** Same idea as injectAfterParagraph(), but inserts BEFORE the Nth
- *  paragraph instead — needed for Ad Inserter's "Before paragraph"
- *  insertion type (as distinct from "After paragraph", which
- *  injectAfterParagraph already covers). */
+/** Inserts `insertHtml` after the Nth article paragraph (or at the end when there are fewer). */
+export function injectAfterParagraph(html: string, afterN: number, insertHtml: string): string {
+  if (afterN < 1 || !insertHtml.trim() || !html.trim()) return html;
+  const p = topLevelParagraphs(html)[afterN - 1];
+  return p ? html.slice(0, p.end) + insertHtml + html.slice(p.end) : html + insertHtml;
+}
+
+/** Same as injectAfterParagraph(), but before the Nth paragraph (Ad Inserter "Before paragraph"). */
 export function injectBeforeParagraph(html: string, beforeN: number, insertHtml: string): string {
   if (beforeN < 1 || !insertHtml.trim() || !html.trim()) return html;
-  const parts = html.split(/(<p[\s>][\s\S]*?<\/p>)/i);
-  let count = 0;
-  let done = false;
-  let out = "";
-  for (const part of parts) {
-    if (/^<p[\s>]/i.test(part)) {
-      count++;
-      if (!done && count === beforeN) {
-        out += insertHtml;
-        done = true;
-      }
-    }
-    out += part;
-  }
-  if (!done) out += insertHtml;
-  return out;
+  const p = topLevelParagraphs(html)[beforeN - 1];
+  return p ? html.slice(0, p.start) + insertHtml + html.slice(p.start) : html + insertHtml;
 }
 
 

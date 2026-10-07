@@ -379,10 +379,13 @@ margin: var(--space-1) 0;
   margin-bottom: 20px;
 }
 
+/* Content images: their own size, never wider than the article column. */
 .single-post .content img {
-  width: 100%;
+  display: block;
+  width: auto;
   height: auto;
-  max-width: 500px;
+  max-width: 100%;
+  margin: 12px auto;
   border-radius: var(--border-radius-sm);
 }
 
@@ -1453,14 +1456,14 @@ margin: var(--space-1) 0;
 
 .single-post .content p,
 .single-post .content li,
-.single-post .content td,
-.single-post .content p strong,
-.single-post .content p b,
-.single-post .content li strong,
-.single-post .content li b,
-.single-post .content td strong,
-.single-post .content td b {
+.single-post .content td {
   font-weight: 400 !important;
+}
+
+/* Bold written in the editor (or imported) stays bold. */
+.single-post .content strong,
+.single-post .content b {
+  font-weight: 700 !important;
 }
 
 .single-post .content th,

@@ -2,6 +2,7 @@
 
 import { ProgressLog, useProgressLog } from "./ProgressLog";
 import { xhrRequest, xhrError } from "@/lib/xhr";
+import { uploadInChunks } from "@/lib/chunkUploadClient";
 import { useEffect, useRef, useState } from "react";
 import { useAdminDialogs } from "./AdminDialogProvider";
 
@@ -74,6 +75,8 @@ export function BackupRestorePanel({ initialStats }: { initialStats: StatsRespon
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
   const [manifest, setManifest] = useState<RestoreManifest | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [uploadId, setUploadId] = useState("");
+  const [uploadPct, setUploadPct] = useState(0);
   const [confirmText, setConfirmText] = useState("");
   const [restoring, setRestoring] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -150,10 +153,15 @@ export function BackupRestorePanel({ initialStats }: { initialStats: StatsRespon
   async function scanFile(file: File) {
     if (!csrfToken) return;
     setScanning(true);
+    setUploadId("");
+    setUploadPct(0);
     try {
+      // Sent in 8 MB pieces (no size limit), once — the restore below reuses it.
+      const id = await uploadInChunks(file, (loaded, total) => setUploadPct(Math.round((loaded / total) * 100)));
+      setUploadId(id);
       const form = new FormData();
       form.set("action", "scan");
-      form.set("restore_file", file);
+      form.set("upload_id", id);
       form.set("csrf_token", csrfToken);
       const res = await fetch(API, { method: "POST", body: form });
       const data = await res.json();
@@ -168,7 +176,7 @@ export function BackupRestorePanel({ initialStats }: { initialStats: StatsRespon
   }
 
   async function handleRestore() {
-    if (!csrfToken || !restoreFile) return;
+    if (!csrfToken || !restoreFile || !uploadId) return;
     if (confirmText !== "CONFIRM") return;
     const ok = await confirm(
       "This will PERMANENTLY DELETE all current posts, pages, media and settings, replacing them with the backup's data. Everyone will be logged out. This cannot be undone.",
@@ -177,22 +185,17 @@ export function BackupRestorePanel({ initialStats }: { initialStats: StatsRespon
     if (!ok) return;
 
     setRestoring(true);
-    restoreLog.start(`Uploading ${restoreFile.name}…`);
+    restoreLog.start(`Starting the restore of ${restoreFile.name}…`);
     let lastStage = "";
     try {
       const form = new FormData();
       form.set("action", "restore");
-      form.set("restore_file", restoreFile);
+      form.set("upload_id", uploadId);
       form.set("confirm_text", confirmText);
       form.set("csrf_token", csrfToken);
       const xhr = await xhrRequest(API, {
         method: "POST",
         body: form,
-        onUpload: (loaded, total) => {
-          const t = total || restoreFile.size;
-          restoreLog.setPercent((loaded / t) * 30);
-          restoreLog.update(`Uploading ${restoreFile.name}… ${formatBytes(loaded)} of ${formatBytes(t)}`);
-        },
       });
       if (xhr.status !== 200) throw new Error(await xhrError(xhr, "Restore failed to start."));
       const data = JSON.parse(xhr.responseText);
@@ -326,7 +329,7 @@ export function BackupRestorePanel({ initialStats }: { initialStats: StatsRespon
             />
           </div>
 
-          {scanning && <p style={{ fontSize: ".82rem", color: "var(--gray-500)", marginTop: "10px" }}><i className="fas fa-spinner fa-spin" /> Scanning backup…</p>}
+          {scanning && <p style={{ fontSize: ".82rem", color: "var(--gray-500)", marginTop: "10px" }}><i className="fas fa-spinner fa-spin" /> {uploadPct < 100 ? `Uploading… ${uploadPct}%` : "Scanning backup…"}</p>}
 
           {manifest && !scanning && (
             <div className="br-info-box" style={{ marginTop: "14px" }}>

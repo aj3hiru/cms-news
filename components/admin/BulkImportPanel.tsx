@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { ScanResult, ImportDecision } from "@/lib/postExportImport";
 import { xhrRequest, xhrError } from "@/lib/xhr";
+import { uploadInChunks } from "@/lib/chunkUploadClient";
 import { useAdminDialogs } from "./AdminDialogProvider";
 import { ProgressLog, useProgressLog, formatMB } from "./ProgressLog";
 
@@ -45,20 +46,20 @@ export function BulkImportPanel() {
     if (f) void check(f);
   }
 
+  // The ZIP goes up once, in 8 MB pieces (no size limit); the check and the import both refer to it by id.
+  const uploaded = useRef<{ file: File; id: string } | null>(null);
   async function upload(f: File, extra: Record<string, string>, onText?: (t: string) => void) {
-    const fd = new FormData();
-    fd.set("importFile", f);
-    for (const [k, v] of Object.entries(extra)) fd.set(k, v);
-    return xhrRequest("/api/admin/import-zip", {
-      method: "POST",
-      body: fd,
-      onUpload: (loaded, total) => {
-        const t = total || f.size;
+    if (uploaded.current?.file !== f) {
+      const id = await uploadInChunks(f, (loaded, t) => {
         log.setPercent(Math.min(40, (loaded / t) * 40));
         log.update(`Uploading ${f.name}… ${formatMB(loaded)} of ${formatMB(t)}`);
-      },
-      onText,
-    });
+      });
+      uploaded.current = { file: f, id };
+    }
+    const fd = new FormData();
+    fd.set("uploadId", uploaded.current.id);
+    for (const [k, v] of Object.entries(extra)) fd.set(k, v);
+    return xhrRequest("/api/admin/import-zip", { method: "POST", body: fd, onText });
   }
 
   async function check(f: File) {
@@ -89,7 +90,7 @@ export function BulkImportPanel() {
     if (!(await confirm(`Import this ${label} archive now?`))) return;
     setBusy(true);
     setTitle(`Importing ${label}`);
-    log.start(`Uploading ${file.name}…`);
+    log.start(`Importing ${file.name}…`);
     let seen = 0;
     let total = 0;
     let finished: CommitResult | null = null;
@@ -120,6 +121,7 @@ export function BulkImportPanel() {
         if (seen === 0) log.step("Uploaded — reading the archive…");
         handle(t);
       });
+      uploaded.current = null; // the server removes the upload once the import has run
       if (xhr.status !== 200) throw new Error(await xhrError(xhr, "Import failed."));
       handle(xhr.responseText + "\n");
       if (failed) throw new Error(failed);
