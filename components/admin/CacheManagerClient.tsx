@@ -269,10 +269,7 @@ export function CacheManagerClient({ isProduction, initial, initialFiles, initia
         )}
 
         {tab === "settings" && (
-          <>
-            <SettingsPanel settings={settings} onSave={handleSaveSettings} disabled={isPending || locked} />
-            {initialRedis && <RedisSettingsCard initial={initialRedis} />}
-          </>
+          <SettingsPanel settings={settings} onSave={handleSaveSettings} disabled={isPending || locked} />
         )}
 
         {tab === "diagnostics" && <DiagnosticsPanel overview={overview} settings={settings} isProduction={isProduction} />}
@@ -281,6 +278,8 @@ export function CacheManagerClient({ isProduction, initial, initialFiles, initia
           <FilesPanel files={files} onDelete={handleDeleteFile} disabled={isPending || locked} />
         )}
       </div>
+      {/* Redis works independently of the page cache, so it stays usable while the cache system is OFF. */}
+      {initialRedis && (tab === "settings" || locked) && <RedisSettingsCard initial={initialRedis} />}
     </div>
   );
 }
