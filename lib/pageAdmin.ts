@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { requireUser, resolvePermissions } from "./auth";
+import { staticPagePath } from "./urls";
 
 function slugify(text: string): string {
   return text
@@ -24,6 +25,14 @@ async function requirePermission(action: "create" | "edit" | "delete") {
     throw new Error("You do not have permission to manage pages.");
   }
   return user;
+}
+
+/** A page's public address (and the page sitemap) shows the change at once — without this a visit made before
+ *  publishing stayed cached as "404 Not Found" until something else cleared the cache. */
+function refreshPage(...slugs: (string | null | undefined)[]) {
+  for (const s of new Set(slugs.filter((x): x is string => Boolean(x)))) revalidatePath(staticPagePath(s));
+  revalidatePath("/page-sitemap.xml");
+  revalidatePath("/admin/pages-list");
 }
 
 async function uniquePageSlug(base: string, excludeId = 0): Promise<string> {
@@ -53,7 +62,7 @@ export async function createPage(formData: FormData): Promise<void> {
     },
   });
 
-  revalidatePath("/admin/pages-list");
+  refreshPage(slug);
   redirect(`/admin/pages-list?success=created`);
 }
 
@@ -62,6 +71,7 @@ export async function updatePage(pageId: number, formData: FormData): Promise<vo
   const title = String(formData.get("title") ?? "").trim();
   if (!title) throw new Error("Title is required.");
   const slug = await uniquePageSlug(slugify(String(formData.get("slug") ?? title)), pageId);
+  const before = await prisma.page.findUnique({ where: { id: pageId }, select: { slug: true } });
 
   await prisma.page.update({
     where: { id: pageId },
@@ -75,12 +85,13 @@ export async function updatePage(pageId: number, formData: FormData): Promise<vo
     },
   });
 
-  revalidatePath("/admin/pages-list");
+  refreshPage(slug, before?.slug);
   redirect(`/admin/pages-list?success=updated`);
 }
 
 export async function deletePage(pageId: number): Promise<void> {
   await requirePermission("delete");
+  const gone = await prisma.page.findUnique({ where: { id: pageId }, select: { slug: true } });
   await prisma.page.delete({ where: { id: pageId } });
-  revalidatePath("/admin/pages-list");
+  refreshPage(gone?.slug);
 }
