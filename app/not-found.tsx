@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSeoSettings } from "@/lib/seo/settings";
+import { notFoundMetadata } from "@/lib/seo/meta";
 import { getAppConfig } from "@/lib/config";
 import { dict, normLang } from "@/lib/i18n/public";
 
@@ -22,7 +23,10 @@ import { dict, normLang } from "@/lib/i18n/public";
  * unvalidated value to cause a crash.
  */
 // Only "noindex" — without this the layout's "index, follow" tag is printed next to Next's own noindex.
-export const metadata: Metadata = { robots: { index: false, follow: true } };
+// The title is "404 Title" from SEO → Titles & Meta → Misc Pages.
+export async function generateMetadata(): Promise<Metadata> {
+  return notFoundMetadata();
+}
 
 export default async function NotFound() {
   const [pt, app] = await Promise.all([getSeoSettings(), getAppConfig()]);

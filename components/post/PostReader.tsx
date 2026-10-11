@@ -9,11 +9,12 @@ import { getSiteContext } from "@/lib/theme/site";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
 import { addHeadingIds, alsoReadGroupHtml, getAlsoReadPosts, keyPointsHtml } from "@/lib/content/postContent";
 import { ALSO_READ_SLIDER_SCRIPT } from "@/components/theme/alsoReadSlider";
-import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
+import { getSeoSettings, seoTitle, formatDescription, type SeoSettings } from "@/lib/seo/settings";
 import { getAppConfig } from "@/lib/config";
 import { buildPostSchema, publisherLogoPath } from "@/lib/seo/schema";
 import { getImageInfo } from "@/lib/seo/imageSize";
-import { robotsMeta, alternatesWithFeed } from "@/lib/seo/meta";
+import { robotsMeta, alternatesWithFeed, notFoundMetadata } from "@/lib/seo/meta";
+import { applySeoContentFilter } from "@/lib/seo/contentFilter";
 import { RichContent } from "@/components/shortcodes/RichContent";
 import { TrendingSidebar } from "@/components/theme/TrendingSidebar";
 import { ReadingProgress } from "@/components/theme/ReadingProgress";
@@ -23,61 +24,89 @@ import { ViewTracker } from "./ViewTracker";
 import { ShareButtons } from "./ShareButtons";
 import { CommentsSection } from "../comments/CommentsSection";
 
-function description(post: PostDetail): string {
-  return (post.seo.ogDescription || post.metaDescription || post.summary || stripTags(post.content).replace(/\s+/g, " ")).trim().slice(0, 160);
+function plain(post: PostDetail): string {
+  return stripTags(post.content).replace(/\s+/g, " ").trim();
+}
+
+/** Meta description: the post's own → the summary → "Single Post Description" template (Titles & Meta → Posts). */
+function description(post: PostDetail, seo?: SeoSettings, sitename = "", sep = "–"): string {
+  const own = (post.metaDescription || post.summary || "").trim();
+  if (own) return own.slice(0, 300);
+  const excerpt = plain(post).slice(0, 160);
+  if (!seo) return excerpt;
+  return formatDescription(seo.post_description_format, { title: post.title, sitename, sep, excerpt, category: post.categoryName, focuskw: post.seo.focusKeyword.split(",")[0]?.trim() }) || excerpt;
 }
 
 export async function buildPostMetadata(slug: string): Promise<Metadata> {
   const post = await getPostBySlug(slug);
-  if (!post) return {};
+  if (!post) return notFoundMetadata();
   const [ctx, seo] = await Promise.all([getSiteContext(), getSeoSettings()]);
-  const title = applyShortcodesText(
-    post.seo.title || formatTitle(seo.post_title_format, { title: post.title, sitename: ctx.siteName, sep: seo.separator }),
-    ctx.sc
-  );
-  const desc = description(post);
-  const imageUrl = post.bannerPath ? resolveMediaUrl(post.bannerPath) : seo.default_og_image ? resolveMediaUrl(seo.default_og_image) : undefined;
+  const focuskw = post.seo.focusKeyword.split(",")[0]?.trim() ?? "";
+  const vars = { title: post.title, sitename: ctx.siteName, sep: seo.separator, excerpt: plain(post).slice(0, 160), category: post.categoryName, focuskw };
+  const title = applyShortcodesText(post.seo.title ? seoTitle(seo, post.seo.title, vars) : seoTitle(seo, seo.post_title_format, vars), ctx.sc);
+  const desc = description(post, seo, ctx.siteName, seo.separator);
+  const ogDesc = post.seo.ogDescription || desc;
+  const ogTitle = post.seo.ogTitle || title;
+  const imgPath = post.seo.ogImage || post.bannerPath || seo.default_og_image;
+  const imageUrl = imgPath ? resolveMediaUrl(imgPath) : undefined;
   const canonical = post.seo.canonical || postUrl(post.slug);
   const published = post.date ? new Date(post.date).toISOString() : undefined;
-  const img = await getImageInfo(post.bannerPath || seo.default_og_image);
+  const modified = post.updatedAt ? new Date(post.updatedAt).toISOString() : published;
+  const img = await getImageInfo(imgPath);
   const authorPage = post.authorSlug ? `${ctx.siteUrl}${authorUrl(post.authorSlug)}` : undefined;
   const minutes = estimateReadingMinutes(stripTags(post.content));
+  const fbAuthor = post.authorSocials.facebook || seo.fb_author;
+  const twitterCreator = (post.authorSocials.twitter ?? "").match(/(?:twitter|x)\.com\/([A-Za-z0-9_]+)/i)?.[1];
   return {
     title: { absolute: title },
     description: desc,
     keywords: post.metaKeywords?.trim() || post.seo.focusKeyword || undefined,
     authors: [{ name: post.authorName, url: authorPage }],
     alternates: alternatesWithFeed(canonical, ctx.siteName),
-    robots: robotsMeta(seo, post.seo.noindex),
+    robots: robotsMeta(seo, { noindex: post.seo.noindex, nofollow: post.seo.nofollow || undefined, noarchive: post.seo.noarchive || undefined, noimageindex: post.seo.noimageindex || undefined, nosnippet: post.seo.nosnippet || undefined }),
     openGraph: {
       type: "article",
       locale: LOCALE[ctx.lang].og,
-      title: post.seo.ogTitle || post.title,
-      description: desc,
+      title: ogTitle,
+      description: ogDesc,
       url: canonical,
       siteName: ctx.siteName,
       images: imageUrl ? [{ url: imageUrl, width: img?.width ?? 1200, height: img?.height ?? 675, type: img?.type, alt: post.bannerAlt || post.title }] : undefined,
       publishedTime: published,
-      modifiedTime: post.updatedAt ? new Date(post.updatedAt).toISOString() : published,
-      authors: [authorPage ?? post.authorName],
+      modifiedTime: modified,
+      authors: [fbAuthor || authorPage || post.authorName],
       section: post.categoryName,
       tags: post.tags.map((t) => t.name),
     },
     twitter: {
-      card: imageUrl ? "summary_large_image" : "summary",
-      title: post.seo.ogTitle || post.title,
-      description: desc,
+      card: imageUrl ? seo.twitter_card : "summary",
+      title: ogTitle,
+      description: ogDesc,
       images: imageUrl ? [imageUrl] : undefined,
       site: seo.twitter_username ? `@${seo.twitter_username.replace(/^@/, "")}` : undefined,
+      creator: twitterCreator ? `@${twitterCreator}` : undefined,
     },
-    // Shown under the link on X, Slack, Discord… (as Yoast does).
+    // "Written by" / "Time to read" labels on X, Slack, Discord… (as Rank Math). The og:/article:/fb: property tags are in PostFacebookMeta.
     other: {
       "twitter:label1": ctx.t.writtenBy,
       "twitter:data1": post.authorName,
       "twitter:label2": ctx.t.readingTime,
-      "twitter:data2": `${minutes} ${ctx.t.minutes}`,
+      "twitter:data2": `${minutes} ${minutes === 1 && ctx.t.minutes === "minutes" ? "minute" : ctx.t.minutes}`,
     },
   };
+}
+
+/** Facebook property tags Next's metadata can't write as property= (React moves them into <head>): as Rank Math. */
+function PostFacebookMeta({ post, seo }: { post: PostDetail; seo: SeoSettings }) {
+  const modified = post.updatedAt ? new Date(post.updatedAt).toISOString() : post.date ? new Date(post.date).toISOString() : "";
+  return (
+    <>
+      {modified && <meta property="og:updated_time" content={modified} />}
+      {seo.facebook_url && <meta property="article:publisher" content={seo.facebook_url} />}
+      {seo.fb_app_id && <meta property="fb:app_id" content={seo.fb_app_id} />}
+      {seo.fb_admin && <meta property="fb:admins" content={seo.fb_admin} />}
+    </>
+  );
 }
 
 const longDate = (d: Date | null, loc: string) =>
@@ -157,7 +186,7 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
   } catch {}
 
   // Body: shortcodes → heading ids (TOC + reading progress) → "Also Read" cards → ads.
-  const withIds = addHeadingIds(applyShortcodes(fixContentMediaUrls(post.content), ctx.sc));
+  const withIds = addHeadingIds(applySeoContentFilter(applyShortcodes(fixContentMediaUrls(post.content), ctx.sc), seo, { title: post.title, host: ctx.siteUrl }));
   let contentHtml = withIds.html;
   const headings = withIds.headings;
   const readingMinutes = estimateReadingMinutes(stripTags(contentHtml));
@@ -249,7 +278,8 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
 
   return (
     <main>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
+      {seo.m_schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />}
+      <PostFacebookMeta post={post} seo={seo} />
       <div className="container">
         <article className={`single-post nb-post nb-post--${pt.design}`}>
           <div className={`post-layout${ctx.theme.sidebar.on_post ? "" : " nb-no-sidebar"}`}>

@@ -150,7 +150,7 @@ export function SeoBox({
     }, 500);
   }, [kw, postId, usage]);
 
-  const groups = useMemo(() => {
+  const groups = (() => {
     if (!kw) return [];
     const low = text.toLowerCase();
     const words = text ? text.split(" ").length : 0;
@@ -213,7 +213,7 @@ export function SeoBox({
         ] as Check[],
       },
     ];
-  }, [kw, text, content, host, featuredImage, slug, shownTitle, desc, usage, defaults.linkCounter]);
+  })();
 
   const all = groups.flatMap((g) => g.items);
   const score = kw && all.length ? Math.round((all.filter((i) => i[0]).length * 100) / all.length) : 0;

@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { fixContentMediaUrls } from "@/lib/urls";
-import { robotsMeta, alternatesWithFeed } from "@/lib/seo/meta";
+import { robotsMeta, alternatesWithFeed, notFoundMetadata } from "@/lib/seo/meta";
 import type { Metadata } from "next";
 import { getPublishedPageBySlug } from "@/lib/pages";
 import { getSiteContext } from "@/lib/theme/site";
-import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
+import { getSeoSettings, seoTitle, formatDescription } from "@/lib/seo/settings";
+import { applySeoContentFilter } from "@/lib/seo/contentFilter";
+import { resolveMediaUrl } from "@/lib/urls";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
 import { RichContent } from "@/components/shortcodes/RichContent";
 import { LOCALE } from "@/lib/i18n/public";
@@ -16,25 +18,28 @@ import { injectParagraphAds } from "@/lib/adRendering";
 
 export async function buildPageMetadata(slug: string): Promise<Metadata> {
   const page = await getPublishedPageBySlug(slug);
-  if (!page) return {};
+  if (!page) return notFoundMetadata();
   const [siteConfig, ctx, seo] = await Promise.all([resolveSiteConfig(""), getSiteContext(), getSeoSettings()]);
-  const title = applyShortcodesText(page.metaTitle || formatTitle(seo.page_title_format, { title: page.title, sitename: ctx.siteName, sep: seo.separator }), ctx.sc);
-  const description = page.metaDescription || undefined;
+  const excerpt = (page.content ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
+  const vars = { title: page.title, sitename: ctx.siteName, sep: seo.separator, excerpt };
+  const title = applyShortcodesText(page.metaTitle ? seoTitle(seo, page.metaTitle, vars) : seoTitle(seo, seo.page_title_format, vars), ctx.sc);
+  const description = page.metaDescription?.trim() || formatDescription(seo.page_description_format, vars) || undefined;
   const url = staticPagePath(slug);
+  const image = seo.default_og_image ? resolveMediaUrl(seo.default_og_image) : siteConfig.seoDefaultImage;
   return {
     title: { absolute: title },
     description,
     alternates: alternatesWithFeed(url, siteConfig.siteName),
     robots: robotsMeta(seo),
-    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: siteConfig.siteName, images: [{ url: siteConfig.seoDefaultImage }] },
-    twitter: { card: "summary_large_image", title, description, images: [siteConfig.seoDefaultImage] },
+    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: siteConfig.siteName, images: [{ url: image }] },
+    twitter: { card: seo.twitter_card, title, description, images: [image] },
   };
 }
 
 export async function PageReader({ slug, preview = false }: { slug: string; preview?: boolean }) {
   const page = await getPublishedPageBySlug(slug, preview);
   if (!page) notFound();
-  const ctx = await getSiteContext();
+  const [ctx, seo] = await Promise.all([getSiteContext(), getSeoSettings()]);
 
   const withSidebar = ctx.theme.sidebar.on_page;
   const body = (
@@ -47,7 +52,7 @@ export async function PageReader({ slug, preview = false }: { slug: string; prev
 
       <ListingAds page="page" position="before_content" />
 
-      <RichContent html={await injectParagraphAds("page", applyShortcodes(fixContentMediaUrls(page.content ?? ""), ctx.sc))} className="entry-content" />
+      <RichContent html={await injectParagraphAds("page", applySeoContentFilter(applyShortcodes(fixContentMediaUrls(page.content ?? ""), ctx.sc), seo, { title: page.title, host: ctx.siteUrl }))} className="entry-content" />
 
       <ListingAds page="page" position="after_content" />
       <ListingAds page="page" position="after_post" />

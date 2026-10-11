@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getSiteContext } from "@/lib/theme/site";
 import { getCardPosts, getCardPostsRange } from "@/lib/theme/cards";
 import { HOME_BATCH, HOME_FIRST } from "@/lib/theme/homeFeed";
-import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
+import { getSeoSettings, formatTitle, seoTitle } from "@/lib/seo/settings";
 import { publisherNode, publisherLogoPath, websiteNode } from "@/lib/seo/schema";
 import { getImageInfo } from "@/lib/seo/imageSize";
 import { applyShortcodesText } from "@/lib/shortcodes";
@@ -19,18 +19,26 @@ type Props = { searchParams: Promise<{ page?: string }> };
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   const [ctx, seo, cfg] = await Promise.all([getSiteContext(), getSeoSettings(), resolveSiteConfig("")]);
-  let title = applyShortcodesText(seo.home_title, ctx.sc) || (ctx.tagline ? formatTitle("%sitename% %sep% %title%", { title: ctx.tagline, sitename: ctx.siteName, sep: seo.separator }) : ctx.siteName);
+  const vars = { title: ctx.tagline || ctx.siteName, sitename: ctx.siteName, sitedesc: ctx.tagline, sep: seo.separator, page };
+  let title = seo.home_title.trim()
+    ? applyShortcodesText(seoTitle(seo, seo.home_title, vars), ctx.sc)
+    : ctx.tagline
+      ? formatTitle("%sitename% %sep% %title%", { title: ctx.tagline, sitename: ctx.siteName, sep: seo.separator })
+      : ctx.siteName;
   if (page > 1) title += ` ${seo.separator} Page ${page}`;
   const description = applyShortcodesText(seo.home_description, ctx.sc) || cfg.seoDefaultDescription;
-  const image = seo.default_og_image ? resolveMediaUrl(seo.default_og_image) : cfg.seoDefaultImage;
+  const ogImg = seo.home_og_image || seo.default_og_image;
+  const image = ogImg ? resolveMediaUrl(ogImg) : cfg.seoDefaultImage;
+  const ogTitle = applyShortcodesText(seo.home_og_title, ctx.sc) || title;
+  const ogDescription = applyShortcodesText(seo.home_og_description, ctx.sc) || description;
   const url = page > 1 ? `/?page=${page}` : "/";
   return {
     title: { absolute: title },
     description,
     alternates: alternatesWithFeed(url, ctx.siteName),
     robots: robotsMeta(seo, page > 1 && seo.noindex_paginated),
-    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: ctx.siteName, images: [{ url: image, width: 1200, height: 630, alt: ctx.siteName }] },
-    twitter: { card: "summary_large_image", title, description, images: [image] },
+    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title: ogTitle, description: ogDescription, url, siteName: ctx.siteName, images: [{ url: image, width: 1200, height: 630, alt: ctx.siteName }] },
+    twitter: { card: seo.twitter_card, title: ogTitle, description: ogDescription, images: [image] },
   };
 }
 
@@ -69,7 +77,7 @@ export default async function HomePage({ searchParams }: Props) {
   const heading = ctx.theme.archive.home_heading;
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
+      {seo.m_schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />}
       <ArchiveView
         sidebarOn="home"
         adPage="homepage"

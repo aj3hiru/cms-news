@@ -91,7 +91,7 @@ export const SEO_SCREENS: SeoScreen[] = [
         desc: "Send visitors who open a page that doesn't exist to another address instead of the 404 page.",
         icon: "fa-route",
         fields: [
-          { k: "redirect_404_enabled", t: "toggle", label: "Redirect Missing Pages", desc: "Every address that would show the 404 page redirects instead (301)." },
+          { k: "redirect_404_enabled", t: "toggle", label: "Redirect Missing Pages", desc: "Every address that would show the 404 page redirects there instead." },
           { k: "redirect_404_url", t: "text", label: "Redirect To", desc: "A path like <code>/</code> or a full address.", placeholder: "/" },
         ],
       },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { saveSeoSettings } from "@/lib/seo/actions";
 import { SEO_DEFAULTS, type SeoSettings } from "@/lib/seo/settings";
 import { SEO_SCREENS, type SeoField } from "@/lib/seo/screens";
@@ -39,7 +39,7 @@ export function RmSettings({ screen, initial, siteName, siteUrl, initialTab, rob
     setS((x) => ({ ...x, [k]: v }));
     setMsg(null);
   };
-  const keys = useMemo(() => def.tabs.flatMap((t) => t.fields.map((f) => f.k)).filter((k): k is keyof SeoSettings => !String(k).startsWith("__")), [def]);
+  const keys = def.tabs.flatMap((t) => t.fields.map((f) => f.k)).filter((k): k is keyof SeoSettings => !String(k).startsWith("__"));
   const extra: (keyof SeoSettings)[] = screen === "titles" ? ["robots_nofollow", "robots_noarchive", "robots_noimageindex", "robots_nosnippet", "max_snippet", "max_video_preview", "max_image_preview"] : [];
 
   function pickTab(id: string) {

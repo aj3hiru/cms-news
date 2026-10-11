@@ -1,3 +1,4 @@
+import { notFoundMetadata } from "@/lib/seo/meta";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getAuthorBySlug } from "@/lib/listings";
@@ -17,10 +18,9 @@ type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ page?:
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
   const author = await getAuthorBySlug(slug);
-  if (!author) return {};
+  if (!author) return notFoundMetadata();
   const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
-  const seo = await getSeoSettings();
-  return archiveMetadata({ term: author.name, description: author.bio ? stripTags(author.bio).slice(0, 160) : null, path: authorUrl(slug), page, noindex: seo.noindex_authors });
+  return archiveMetadata({ kind: "author", term: author.name, termDescription: author.bio ? stripTags(author.bio) : null, path: authorUrl(slug), page });
 }
 
 export default async function AuthorPage({ params, searchParams }: Props) {
@@ -40,6 +40,7 @@ export default async function AuthorPage({ params, searchParams }: Props) {
       ["linkedin", author.linkedin],
     ] as const
   ).filter(([, u]) => u);
+  const schemaOn = (await getSeoSettings()).m_schema;
   const person = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
@@ -55,7 +56,7 @@ export default async function AuthorPage({ params, searchParams }: Props) {
   };
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(person).replace(/</g, "\\u003c") }} />
+      {schemaOn && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(person).replace(/</g, "\\u003c") }} />}
       <ArchiveView
         sidebarOn="author"
         adPage="category"

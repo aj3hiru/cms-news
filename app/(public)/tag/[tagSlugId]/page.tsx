@@ -1,3 +1,4 @@
+import { notFoundMetadata } from "@/lib/seo/meta";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
@@ -20,12 +21,13 @@ function parseTagSlugId(v: string): { slug: string; id: number } | null {
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const parsed = parseTagSlugId((await params).tagSlugId);
-  if (!parsed) return {};
+  if (!parsed) return notFoundMetadata();
   const tag = await getTagById(parsed.id);
-  if (!tag) return {};
+  if (!tag) return notFoundMetadata();
   const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   const seo = await getSeoSettings();
-  return archiveMetadata({ term: tag.name, path: tagUrl(tag.slug, Number(tag.id)), page, noindex: seo.noindex_tags });
+  const empty = seo.noindex_empty_categories && (await prisma.postTag.count({ where: { tagId: tag.id, post: { status: "published" } } })) === 0;
+  return archiveMetadata({ kind: "tag", term: tag.name, path: tagUrl(tag.slug, Number(tag.id)), page, noindex: empty });
 }
 
 export default async function TagPage({ params, searchParams }: Props) {

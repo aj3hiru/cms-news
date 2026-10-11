@@ -32,3 +32,10 @@ export function robotsMeta(
 export function alternatesWithFeed(canonical: string, siteName: string, extraFeeds: { url: string; title: string }[] = []): Metadata["alternates"] {
   return { canonical, types: { "application/rss+xml": [{ url: "/feed", title: `${siteName} » Feed` }, ...extraFeeds] } };
 }
+
+/** Metadata for a route that is about to show the 404 page: "404 Title" from Titles & Meta → Misc Pages. */
+export async function notFoundMetadata(): Promise<Metadata> {
+  const [{ getSeoSettings, seoTitle }, { resolveSiteConfig }] = await Promise.all([import("./settings"), import("../config")]);
+  const [seo, cfg] = await Promise.all([getSeoSettings(), resolveSiteConfig("")]);
+  return { title: { absolute: seoTitle(seo, seo.title_404 || "Page Not Found %sep% %sitename%", { sitename: cfg.siteName, sep: seo.separator }) }, robots: { index: false, follow: true } };
+}

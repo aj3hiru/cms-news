@@ -1,3 +1,4 @@
+import { notFoundMetadata } from "@/lib/seo/meta";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
@@ -17,10 +18,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { slug } = await params;
   const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   const cat = await getCategoryBySlug(slug);
-  if (!cat) return {};
+  if (!cat) return notFoundMetadata();
   const seo = await getSeoSettings();
   const empty = seo.noindex_empty_categories && (await prisma.post.count({ where: { categoryId: cat.id, status: "published" } })) === 0;
-  const meta = await archiveMetadata({ term: cat.metaTitle || cat.name, description: cat.metaDescription, path: categoryUrl(slug), page, noindex: empty });
+  const meta = await archiveMetadata({ kind: "category", term: cat.name, ownTitle: cat.metaTitle, ownDescription: cat.metaDescription, path: categoryUrl(slug), page, noindex: empty });
   return cat.metaKeywords ? { ...meta, keywords: cat.metaKeywords } : meta;
 }
 

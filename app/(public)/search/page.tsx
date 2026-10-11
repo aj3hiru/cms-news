@@ -3,13 +3,18 @@ import { getCardPosts } from "@/lib/theme/cards";
 import { getSiteContext } from "@/lib/theme/site";
 import { ArchiveView } from "@/components/theme/ArchiveView";
 import { tl } from "@/lib/i18n/public";
+import { getSeoSettings, seoTitle } from "@/lib/seo/settings";
+import { robotsMeta } from "@/lib/seo/meta";
 
 type Props = { searchParams: Promise<{ q?: string; page?: string }> };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const q = (await searchParams).q?.trim() ?? "";
-  const ctx = await getSiteContext();
-  return { title: { absolute: q ? `${ctx.t.resultsFor} “${q}” – ${ctx.siteName}` : `${ctx.t.search} – ${ctx.siteName}` }, robots: { index: false, follow: true } };
+  const [ctx, seo] = await Promise.all([getSiteContext(), getSeoSettings()]);
+  const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
+  // Titles & Meta → Misc Pages: "Search Results Title" and "Noindex Search Results"
+  const title = q ? seoTitle(seo, seo.search_title_format, { search_query: q.slice(0, 100), sitename: ctx.siteName, sep: seo.separator, page }) : `${ctx.t.search} ${seo.separator} ${ctx.siteName}`;
+  return { title: { absolute: title }, robots: robotsMeta(seo, seo.noindex_search || !q) };
 }
 
 export default async function SearchPage({ searchParams }: Props) {
