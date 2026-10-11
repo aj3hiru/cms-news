@@ -27,8 +27,8 @@ export function tableHtml(head: string[], rows: string[][], opts: { style: Table
   return `<table${cls}><tbody>${thead}${body}</tbody></table><p></p>`;
 }
 
-/** "Insert table" dialog: custom size with header options (like the WP table block) or a template. */
-export function TableDialog({ onInsert, onClose }: { onInsert: (html: string) => void; onClose: () => void }) {
+/** "Insert table" dialog: ready-made templates first, then a custom size with header options (like the WP table block). */
+export function TableDialog({ onInsert, onClose, replacing = false }: { onInsert: (html: string) => void; onClose: () => void; replacing?: boolean }) {
   const [rows, setRows] = useState(3);
   const [cols, setCols] = useState(3);
   const [headRow, setHeadRow] = useState(true);
@@ -46,13 +46,24 @@ export function TableDialog({ onInsert, onClose }: { onInsert: (html: string) =>
       <div className="be-modal" role="dialog" aria-label="Insert table">
         <div className="be-modal-head">
           <h3>
-            <i className="fas fa-table" /> Insert table
+            <i className="fas fa-table" /> {replacing ? "Change this table to a template" : "Insert table"}
           </h3>
           <button type="button" onClick={onClose} aria-label="Close">
             <i className="fas fa-xmark" />
           </button>
         </div>
         <div className="be-modal-body">
+          {replacing && <p className="be-replace-note">The table you clicked is replaced by the template (or the table you make below). Its style stays the same.</p>}
+          <div className="be-templates-title">Templates</div>
+          <div className="be-templates">
+            {TABLE_TEMPLATES.map((t) => (
+              <button type="button" key={t.id} onClick={() => onInsert(tableHtml(t.head, t.rows, { style, firstColHeader: t.firstColHeader }))}>
+                <i className={`fas ${t.icon}`} />
+                <span>{t.name}</span>
+              </button>
+            ))}
+          </div>
+          <div className="be-templates-title">Or make your own table</div>
           <div className="be-table-custom">
             <label>
               Columns
@@ -83,17 +94,8 @@ export function TableDialog({ onInsert, onClose }: { onInsert: (html: string) =>
             ))}
           </div>
           <button type="button" className="be-primary" onClick={custom}>
-            Create table
+            {replacing ? "Replace with this table" : "Create table"}
           </button>
-          <div className="be-templates-title">Or start from a template</div>
-          <div className="be-templates">
-            {TABLE_TEMPLATES.map((t) => (
-              <button type="button" key={t.id} onClick={() => onInsert(tableHtml(t.head, t.rows, { style, firstColHeader: t.firstColHeader }))}>
-                <i className={`fas ${t.icon}`} />
-                <span>{t.name}</span>
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>

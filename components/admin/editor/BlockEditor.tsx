@@ -61,7 +61,8 @@ export function BlockEditor({
   const [inserter, setInserter] = useState<{ open: boolean; query: string; slash: boolean }>({ open: false, query: "", slash: false });
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [tableOpen, setTableOpen] = useState(false);
+  /** Table dialog: false = closed, "insert" = new table, "replace" = swap the table the cursor is in. */
+  const [tableOpen, setTableOpen] = useState<false | "insert" | "replace">(false);
   const [, force] = useState(0);
   const slashRef = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -137,7 +138,7 @@ export function BlockEditor({
         label: "Table",
         icon: "fa-table",
         keywords: "table grid rows columns",
-        run: () => setTableOpen(true),
+        run: () => setTableOpen("insert"),
       },
       {
         id: "callout",
@@ -264,7 +265,8 @@ export function BlockEditor({
         <Btn on={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Align right" icon="fa-align-right" />
         <span className="rte-sep" />
         <Btn on={() => fileRef.current?.click()} title="Upload image" icon="fa-image" />
-        <Btn on={() => setTableOpen(true)} title="Insert table" icon="fa-table" />
+        <Btn on={() => setTableOpen("insert")} title="Insert table" icon="fa-table" />
+        <Btn on={() => setTableOpen("insert")} title="Table templates" label="Templates" />
         <Btn on={() => editor.chain().focus().undo().run()} title="Undo" icon="fa-rotate-left" />
         <Btn on={() => editor.chain().focus().redo().run()} title="Redo" icon="fa-rotate-right" />
       </div>
@@ -272,6 +274,9 @@ export function BlockEditor({
       {inTable && mode === "visual" && (
         <div className="be-table-bar">
           <span>Table:</span>
+          <button type="button" onClick={() => setTableOpen("replace")} title="Change this table to a template">
+            <i className="fas fa-table-list" /> Templates
+          </button>
           <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()}>+ Row</button>
           <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()}>+ Column</button>
           <button type="button" onClick={() => editor.chain().focus().deleteRow().run()}>− Row</button>
@@ -350,10 +355,28 @@ export function BlockEditor({
       {tableOpen &&
         createPortal(
         <TableDialog
+          replacing={tableOpen === "replace"}
           onClose={() => setTableOpen(false)}
           onInsert={(tableHtml) => {
+            const replace = tableOpen === "replace";
             setTableOpen(false);
-            editor.chain().focus().insertContent(tableHtml).run();
+            // the outermost table around the cursor (if any)
+            const { $from } = editor.state.selection;
+            let at: { from: number; to: number; style: string | null } | null = null;
+            for (let d = $from.depth; d > 0; d--) {
+              const node = $from.node(d);
+              if (node.type.name === "table") at = { from: $from.before(d), to: $from.after(d), style: (node.attrs.class as string | null) ?? null };
+            }
+            if (replace && at) {
+              // keep the style the table had (Stripes / Bordered …) unless the dialog chose one
+              const html = at.style && !/<table class=/.test(tableHtml) ? tableHtml.replace("<table", `<table class="${at.style}"`) : tableHtml;
+              editor.chain().focus().insertContentAt({ from: at.from, to: at.to }, html).run();
+            } else if (at) {
+              // never inside another table's cell: the new table goes right after the table the cursor is in
+              editor.chain().focus().insertContentAt(at.to, tableHtml).run();
+            } else {
+              editor.chain().focus().insertContent(tableHtml).run();
+            }
           }}
         />,
         document.body

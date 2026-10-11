@@ -2806,6 +2806,9 @@ a.pf-st:hover { border-color: var(--primary); }
 .be-ts--minimal { border-width: 0 0 1px; } .be-ts--minimal i:first-child { background: none; border-bottom: 2px solid #334155; }
 .be-primary { align-self: flex-start; padding: 10px 20px; border: 0; border-radius: 8px; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; }
 .be-primary:hover { background: var(--primary-dark); }
+.be-toolbar .rte-btn:not(:has(i)) { padding: 0 10px; font-weight: 600; }
+.be-replace-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #eff6ff; color: #1e3a8a; font-size: 13px; }
+.be-modal-body > .be-templates-title:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
 .be-templates-title { margin-top: 6px; padding-top: 14px; border-top: 1px solid #f1f5f9; font-size: 13px; font-weight: 700; color: #334155; }
 .be-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .be-templates button { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; text-align: left; }
