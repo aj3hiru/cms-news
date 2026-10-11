@@ -61,6 +61,12 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
             noindex: metaByKey.noindex === "1",
             ogTitle: metaByKey.og_title ?? "",
             ogDescription: metaByKey.og_description ?? "",
+            ogImage: metaByKey.og_image ?? "",
+            nofollow: metaByKey.robots_nofollow === "1",
+            noarchive: metaByKey.robots_noarchive === "1",
+            noimageindex: metaByKey.robots_noimageindex === "1",
+            nosnippet: metaByKey.robots_nosnippet === "1",
+            pillar: metaByKey.pillar === "1",
           },
         }}
       />

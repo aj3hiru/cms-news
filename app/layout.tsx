@@ -89,7 +89,9 @@ export async function generateMetadata(): Promise<Metadata> {
       yandex: seo.yandex_verification || undefined,
       other: {
         ...(seo.bing_verification ? { "msvalidate.01": seo.bing_verification } : {}),
+        ...(seo.baidu_verification ? { "baidu-site-verification": seo.baidu_verification } : {}),
         ...(seo.pinterest_verification ? { "p:domain_verify": seo.pinterest_verification } : {}),
+        ...(seo.norton_verification ? { "norton-safeweb-site-verification": seo.norton_verification } : {}),
       },
     },
     alternates: { types: { "application/rss+xml": [{ url: "/feed", title: `${siteConfig.siteName} » Feed` }] } },

@@ -86,6 +86,8 @@ export function PostFormClient({
   const [summary, setSummary] = useState(post?.summary ?? "");
   const [keyPoints, setKeyPoints] = useState<string[]>(post?.keyPoints.length ? post.keyPoints : [""]);
   const [metaDescription, setMetaDescription] = useState(post?.metaDescription ?? "");
+  const [categoryName, setCategoryName] = useState(categories.find((c) => c.id === post?.categoryId)?.name ?? categories[0]?.name ?? "");
+  const [featuredImage, setFeaturedImage] = useState(post?.featuredImagePath ?? "");
   const [status, setStatus] = useState(post?.status ?? "published");
   const [statusEditing, setStatusEditing] = useState(false);
   const [publishAtLocal, setPublishAtLocal] = useState(() => toLocalInput(post?.publishAt));
@@ -355,7 +357,7 @@ export function PostFormClient({
               <span>Featured Image</span>
             </div>
             <div className="meta-panel-body" id="feat-img-box">
-              <FeaturedImageBox name="featuredImageUrl" mediaIdFieldName="featuredImageId" defaultValue={post?.featuredImagePath ?? ""} />
+              <FeaturedImageBox name="featuredImageUrl" mediaIdFieldName="featuredImageId" defaultValue={post?.featuredImagePath ?? ""} onChange={setFeaturedImage} />
             </div>
           </div>
 
@@ -364,7 +366,7 @@ export function PostFormClient({
               <span>Category</span>
             </div>
             <div className="meta-panel-body">
-              <select name="categoryId" id="categoryId" defaultValue={post?.categoryId} required>
+              <select name="categoryId" id="categoryId" defaultValue={post?.categoryId} required onChange={(e) => setCategoryName(e.target.selectedOptions[0]?.text ?? "")}>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -412,13 +414,20 @@ export function PostFormClient({
           </div>
           <SeoBox
             defaults={seoDefaults}
+            postId={post?.id ?? 0}
             title={title}
             slug={slug}
+            onSlug={(v) => {
+              setSlug(v);
+              setSlugTouched(true);
+            }}
             content={content}
+            summary={summary}
+            categoryName={categoryName}
+            featuredImage={featuredImage}
             metaDescription={metaDescription}
             onMetaDescription={setMetaDescription}
             initial={post?.seo}
-            hasFeaturedImage={Boolean(post?.featuredImagePath)}
           />
         </div>
 

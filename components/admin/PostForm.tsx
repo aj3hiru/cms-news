@@ -43,8 +43,12 @@ export async function PostForm({ post }: { post?: PostFormPost }) {
         siteUrl: siteConfig.siteUrl,
         separator: seo.separator,
         titleFormat: seo.post_title_format,
+        descFormat: seo.post_description_format,
         defaultSchema: seo.default_schema,
         schemaTypes: { ...SCHEMA_TYPES },
+        // Role Manager module: editors / authors only get the SEO box when allowed (admins always)
+        canEdit: !seo.m_role_manager || user?.role === "admin" || (user?.role === "editor" ? seo.role_editor_seo : seo.role_author_seo),
+        linkCounter: seo.m_link_counter,
       }}
     />
   );

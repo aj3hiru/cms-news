@@ -38,6 +38,13 @@ export interface PostSeoMeta {
   noindex: boolean;
   ogTitle: string;
   ogDescription: string;
+  /** Social image chosen in the SEO box (else the featured image). */
+  ogImage: string;
+  nofollow: boolean;
+  noarchive: boolean;
+  noimageindex: boolean;
+  nosnippet: boolean;
+  pillar: boolean;
 }
 
 export const POST_META_KEYS = [
@@ -53,6 +60,12 @@ export const POST_META_KEYS = [
   "noindex",
   "og_title",
   "og_description",
+  "og_image",
+  "robots_nofollow",
+  "robots_noarchive",
+  "robots_noimageindex",
+  "robots_nosnippet",
+  "pillar",
 ] as const;
 
 export function parseKeyPoints(raw: string | null | undefined): string[] {
@@ -120,6 +133,12 @@ export async function getPostBySlug(slug: string, includeUnpublished = false): P
       noindex: metaByKey.noindex === "1",
       ogTitle: metaByKey.og_title ?? "",
       ogDescription: metaByKey.og_description ?? "",
+      ogImage: metaByKey.og_image ?? "",
+      nofollow: metaByKey.robots_nofollow === "1",
+      noarchive: metaByKey.robots_noarchive === "1",
+      noimageindex: metaByKey.robots_noimageindex === "1",
+      nosnippet: metaByKey.robots_nosnippet === "1",
+      pillar: metaByKey.pillar === "1",
     },
     tags: post.postTags.map((pt) => ({ id: Number(pt.tag.id), name: pt.tag.name, slug: pt.tag.slug })),
     authorSocials: {

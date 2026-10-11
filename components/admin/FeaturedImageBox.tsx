@@ -4,8 +4,12 @@ import { useState } from "react";
 import { MediaLibraryModal, type MediaLibraryItem } from "./MediaLibraryModal";
 
 /** Featured image picker (Media Library: upload or choose an existing image). */
-export function FeaturedImageBox({ name, mediaIdFieldName, defaultValue }: { name: string; mediaIdFieldName: string; defaultValue?: string }) {
-  const [value, setValue] = useState(defaultValue ?? "");
+export function FeaturedImageBox({ name, mediaIdFieldName, defaultValue, onChange }: { name: string; mediaIdFieldName: string; defaultValue?: string; onChange?: (url: string) => void }) {
+  const [value, setValueState] = useState(defaultValue ?? "");
+  const setValue = (v: string) => {
+    setValueState(v);
+    onChange?.(v);
+  };
   const [mediaId, setMediaId] = useState<number | "">("");
   const [pickerOpen, setPickerOpen] = useState(false);
 

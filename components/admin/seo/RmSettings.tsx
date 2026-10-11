@@ -28,7 +28,7 @@ function previewTpl(v: string, sep: string, site: string) {
 }
 
 /** One Rank Math settings screen: header card, vertical tabs, label | field rows, Reset Options / Save Changes. */
-export function RmSettings({ screen, initial, siteName, siteUrl, initialTab }: { screen: "general" | "titles" | "sitemap"; initial: SeoSettings; siteName: string; siteUrl: string; initialTab?: string }) {
+export function RmSettings({ screen, initial, siteName, siteUrl, initialTab, robotsDefault }: { screen: "general" | "titles" | "sitemap"; initial: SeoSettings; siteName: string; siteUrl: string; initialTab?: string; robotsDefault?: string }) {
   const def = SEO_SCREENS.find((s) => s.id === screen)!;
   const [s, setS] = useState<Vals>(initial);
   const [tab, setTab] = useState(def.tabs.some((t) => t.id === initialTab) ? initialTab! : def.tabs[0].id);
@@ -81,7 +81,7 @@ export function RmSettings({ screen, initial, siteName, siteUrl, initialTab }: {
       case "textarea":
         return <textarea className="rm-in" rows={4} value={String(s[k] ?? "")} placeholder={f.placeholder} onChange={(e) => set(k, e.target.value as never)} />;
       case "code":
-        return <textarea className="rm-in code" spellCheck={false} value={String(s[k] ?? "")} placeholder={"User-agent: *\nDisallow: /admin\n"} onChange={(e) => set(k, e.target.value as never)} />;
+        return <textarea className="rm-in code" spellCheck={false} value={String(s[k] ?? "")} placeholder={robotsDefault ?? ""} onChange={(e) => set(k, e.target.value as never)} />;
       case "select":
         return (
           <select className="rm-in" value={String(s[k] ?? "")} onChange={(e) => set(k, e.target.value as never)}>

@@ -1,14 +1,31 @@
 import type { Metadata } from "next";
 import type { SeoSettings } from "./settings";
 
+export type RobotsOverride = { noindex?: boolean; nofollow?: boolean; noarchive?: boolean; noimageindex?: boolean; nosnippet?: boolean };
+
 /**
- * Robots meta for a page. Every page passes a full value — a page that sets `robots: undefined`
- * replaces the layout's tag with nothing (Next merges metadata per key).
- *   index → "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" (as Yoast)
+ * Robots meta for a page (Titles & Meta → Global Meta, overridden per post / archive). Every page passes a full
+ * value — a page that sets `robots: undefined` replaces the layout's tag with nothing (Next merges metadata per key).
+ *   index → "index, follow, max-snippet:-1, max-video-preview:-1, max-image-preview:large" (as Rank Math)
+ * "Discourage search engines" makes every page noindex.
  */
-export function robotsMeta(seo: Pick<SeoSettings, "max_image_preview">, noindex = false): Metadata["robots"] {
-  if (noindex) return { index: false, follow: true };
-  return { index: true, follow: true, "max-image-preview": seo.max_image_preview, "max-snippet": -1, "max-video-preview": -1 };
+export function robotsMeta(
+  seo: Pick<SeoSettings, "max_image_preview"> & Partial<Pick<SeoSettings, "noindex_site" | "robots_nofollow" | "robots_noarchive" | "robots_noimageindex" | "robots_nosnippet" | "max_snippet" | "max_video_preview">>,
+  noindexOrOverride: boolean | RobotsOverride = false
+): Metadata["robots"] {
+  const o: RobotsOverride = typeof noindexOrOverride === "boolean" ? { noindex: noindexOrOverride } : noindexOrOverride;
+  const follow = !(o.nofollow ?? seo.robots_nofollow ?? false);
+  if (o.noindex || seo.noindex_site) return { index: false, follow };
+  const nosnippet = o.nosnippet ?? seo.robots_nosnippet ?? false;
+  return {
+    index: true,
+    follow,
+    ...(o.noarchive ?? seo.robots_noarchive ? { noarchive: true } : {}),
+    ...(o.noimageindex ?? seo.robots_noimageindex ? { noimageindex: true } : {}),
+    ...(nosnippet ? { nosnippet: true } : { "max-snippet": seo.max_snippet ?? -1 }),
+    "max-video-preview": seo.max_video_preview ?? -1,
+    "max-image-preview": seo.max_image_preview,
+  };
 }
 
 /** `alternates` with the canonical plus the site RSS feed (a page's canonical would otherwise drop the layout's feed link). */

@@ -88,6 +88,12 @@ interface ParsedPostForm {
   noindex: boolean;
   ogTitle: string;
   ogDescription: string;
+  ogImage: string;
+  nofollow: boolean;
+  noarchive: boolean;
+  noimageindex: boolean;
+  nosnippet: boolean;
+  pillar: boolean;
 }
 
 async function parsePostForm(formData: FormData, excludePostId?: number): Promise<ParsedPostForm> {
@@ -137,6 +143,12 @@ async function parsePostForm(formData: FormData, excludePostId?: number): Promis
     noindex: formData.get("noindex") === "on",
     ogTitle: String(formData.get("ogTitle") ?? "").trim().slice(0, 200),
     ogDescription: String(formData.get("ogDescription") ?? "").trim().slice(0, 300),
+    ogImage: String(formData.get("ogImage") ?? "").trim().replace(/^\/+/, "").slice(0, 500),
+    nofollow: formData.get("robotsNofollow") === "on",
+    noarchive: formData.get("robotsNoarchive") === "on",
+    noimageindex: formData.get("robotsNoimageindex") === "on",
+    nosnippet: formData.get("robotsNosnippet") === "on",
+    pillar: formData.get("pillar") === "on",
   };
 }
 
@@ -167,6 +179,12 @@ async function savePostMeta(postId: number, parsed: ParsedPostForm) {
   if (parsed.noindex) entries.push({ metaKey: "noindex", metaValue: "1" });
   if (parsed.ogTitle) entries.push({ metaKey: "og_title", metaValue: parsed.ogTitle });
   if (parsed.ogDescription) entries.push({ metaKey: "og_description", metaValue: parsed.ogDescription });
+  if (parsed.ogImage) entries.push({ metaKey: "og_image", metaValue: parsed.ogImage });
+  if (parsed.nofollow) entries.push({ metaKey: "robots_nofollow", metaValue: "1" });
+  if (parsed.noarchive) entries.push({ metaKey: "robots_noarchive", metaValue: "1" });
+  if (parsed.noimageindex) entries.push({ metaKey: "robots_noimageindex", metaValue: "1" });
+  if (parsed.nosnippet) entries.push({ metaKey: "robots_nosnippet", metaValue: "1" });
+  if (parsed.pillar) entries.push({ metaKey: "pillar", metaValue: "1" });
   if (parsed.publishAt) entries.push({ metaKey: "publish_at", metaValue: parsed.publishAt });
   if (entries.length > 0) {
     await prisma.postMeta.createMany({ data: entries.map((e) => ({ postId, ...e })) });
