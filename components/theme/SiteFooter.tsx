@@ -1,6 +1,6 @@
 import { getSiteContext } from "@/lib/theme/site";
 import { applyShortcodes } from "@/lib/shortcodes";
-import { categoryUrl } from "@/lib/urls";
+import { categoryUrl, resolveMediaUrl } from "@/lib/urls";
 import { ChevronIcon, SocialIcon, SOCIAL_LABELS } from "./icons";
 import { tl } from "@/lib/i18n/public";
 
@@ -8,7 +8,8 @@ import { tl } from "@/lib/i18n/public";
 export async function SiteFooter() {
   const ctx = await getSiteContext();
   const f = ctx.theme.footer;
-  const logo = f.logo || ctx.logo;
+  // a logo picked in Customizer → Footer is stored as "uploads/…" — turn it into its public address (/upload/media/…)
+  const logo = f.logo ? resolveMediaUrl(f.logo) : ctx.logo;
   const socials = f.socials.filter((s) => s.url);
   const columns = f.columns
     .map((c) => ({
