@@ -57,10 +57,15 @@ export function TableDialog({ onInsert, onClose, replacing = false }: { onInsert
           <div className="be-templates-title">Templates</div>
           <div className="be-templates">
             {TABLE_TEMPLATES.map((t) => (
-              <button type="button" key={t.id} onClick={() => onInsert(tableHtml(t.head, t.rows, { style, firstColHeader: t.firstColHeader }))}>
-                <i className={`fas ${t.icon}`} />
-                <span>{t.name}</span>
-              </button>
+              <div className="be-tpl" key={t.id}>
+                <button type="button" className="be-tpl-pick" onClick={() => onInsert(tableHtml(t.head, t.rows, { style, firstColHeader: t.firstColHeader }))}>
+                  <i className={`fas ${t.icon}`} />
+                  <span>{t.name}</span>
+                </button>
+                <button type="button" className="be-tpl-insert" onClick={() => onInsert(tableHtml(t.head, t.rows, { style, firstColHeader: t.firstColHeader }))}>
+                  <i className={`fas ${replacing ? "fa-check" : "fa-plus"}`} /> {replacing ? "Apply" : "Insert"}
+                </button>
+              </div>
             ))}
           </div>
           <div className="be-templates-title">Or make your own table</div>

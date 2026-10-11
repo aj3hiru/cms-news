@@ -2811,6 +2811,12 @@ a.pf-st:hover { border-color: var(--primary); }
 .be-modal-body > .be-templates-title:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
 .be-templates-title { margin-top: 6px; padding-top: 14px; border-top: 1px solid #f1f5f9; font-size: 13px; font-weight: 700; color: #334155; }
 .be-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.be-tpl { display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #fff; }
+.be-tpl:hover { border-color: var(--primary); }
+.be-templates .be-tpl .be-tpl-pick { border: 0; border-radius: 0; flex: 1; }
+.be-templates .be-tpl .be-tpl-insert { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 0; border-top: 1px solid #e2e8f0; border-radius: 0; background: var(--primary); color: #fff; font-weight: 700; }
+.be-templates .be-tpl .be-tpl-insert i { width: auto; height: auto; background: none; color: #fff; }
+.be-templates .be-tpl .be-tpl-insert:hover { filter: brightness(1.08); }
 .be-templates button { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; text-align: left; }
 .be-templates button i { width: 30px; height: 30px; border-radius: 8px; background: var(--primary-lighter); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .be-templates button:hover { border-color: var(--primary); }
