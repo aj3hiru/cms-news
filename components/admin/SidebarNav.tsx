@@ -118,9 +118,15 @@ export function SidebarNav({
               {
                 label: "SEO",
                 icon: "fa-magnifying-glass-chart",
-                href: "#",
+                href: "/admin/seo",
                 items: [
-                  { label: "Settings", href: "/admin/seo", icon: "fa-sliders-h" },
+                  { label: "Dashboard", href: "/admin/seo", icon: "fa-gauge" },
+                  { label: "General Settings", href: "/admin/seo/general", icon: "fa-sliders-h" },
+                  { label: "Titles & Meta", href: "/admin/seo/titles", icon: "fa-heading" },
+                  { label: "Sitemap Settings", href: "/admin/seo/sitemap", icon: "fa-sitemap" },
+                  { label: "Instant Indexing", href: "/admin/seo/indexing", icon: "fa-bolt" },
+                  { label: "SEO Analyzer", href: "/admin/seo/analyzer", icon: "fa-magnifying-glass-chart" },
+                  { label: "Status & Tools", href: "/admin/seo/status", icon: "fa-screwdriver-wrench" },
                   { label: "Setup Wizard", href: "/admin/seo/wizard", icon: "fa-wand-magic-sparkles" },
                 ],
               } as NavSubmenu,

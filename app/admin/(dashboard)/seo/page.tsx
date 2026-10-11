@@ -1,13 +1,12 @@
 import { guardPage } from "@/lib/pageGuard";
-import { resolveSiteConfig } from "@/lib/config";
 import { loadSeoSettingsFresh } from "@/lib/seo/settings";
-import { SeoAdmin } from "@/components/admin/seo/SeoAdmin";
+import { RmDashboard } from "@/components/admin/seo/RmDashboard";
 
 export const dynamic = "force-dynamic";
 
-export default async function SeoPage() {
+/** SEO → Dashboard (Rank Math modules). */
+export default async function SeoDashboardPage() {
   const denied = await guardPage((p) => p.settings.seo, "Only users with SEO access can change these settings.");
   if (denied) return denied;
-  const [seo, cfg] = await Promise.all([loadSeoSettingsFresh(), resolveSiteConfig("")]);
-  return <SeoAdmin initial={seo} siteName={cfg.siteName} siteUrl={cfg.siteUrl} />;
+  return <RmDashboard initial={await loadSeoSettingsFresh()} />;
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "../db";
-import { requireUser } from "../auth";
+import { requireUser, resolvePermissions } from "../auth";
 import { SEO_DEFAULTS, SEO_KEY, SCHEMA_TYPES, type SeoSettings } from "./settings";
 
 const VERIFY = ["google_verification", "bing_verification", "yandex_verification", "pinterest_verification", "baidu_verification", "norton_verification"] as const;
@@ -36,9 +36,11 @@ function clean(input: Partial<SeoSettings>): SeoSettings {
   return s;
 }
 
+/** Admins, or users given the "SEO" permission (the same check the SEO pages use). */
 async function isAdmin() {
   const user = await requireUser();
-  return Boolean(user && user.role === "admin");
+  if (!user) return false;
+  return user.role === "admin" || resolvePermissions(user).settings.seo;
 }
 
 async function store(next: SeoSettings) {
@@ -58,21 +60,21 @@ async function current(): Promise<Partial<SeoSettings>> {
 
 /** Saves SEO settings (merged over what is stored). */
 export async function saveSeoSettings(patch: Partial<SeoSettings>): Promise<{ ok: boolean; error?: string }> {
-  if (!(await isAdmin())) return { ok: false, error: "Only admins can change SEO settings." };
+  if (!(await isAdmin())) return { ok: false, error: "You do not have permission to change SEO settings." };
   await store(clean({ ...(await current()), ...patch }));
   return { ok: true };
 }
 
 /** Status & Tools → Reset: every SEO option back to its default (the wizard runs again). */
 export async function resetSeoSettings(): Promise<{ ok: boolean; error?: string }> {
-  if (!(await isAdmin())) return { ok: false, error: "Only admins can change SEO settings." };
+  if (!(await isAdmin())) return { ok: false, error: "You do not have permission to change SEO settings." };
   await store({ ...SEO_DEFAULTS });
   return { ok: true };
 }
 
 /** Status & Tools → Import: a JSON file made by Export (this site or another one). */
 export async function importSeoSettings(json: string): Promise<{ ok: boolean; error?: string; count?: number }> {
-  if (!(await isAdmin())) return { ok: false, error: "Only admins can change SEO settings." };
+  if (!(await isAdmin())) return { ok: false, error: "You do not have permission to change SEO settings." };
   let data: Record<string, unknown>;
   try {
     data = JSON.parse(json);
@@ -85,4 +87,25 @@ export async function importSeoSettings(json: string): Promise<{ ok: boolean; er
   if (!known.length) return { ok: false, error: "The file has no SEO settings in it." };
   await store(clean({ ...(await current()), ...Object.fromEntries(known.map((k) => [k, src[k]])) }));
   return { ok: true, count: known.length };
+}
+
+/** Instant Indexing → Submit URLs (one per line). */
+export async function submitIndexNowUrls(text: string): Promise<{ ok: boolean; message: string }> {
+  if (!(await isAdmin())) return { ok: false, message: "You do not have permission to use Instant Indexing." };
+  const { submitIndexNow } = await import("../indexNow");
+  const urls = text.split(/\r?\n/).map((u) => u.trim()).filter(Boolean);
+  if (!urls.length) return { ok: false, message: "Enter at least one URL." };
+  if (urls.length > 10000) return { ok: false, message: "At most 10,000 URLs at a time." };
+  const r = await submitIndexNow(urls, true);
+  revalidatePath("/admin/seo/indexing");
+  return { ok: r.ok, message: r.message };
+}
+
+/** Instant Indexing → History → Clear. */
+export async function clearIndexNowHistory(): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false };
+  const { clearIndexNowLog } = await import("../indexNow");
+  await clearIndexNowLog();
+  revalidatePath("/admin/seo/indexing");
+  return { ok: true };
 }
