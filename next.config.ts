@@ -30,7 +30,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["unzipper", "archiver", "ioredis"],
   // inlineCss was tried: it put ~180 KB of CSS into every HTML page (twice — also
   // in the page data) and made pages slower overall, so the CSS stays in cached files.
-  // Posts sitemap pages: /sitemap-posts-1.xml, /sitemap-posts-2.xml, …
   async headers() {
     // Self-hosted vendor files (Font Awesome) never change at the same path.
     return [
@@ -50,7 +49,10 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      { source: "/sitemap-posts-:page(\\d+).xml", destination: "/sitemaps/posts/:page" },
+      // Rank Math names: /post-sitemap2.xml, /post-sitemap3.xml … (the first file is /post-sitemap.xml)
+      { source: "/post-sitemap:page(\\d+).xml", destination: "/sitemaps/posts/:page" },
+      // older addresses, moved to the names above
+      { source: "/sitemap-posts-:page(\\d+).xml", destination: "/sitemaps/posts/:page?legacy=1" },
       // Resized WebP of an upload: /img/640/1789…-ab12cd.webp (see optimizedImage in lib/urls.ts).
       { source: "/img/:w(\\d+)/:file*", destination: "/_next/image?url=/upload/media/:file*&w=:w&q=75" },
     ];

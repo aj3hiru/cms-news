@@ -1,8 +1,6 @@
-import { buildSitemapIndex, xmlResponse } from "@/lib/seoFeeds";
+import { permanentRedirect } from "next/navigation";
 
-export const revalidate = 300;
-
-/** Sitemap index: posts (1000 per file), pages, categories, tags, authors and Google News. */
-export async function GET() {
-  return xmlResponse(await buildSitemapIndex());
+/** Older address — moved to the Rank Math name. */
+export function GET() {
+  permanentRedirect("/sitemap_index.xml");
 }

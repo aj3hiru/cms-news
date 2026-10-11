@@ -1,7 +1,6 @@
-import { buildCategoriesSitemap, xmlResponse } from "@/lib/seoFeeds";
+import { permanentRedirect } from "next/navigation";
 
-export const revalidate = 300;
-
-export async function GET() {
-  return xmlResponse(await buildCategoriesSitemap());
+/** Older address — moved to the Rank Math name. */
+export function GET() {
+  permanentRedirect("/category-sitemap.xml");
 }

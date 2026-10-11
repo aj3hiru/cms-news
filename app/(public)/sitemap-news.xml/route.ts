@@ -1,9 +1,6 @@
-import { buildNewsSitemap, xmlResponse } from "@/lib/seoFeeds";
-import { getSeoSettings } from "@/lib/seo/settings";
+import { permanentRedirect } from "next/navigation";
 
-export const revalidate = 300;
-
-export async function GET() {
-  if (!(await getSeoSettings()).news_sitemap) return new Response("Not found", { status: 404 });
-  return xmlResponse(await buildNewsSitemap());
+/** Older address — moved to the Rank Math name. */
+export function GET() {
+  permanentRedirect("/news-sitemap.xml");
 }

@@ -1,7 +1,6 @@
-import { buildTagsSitemap, xmlResponse } from "@/lib/seoFeeds";
+import { permanentRedirect } from "next/navigation";
 
-export const revalidate = 300;
-
-export async function GET() {
-  return xmlResponse(await buildTagsSitemap());
+/** Older address — moved to the Rank Math name. */
+export function GET() {
+  permanentRedirect("/post_tag-sitemap.xml");
 }

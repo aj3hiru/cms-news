@@ -33,6 +33,6 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       { userAgent: SLOW_BOTS, crawlDelay: 180, disallow: PRIVATE },
       { userAgent: BLOCKED_BOTS, disallow: "/" },
     ],
-    sitemap: [`${base}/sitemap.xml`, `${base}/sitemap-news.xml`],
+    sitemap: [`${base}/sitemap_index.xml`, `${base}/news-sitemap.xml`],
   };
 }

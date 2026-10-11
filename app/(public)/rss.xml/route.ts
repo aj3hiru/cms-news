@@ -1,7 +1,6 @@
-import { buildRssFeed, xmlResponse } from "@/lib/seoFeeds";
+import { permanentRedirect } from "next/navigation";
 
-export const revalidate = 300;
-
-export async function GET() {
-  return xmlResponse(await buildRssFeed("/rss.xml"), "application/rss+xml");
+/** Older feed address → /feed (301), as WordPress sends /rss to its feed. */
+export function GET() {
+  permanentRedirect("/feed");
 }
