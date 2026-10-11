@@ -3230,3 +3230,56 @@ select.rm-in{max-width:420px}
 .rmx-imgrow{display:flex;gap:6px;margin-top:5px}
 .rmx-modal .rmx-label{font-size:13.5px}
 .rmx-modal{max-width:640px}.rmx-modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.rmx .rm-btn{padding:6px 12px;font-size:12.5px}.rmx-label .rmx-imgrow{display:flex}
+
+/* ═══ Post editor: TinyMCE in the WordPress classic look (components/admin/editor/TinyEditor.tsx) ═══ */
+.te-wrap{position:relative;background:#fff}
+.te-tabs{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:6px 8px 0;background:#f6f7f7;border-bottom:1px solid #dcdcde}
+.te-addmedia{display:inline-flex;align-items:center;gap:6px;margin-bottom:5px;padding:4px 10px;border:1px solid #2271b1;border-radius:3px;background:#f6f7f7;color:#2271b1;font:inherit;font-size:13px;cursor:pointer}
+.te-addmedia:hover{background:#f0f0f1;color:#135e96;border-color:#135e96}
+.te-tabs .be-mode{display:flex;gap:0}
+.te-tabs .be-mode button{border:1px solid #dcdcde;border-bottom:0;background:#ebebeb;color:#50575e;padding:5px 14px;font:inherit;font-size:13px;cursor:pointer;margin-left:4px;border-radius:3px 3px 0 0;margin-bottom:-1px}
+.te-tabs .be-mode button.is-active{background:#fff;color:#1d2327;border-bottom:1px solid #fff}
+.te-loading,.te-error{padding:40px 16px;text-align:center;color:#64748b;font-size:14px}
+.te-error{color:#b91c1c}
+.te-html{display:block;width:100%;box-sizing:border-box;border:0;outline:0;padding:16px 18px;font:13.5px/1.6 Consolas,Monaco,"Courier New",monospace;color:#1d2327;background:#fff;resize:vertical}
+.te-wrap .tox.tox-tinymce{border:0 !important;border-radius:0 0 4px 4px !important;overflow:visible !important;font-family:inherit}
+.te-wrap .tox .tox-editor-container{overflow:visible !important;background:#fff}
+.te-wrap .tox .tox-editor-header{position:sticky !important;top:36px;z-index:30;background:#f6f7f7 !important;border-bottom:1px solid #dcdcde !important;box-shadow:none !important;padding:0 !important}
+.te-wrap .tox .tox-toolbar,.te-wrap .tox .tox-toolbar__primary,.te-wrap .tox .tox-toolbar-overlord{background:#f6f7f7 !important;background-image:none !important}
+.te-wrap .tox .tox-toolbar__group{padding:0 3px !important;margin:0;border-right:0 !important}
+.te-wrap .tox .tox-tbtn{height:26px !important;min-width:26px;margin:1px !important;border-radius:3px}
+.te-wrap .tox .tox-tbtn svg{transform:scale(.88)}
+.te-wrap .tox .tox-tbtn:hover{background:#e9e9ea}
+.te-wrap .tox .tox-tbtn--enabled,.te-wrap .tox .tox-tbtn--enabled:hover{background:#dcdcde}
+.te-wrap .tox .tox-tbtn--select{width:auto}.te-wrap .tox .tox-tbtn__select-label{font-size:13px}
+.te-wrap .tox .tox-toolbar,.te-wrap .tox .tox-toolbar__primary{min-height:0 !important;padding:2px 4px !important}
+.te-wrap .tox .tox-statusbar{background:#f6f7f7;border-top:1px solid #dcdcde;color:#50575e;font-size:12px;height:24px !important;min-height:0;border-radius:0 0 4px 4px}
+.te-wrap .tox .tox-promotion,.te-wrap .tox .tox-statusbar__branding{display:none}
+/* first 6 toolbar groups (… Table, Templates, More) always; the rest after "⋯" (as WordPress' kitchen sink) */
+.te-wrap:not(.te-more) .tox-editor-header .tox-toolbar__group:nth-child(n+7){display:none !important}
+.te-wrap:not(.te-ready) .tox .tox-editor-header{visibility:hidden}
+body .tox .tox-collection__item--active,body .tox .tox-collection--list .tox-collection__item:hover{background:#2271b1 !important;color:#fff !important}
+body .tox .tox-collection__item--active *,body .tox .tox-collection__item:hover *{color:#fff !important;fill:#fff !important}
+body .tox-tinymce-aux,body .tox.tox-silver-sink{z-index:100100 !important}
+/* Table templates */
+.te-tpl-backdrop{position:fixed;inset:0;z-index:100060;background:rgba(15,23,42,.6);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.te-tpl{background:#fff;border-radius:8px;width:100%;max-width:1200px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.te-tpl-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 24px;border-bottom:1px solid #e5e7eb;flex-wrap:wrap}
+.te-tpl-head h2{margin:0;font-size:22px;color:#0f172a}
+.te-tpl-head-r{display:flex;align-items:center;gap:10px}
+.te-tpl-x{border:0;background:none;font-size:20px;color:#64748b;cursor:pointer;padding:4px 8px}
+.te-tpl-body{padding:22px 24px}
+.te-tpl .tpl-target{display:grid;gap:8px;margin:0 0 16px;padding:12px 14px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;font-size:14px;color:#1e3a8a}
+.te-tpl .tpl-target label{display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:0}.te-tpl .tpl-target input{margin-top:3px}
+.te-tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.te-tpl-card{border:1px solid #e1e8ed;border-radius:10px;overflow:hidden;background:#fff;cursor:pointer;display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s}
+.te-tpl-card:hover{border-color:var(--primary);box-shadow:0 8px 20px rgba(124,58,237,.12)}
+.te-tpl-prev{padding:16px;background:#f8f9fa;border-bottom:1px solid #e1e8ed;max-height:290px;overflow:hidden;pointer-events:none;user-select:none;font-size:12px}
+.te-tpl-prev table{font-size:12px;margin:0 !important}.te-tpl-prev th,.te-tpl-prev td{padding:6px 8px !important}.te-tpl-prev a{font-size:12px;padding:5px 10px !important}
+.te-tpl-info{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.te-tpl-info h4{margin:0;font-size:15px;color:#1e293b}.te-tpl-info small{color:#7c3aed}
+.te-tpl-btns{display:flex;gap:6px}
+.te-tpl-use{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:6px;background:var(--primary);color:#fff;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer}
+.te-tpl-use:hover{background:var(--primary-dark)}
+.te-tpl-del{border:1px solid #fecaca;background:#fff;color:#b91c1c;border-radius:6px;padding:0 12px;cursor:pointer}
+@media (max-width:640px){.te-tpl-grid{grid-template-columns:1fr}.te-tpl-backdrop{padding:16px 8px}}

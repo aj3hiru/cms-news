@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPage, updatePage } from "@/lib/pageAdmin";
-import { RichTextEditor } from "./RichTextEditor";
+import { TinyEditor } from "./editor/TinyEditor";
 
 export interface PageFormData {
   id: number;
@@ -91,8 +91,8 @@ export function PageForm({ page }: { page?: PageFormData }) {
             <div className="meta-panel-header">
               <span>Content</span>
             </div>
-            <div className="meta-panel-body">
-              <RichTextEditor name="content" defaultValue={page?.content ?? ""} minHeight={420} />
+            <div className="meta-panel-body" style={{ padding: 0, gap: 0 }}>
+              <TinyEditor name="content" defaultValue={page?.content ?? ""} minHeight={420} placeholder="Start writing your page…" />
             </div>
           </div>
 

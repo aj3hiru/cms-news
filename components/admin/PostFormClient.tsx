@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { BlockEditor } from "./editor/BlockEditor";
+import { TinyEditor } from "./editor/TinyEditor";
 import { FeaturedImageBox } from "./FeaturedImageBox";
 import { FaqModal, type FaqItem } from "./FaqModal";
 import { SeoBox, type SeoDefaults, type PostSeoValues } from "./SeoBox";
@@ -185,7 +185,7 @@ export function PostFormClient({
 
           <div className="meta-panel">
             <div className="meta-panel-body" style={{ padding: 0, gap: 0 }}>
-              <BlockEditor name="content" defaultValue={post?.content ?? ""} onChange={setContent} />
+              <TinyEditor name="content" defaultValue={post?.content ?? ""} onChange={setContent} />
             </div>
           </div>
 
