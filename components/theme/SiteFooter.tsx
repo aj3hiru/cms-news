@@ -4,6 +4,23 @@ import { categoryUrl, resolveMediaUrl } from "@/lib/urls";
 import { ChevronIcon, SocialIcon, SOCIAL_LABELS } from "./icons";
 import { tl } from "@/lib/i18n/public";
 
+/** Links to this site (or relative ones) open in the same tab; other websites in a new tab. */
+function newTabIfExternal(url: string, siteUrl: string, nofollow = false): { target?: string; rel?: string } {
+  let host = "";
+  try {
+    host = new URL(url, "http://relative.invalid").host;
+  } catch {
+    return {};
+  }
+  if (host === "relative.invalid") return {};
+  let own = "";
+  try {
+    own = new URL(siteUrl).host;
+  } catch {}
+  const bare = (h: string) => h.replace(/^www\./, "").toLowerCase();
+  return own && bare(host) === bare(own) ? {} : { target: "_blank", rel: nofollow ? "noopener nofollow" : "noopener" };
+}
+
 /** Site footer — brand + link columns + "Follow Us" card with white social icons (Customizer → Footer). */
 export async function SiteFooter() {
   const ctx = await getSiteContext();
@@ -57,14 +74,14 @@ export async function SiteFooter() {
                 {socials.length > 0 && (
                   <div className="ftx-social-row">
                     {socials.map((s, i) => (
-                      <a key={i} className="ftx-social-btn" href={s.url} target="_blank" rel="noopener nofollow" aria-label={SOCIAL_LABELS[s.network]}>
+                      <a key={i} className="ftx-social-btn" href={s.url} {...newTabIfExternal(s.url, ctx.siteUrl, true)} aria-label={SOCIAL_LABELS[s.network]}>
                         <SocialIcon network={s.network} />
                       </a>
                     ))}
                   </div>
                 )}
                 {f.cta_button_label && f.cta_button_url && (
-                  <a className="ftx-cta-btn" style={{ background: f.cta_button_color || "#25bd41" }} href={f.cta_button_url} target="_blank" rel="noopener nofollow">
+                  <a className="ftx-cta-btn" style={{ background: f.cta_button_color || "#25bd41" }} href={f.cta_button_url} {...newTabIfExternal(f.cta_button_url, ctx.siteUrl, true)}>
                     <span>{f.cta_button_label}</span>
                   </a>
                 )}
@@ -73,7 +90,7 @@ export async function SiteFooter() {
               socials.length > 0 && (
                 <div className="ftx-social-row">
                   {socials.map((s, i) => (
-                    <a key={i} className="ftx-social-btn" href={s.url} target="_blank" rel="noopener nofollow" aria-label={SOCIAL_LABELS[s.network]}>
+                    <a key={i} className="ftx-social-btn" href={s.url} {...newTabIfExternal(s.url, ctx.siteUrl, true)} aria-label={SOCIAL_LABELS[s.network]}>
                       <SocialIcon network={s.network} />
                     </a>
                   ))}
