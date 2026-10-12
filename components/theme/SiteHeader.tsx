@@ -132,8 +132,9 @@ export async function SiteHeader() {
       logo={logo}
       title={tl(h.drawer_title, "helloReader", t)}
       text={h.drawer_text || applyShortcodesText(ctx.tagline, ctx.sc)}
-      login={login}
-      subscribe={subscribe}
+      hello={h.drawer_hello}
+      login={h.drawer_login ? login : null}
+      subscribe={h.drawer_subscribe ? subscribe : null}
       darkMode={h.dark_mode}
       socials={socials}
       followTitle={tl(theme.footer.follow_title, "followUs", t)}

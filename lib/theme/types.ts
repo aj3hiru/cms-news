@@ -312,6 +312,10 @@ export interface ThemeSettings {
     header_socials: boolean;
     drawer_title: string;
     drawer_text: string;
+    /** Mobile menu: show the greeting, Log in and Subscribe (each can be hidden). */
+    drawer_hello: boolean;
+    drawer_login: boolean;
+    drawer_subscribe: boolean;
   };
   sidebar: {
     on_home: boolean;
@@ -583,6 +587,9 @@ export const DEFAULT_THEME: ThemeSettings = {
     header_socials: true,
     drawer_title: "Hello, Reader",
     drawer_text: "",
+    drawer_hello: true,
+    drawer_login: true,
+    drawer_subscribe: true,
   },
   sidebar: { on_home: true, on_category: true, on_tag: true, on_author: true, on_search: true, on_post: true, on_page: false, sticky: true, title: "ट्रेंडिंग ख़बरें", source: "trending", count: 8 },
   footer: {

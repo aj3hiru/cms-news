@@ -94,8 +94,15 @@ export function HeaderPanel() {
       </Section>
 
       <Section title="Mobile menu">
-        <Text label="Greeting" value={h.drawer_title} onChange={(v) => set("drawer_title", v)} />
-        <Text label="Text under the greeting" value={h.drawer_text} placeholder="Empty = tagline" onChange={(v) => set("drawer_text", v)} />
+        <Toggle label="Show the greeting (“Hello, Reader”)" checked={h.drawer_hello} onChange={(v) => set("drawer_hello", v)} />
+        {h.drawer_hello && (
+          <>
+            <Text label="Greeting" value={h.drawer_title} onChange={(v) => set("drawer_title", v)} />
+            <Text label="Text under the greeting" value={h.drawer_text} placeholder="Empty = tagline" onChange={(v) => set("drawer_text", v)} />
+          </>
+        )}
+        <Toggle label="Show “Log in” in the mobile menu" checked={h.drawer_login} onChange={(v) => set("drawer_login", v)} hint="Also needs “Log in” on (Racing Zone header)." />
+        <Toggle label="Show “Subscribe” in the mobile menu" checked={h.drawer_subscribe} onChange={(v) => set("drawer_subscribe", v)} hint="Also needs “Subscribe” on (Racing Zone header)." />
         <Hint>The mobile menu shows the Primary Menu, Log in / Subscribe and your social icons.</Hint>
       </Section>
 

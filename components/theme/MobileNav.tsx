@@ -38,6 +38,7 @@ export function MobileNav({
   logo,
   title,
   text,
+  hello = true,
   login,
   subscribe,
   darkMode,
@@ -53,6 +54,7 @@ export function MobileNav({
   logo: string;
   title: string;
   text: string;
+  hello?: boolean;
   login: { label: string; url: string } | null;
   subscribe: { label: string; url: string } | null;
   darkMode: boolean;
@@ -113,7 +115,9 @@ export function MobileNav({
           </button>
         </div>
 
+        {(hello || login || subscribe) && (
         <div className="mnav-hello">
+          {hello && (
           <div className="mnav-hello-row">
             <span className="mnav-avatar">
               <i className="fas fa-user" />
@@ -123,8 +127,9 @@ export function MobileNav({
               {text && <p className="mnav-hello-sub">{text}</p>}
             </div>
           </div>
+          )}
           {(login || subscribe) && (
-            <div className="mnav-hello-btns">
+            <div className="mnav-hello-btns" style={{ ...(login && subscribe ? {} : { gridTemplateColumns: "1fr" }), ...(hello ? {} : { marginTop: 0 }) }}>
               {login && (
                 <a href={navHref(login.url)} className="mnav-btn outline" onClick={close}>
                   <i className="fas fa-right-to-bracket" /> {login.label}
@@ -138,7 +143,8 @@ export function MobileNav({
             </div>
           )}
         </div>
-        <div className="mnav-gap" aria-hidden />
+        )}
+        {(hello || login || subscribe) && <div className="mnav-gap" aria-hidden />}
 
         <nav className="mnav-list" aria-label="Menu">
           <ul>
