@@ -99,6 +99,12 @@
 .nb-toc-toggle::after { content: attr(data-show); }
 details[open] > summary .nb-toc-toggle::after { content: attr(data-hide); }
 .single-post .nb-toc li.nb-toc-sub { margin-left: 18px; font-size: 15px; list-style: circle; }
+/* The box sits inside the article body (after paragraph 1): keep the body's text / list styles off it. */
+.single-post .entry-content details.nb-toc { font-weight: 500; }
+.single-post .entry-content .nb-toc ol { list-style: none; }
+.single-post .entry-content .nb-toc li { font-size: 16px; margin: 5px 0; }
+.single-post .entry-content .nb-toc li.nb-toc-sub { margin-left: 18px; font-size: 15px; list-style: circle; }
+.single-post .entry-content .nb-toc li::marker { color: #373737; }
 .single-post .entry-content h2[id], .single-post .entry-content h3[id] { scroll-margin-top: 80px; }
 
 /* FAQ accordion with details */

@@ -93,6 +93,11 @@ export function injectAfterParagraph(html: string, afterN: number, insertHtml: s
   return p ? html.slice(0, p.end) + insertHtml + html.slice(p.end) : html + insertHtml;
 }
 
+/** True when the body has at least one top-level paragraph. */
+export function hasParagraph(html: string): boolean {
+  return topLevelParagraphs(html).length > 0;
+}
+
 /** Same as injectAfterParagraph(), but before the Nth paragraph (Ad Inserter "Before paragraph"). */
 export function injectBeforeParagraph(html: string, beforeN: number, insertHtml: string): string {
   if (beforeN < 1 || !insertHtml.trim() || !html.trim()) return html;

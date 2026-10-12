@@ -2372,6 +2372,10 @@ a.pf-st:hover { border-color: var(--primary); }
 .mp-notice{margin:0 0 .85rem;padding:.6rem .85rem;border-radius:10px;background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;font-size:.85rem}
 .mp-error{margin:.6rem 0 0;font-size:.8rem;color:#dc2626}
 .mp-author{display:flex;flex-direction:column;gap:.85rem}
+.mp-pw{max-width:25rem;margin-bottom:.9rem}
+.mp-pw .mp-control input{padding-right:2.75rem}
+.mp-eye{position:absolute;top:0;right:0;height:44px;width:2.75rem;border:none;background:transparent;color:#8b8ba0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.mp-eye:hover{color:var(--primary)}
 @media (max-width:640px){.mp-grid{grid-template-columns:1fr}.mp-btn{width:100%}}
 
 /* Admin pagination */

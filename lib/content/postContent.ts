@@ -162,6 +162,15 @@ export function alsoReadGroupHtml(posts: AlsoReadPost[], style: AlsoReadStyle, l
 }
 
 /** The Key Points box as HTML (it is placed between paragraphs of the post body). */
+/** Table of contents box (h2 + h3), placed inside the article body. */
+export function tocHtml(headings: TocItem[], title: string, show: string, hide: string, open: boolean): string {
+  const items = headings
+    .filter((h) => h.level <= 3)
+    .map((h) => `<li${h.level === 3 ? ' class="nb-toc-sub"' : ""}><a href="#${escHtml(h.id)}">${escHtml(h.text)}</a></li>`)
+    .join("");
+  return `<details class="toc nb-toc"${open ? " open" : ""}><summary><span>${escHtml(title)}</span><span class="nb-toc-toggle" aria-hidden="true" data-show="${escHtml(show)}" data-hide="${escHtml(hide)}"></span></summary><ol>${items}</ol></details>`;
+}
+
 export function keyPointsHtml(points: string[], title: string, style: "check" | "number" | "dot"): string {
   if (!points.length) return "";
   const list = points.map((p) => `<li>${escHtml(p)}</li>`).join("");

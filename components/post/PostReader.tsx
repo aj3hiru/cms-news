@@ -4,10 +4,10 @@ import { prisma } from "@/lib/db";
 import { AdminHtml } from "@/components/AdminHtml";
 import { getPostBySlug, getRelatedPosts, estimateReadingMinutes, stripTags, type PostDetail } from "@/lib/postDetail";
 import { postUrl, authorUrl, categoryUrl, tagUrl, resolveMediaUrl, staticPagePath, optimizedImage, imageSrcSet, fixContentMediaUrls } from "@/lib/urls";
-import { getAdHtmlFor, getParagraphAdBlocks, injectAfterParagraph, injectBeforeParagraph } from "@/lib/adRendering";
+import { getAdHtmlFor, getParagraphAdBlocks, injectAfterParagraph, injectBeforeParagraph, hasParagraph } from "@/lib/adRendering";
 import { getSiteContext } from "@/lib/theme/site";
 import { applyShortcodes, applyShortcodesText } from "@/lib/shortcodes";
-import { addHeadingIds, alsoReadGroupHtml, getAlsoReadPosts, keyPointsHtml } from "@/lib/content/postContent";
+import { addHeadingIds, alsoReadGroupHtml, getAlsoReadPosts, keyPointsHtml, tocHtml } from "@/lib/content/postContent";
 import { ALSO_READ_SLIDER_SCRIPT } from "@/components/theme/alsoReadSlider";
 import { getSeoSettings, seoTitle, formatDescription, type SeoSettings } from "@/lib/seo/settings";
 import { getAppConfig } from "@/lib/config";
@@ -233,6 +233,12 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
   for (const { paragraph, html } of adAfterPara) contentHtml = injectAfterParagraph(contentHtml, paragraph, html);
   if (adBeforeContent) contentHtml = adBeforeContent + contentHtml;
 
+  // Table of contents always right after the first paragraph (at the top when there is none).
+  if (pt.toc && headings.length > 1) {
+    const toc = tocHtml(headings, tl(pt.toc_title, "toc", t), t.show, t.hide, !pt.toc_collapsed);
+    contentHtml = hasParagraph(contentHtml) ? injectAfterParagraph(contentHtml, 1, toc) : toc + contentHtml;
+  }
+
   let faq: { q: string; a: string }[] = [];
   try {
     const parsed = post.faqJson ? JSON.parse(post.faqJson) : [];
@@ -421,24 +427,6 @@ export async function PostReader({ slug, preview = false }: { slug: string; prev
 
               {pt.key_points && post.keyPoints.length > 0 && pt.key_points_after <= 0 && (
                 <div dangerouslySetInnerHTML={{ __html: keyPointsHtml(post.keyPoints.map((k) => applyShortcodesText(k, ctx.sc)), tl(pt.key_points_title, "keyPoints", t), pt.key_points_style) }} />
-              )}
-
-              {pt.toc && headings.length > 1 && (
-                <details className="toc nb-toc" open={!pt.toc_collapsed}>
-                  <summary>
-                    <span>{tl(pt.toc_title, "toc", t)}</span>
-                    <span className="nb-toc-toggle" aria-hidden="true" data-show={t.show} data-hide={t.hide} />
-                  </summary>
-                  <ol>
-                    {headings
-                      .filter((h) => h.level <= 3)
-                      .map((h) => (
-                        <li key={h.id} className={h.level === 3 ? "nb-toc-sub" : undefined}>
-                          <a href={`#${h.id}`}>{h.text}</a>
-                        </li>
-                      ))}
-                  </ol>
-                </details>
               )}
 
               <RichContent html={contentHtml} className="content entry-content" t={t} />

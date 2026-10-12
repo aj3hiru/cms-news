@@ -77,13 +77,13 @@ export function MyProfileClient({ account, author, success }: { account: Account
   const [photoChanged, setPhotoChanged] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [pw, setPw] = useState({ next: "", confirm: "" });
+  const [pw, setPw] = useState("");
+  const [pwShow, setPwShow] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const displayName = author.fullName || author.name || account.username;
   const color = ROLE_COLOR[account.role] ?? "#64748b";
   const since = account.since ? new Date(account.since).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "long", year: "numeric" }) : null;
-  const pwMismatch = pw.next !== "" && pw.confirm !== "" && pw.next !== pw.confirm;
 
   async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -160,16 +160,15 @@ export function MyProfileClient({ account, author, success }: { account: Account
         <form action={saveMyAccount}>
           <input type="hidden" name="username" value={account.username} />
           <input type="hidden" name="email" value={account.email} />
-          <div className="mp-grid">
+          <div className="mp-pw">
             <Field label="New password" hint="Min 6 characters">
-              <input name="password" type="password" minLength={6} autoComplete="new-password" value={pw.next} onChange={(e) => setPw((x) => ({ ...x, next: e.target.value }))} required />
-            </Field>
-            <Field label="Confirm new password">
-              <input type="password" autoComplete="new-password" value={pw.confirm} onChange={(e) => setPw((x) => ({ ...x, confirm: e.target.value }))} required />
+              <input name="password" type={pwShow ? "text" : "password"} minLength={6} autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
+              <button type="button" className="mp-eye" aria-label={pwShow ? "Hide password" : "Show password"} onClick={() => setPwShow((v) => !v)}>
+                <i className={`fas ${pwShow ? "fa-eye-slash" : "fa-eye"}`} />
+              </button>
             </Field>
           </div>
-          {pwMismatch && <p className="mp-error">The new passwords don&rsquo;t match.</p>}
-          <Submit icon="fa-shield-halved" disabled={pw.next.length < 6 || pw.next !== pw.confirm}>
+          <Submit icon="fa-shield-halved" disabled={pw.length < 6}>
             Update password
           </Submit>
         </form>
