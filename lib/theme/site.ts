@@ -14,6 +14,8 @@ export interface SiteContext {
   siteUrl: string;
   tagline: string;
   logo: string;
+  /** The logo as saved (media path), for reading its size. */
+  logoRaw: string;
   retinaLogo: string;
   sc: ShortcodeContext;
   categories: { name: string; slug: string }[];
@@ -57,6 +59,7 @@ export const getSiteContext = cache(async (): Promise<SiteContext> => {
     siteUrl: cfg.siteUrl,
     tagline: cfg.siteTagline,
     logo: rawLogo ? resolveMediaUrl(rawLogo) : "",
+    logoRaw: rawLogo,
     retinaLogo: theme.identity.retina_logo ? resolveMediaUrl(theme.identity.retina_logo) : "",
     sc: { siteName: cfg.siteName, siteUrl: cfg.siteUrl, tagline: cfg.siteTagline, email: app.admin_email?.trim() || cfg.contactEmail },
     categories,

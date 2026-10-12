@@ -8,6 +8,7 @@ import { mergeTheme } from "@/lib/theme/types";
 import { prisma } from "@/lib/db";
 import { Customizer } from "@/components/admin/customizer/Customizer";
 import { getThemeBackupDate } from "@/lib/theme/actions";
+import { logoSize } from "@/lib/theme/logo";
 
 export const metadata: Metadata = { title: "Customize" };
 export const dynamic = "force-dynamic";
@@ -27,9 +28,12 @@ export default async function CustomizePage() {
   try {
     saved = row?.configValue ? JSON.parse(row.configValue) : null;
   } catch {}
+  const initial = mergeTheme(saved);
+  // "Logo width" starts at the width the logo shows today (until it is saved once)
+  if (!initial.identity.logo_w && settings.site_logo) initial.identity.logo_w = (await logoSize(initial, settings.site_logo)).w;
   return (
     <Customizer
-      initial={mergeTheme(saved)}
+      initial={initial}
       identity={{ siteTitle: app.site_title ?? cfg.siteName, tagline: app.site_tagline ?? "", logo: settings.site_logo ?? "", favicon: app.site_favicon ?? "" }}
       siteUrl={cfg.siteUrl}
       backupAt={backupAt}

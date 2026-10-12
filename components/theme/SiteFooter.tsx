@@ -40,12 +40,30 @@ export async function SiteFooter() {
       <div className="ftx-wrap">
         <div className="ftx-grid">
           <div className="ftx-brand">
-            {logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="ftx-logo" src={logo} alt={ctx.siteName} loading="lazy" decoding="async" />
-            ) : (
-              <span className="ftx-site-name">{ctx.siteName}</span>
-            )}
+            <div className="ftx-brand-row">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="ftx-logo" src={logo} alt={ctx.siteName} loading="lazy" decoding="async" />
+              ) : (
+                <span className="ftx-site-name">{ctx.siteName}</span>
+              )}
+              {f.play && (
+                <>
+                  <span className="ftx-sep" aria-hidden="true" />
+                  {/^https?:\/\/\S+$/i.test(f.play_url?.trim() ?? "") ? (
+                    <a className="ftx-play" href={f.play_url.trim()} target="_blank" rel="noopener">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/assets/img/google-play-badge.svg" width={135} height={40} alt="Get it on Google Play" loading="lazy" decoding="async" />
+                    </a>
+                  ) : (
+                    <span className="ftx-play">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/assets/img/google-play-badge.svg" width={135} height={40} alt="Get it on Google Play" loading="lazy" decoding="async" />
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
             {f.description && <div className="ftx-desc" dangerouslySetInnerHTML={{ __html: applyShortcodes(f.description, ctx.sc) }} />}
           </div>
 

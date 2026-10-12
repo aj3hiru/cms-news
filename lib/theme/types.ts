@@ -273,6 +273,8 @@ export interface ThemeSettings {
     hide_tagline: boolean;
     retina_logo: string;
     logo_width: number;
+    /** Header logo width in px (height follows the image). 0 = the size it had with the old height-based sizing. */
+    logo_w: number;
     site_icon: string;
   };
   global_colors: GlobalColor[];
@@ -333,6 +335,9 @@ export interface ThemeSettings {
   footer: {
     logo: string;
     description: string;
+    /** "Get it on Google Play" badge under the description; the link is optional. */
+    play: boolean;
+    play_url: string;
     /** auto = "categories": the column lists every category (links ignored). */
     columns: { title: string; links: MenuLink[]; auto?: "categories" | "" }[];
     follow_title: string;
@@ -546,7 +551,7 @@ export const DEFAULT_CONSENT: ConsentSettings = {
 };
 
 export const DEFAULT_THEME: ThemeSettings = {
-  identity: { hide_title: true, hide_tagline: true, retina_logo: "", logo_width: 146, site_icon: "" },
+  identity: { hide_title: true, hide_tagline: true, retina_logo: "", logo_width: 146, logo_w: 0, site_icon: "" },
   global_colors: DEFAULT_GLOBAL_COLORS,
   colors: defaultColors(),
   fonts: [{ family: "Noto Sans Devanagari", google: true, variants: ["400", "500", "600", "700"], fallback: "sans-serif" }],
@@ -595,6 +600,8 @@ export const DEFAULT_THEME: ThemeSettings = {
   footer: {
     logo: "",
     description: "",
+    play: false,
+    play_url: "",
     columns: [
       { title: "Categories", links: [], auto: "categories" },
       {

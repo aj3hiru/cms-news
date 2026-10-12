@@ -58,3 +58,13 @@
 .ftx-ico-sm{width:.85em;height:.85em}
 
 .ftx-copy{color:#ffffff;font-size:13px;margin:0;text-align:center}
+
+/* Footer logo · divider · "Get it on Google Play" badge on one line (badge: Customize → Footer) */
+.ftx-brand-row { display: flex; align-items: center; flex-wrap: nowrap; gap: 14px; margin-bottom: 12px; min-width: 0; }
+.ftx-brand-row .ftx-logo, .ftx-brand-row .ftx-site-name { margin-bottom: 0; }
+.ftx-brand-row:has(.ftx-play) .ftx-logo { flex: 0 1 auto; min-width: 0; width: auto; max-width: 150px; height: auto; max-height: 52px; object-fit: contain; }
+.ftx-brand-row:has(.ftx-play) .ftx-site-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ftx-sep { align-self: stretch; flex-shrink: 0; width: 1px; min-height: 34px; background: rgba(255, 255, 255, .35); }
+.ftx-play { display: inline-block; line-height: 0; border-radius: 6px; flex-shrink: 0; }
+.ftx-play img { display: block; width: 128px; height: auto; }
+a.ftx-play:hover img { filter: brightness(1.1); }

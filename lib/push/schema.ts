@@ -46,7 +46,7 @@ async function upgrade(): Promise<void> {
   if (!Number(idx[0]?.n ?? 0)) await prisma.$executeRawUnsafe("ALTER TABLE push_subscriptions ADD INDEX idx_push_geo (country, region)");
 
   const campCols = await columns("push_campaigns");
-  const addCamp: Record<string, string> = { segment_id: "INT NULL", segment_name: "VARCHAR(120) NULL", icon: "VARCHAR(500) NULL" };
+  const addCamp: Record<string, string> = { segment_id: "INT NULL", segment_name: "VARCHAR(120) NULL", icon: "VARCHAR(500) NULL", fail_info: "TEXT NULL" };
   const missingCamp = Object.entries(addCamp).filter(([c]) => !campCols.has(c));
   if (missingCamp.length) await prisma.$executeRawUnsafe(`ALTER TABLE push_campaigns ${missingCamp.map(([c, d]) => `ADD COLUMN \`${c}\` ${d}`).join(", ")}`);
 

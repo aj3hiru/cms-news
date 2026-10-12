@@ -36,3 +36,6 @@ CREATE TABLE IF NOT EXISTS `push_segments` (
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Delivery log: why deliveries failed, counted per notification (JSON {reason: count})
+ALTER TABLE push_campaigns ADD COLUMN fail_info TEXT NULL;

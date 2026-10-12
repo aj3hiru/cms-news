@@ -17,6 +17,8 @@ export function FooterPanel() {
       <Section title="About" defaultOpen>
         <MediaField label="Footer logo" value={f.logo} onChange={(v) => set("logo", v)} hint="Empty = the site logo." />
         <Text label="Description" multiline value={f.description} onChange={(v) => set("description", v)} hint="HTML and shortcodes allowed." />
+        <Toggle label="Show “Get it on Google Play” badge" checked={!!f.play} onChange={(v) => set("play", v)} hint="Shown under the description." />
+        <Text label="Google Play link" value={f.play_url ?? ""} onChange={(v) => set("play_url", v)} hint="Optional. Empty = the badge shows without a link." />
       </Section>
       <Section title="Link columns" badge={String(f.columns.length)}>
         {f.columns.map((col, i) => (

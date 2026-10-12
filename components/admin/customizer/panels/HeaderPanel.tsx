@@ -45,7 +45,7 @@ export function HeaderPanel() {
       <Section title="Layout" defaultOpen>
         <Toggle label="Sticky header" checked={h.sticky} onChange={(v) => set("sticky", v)} hint="Stays at the top while scrolling." />
         <Range label="Content width" unit="px" min={900} max={1600} step={10} value={h.container} onChange={(v) => set("container", v)} />
-        <Range label="Logo height" unit="px" min={24} max={120} value={h.logo_height} onChange={(v) => set("logo_height", v)} />
+        <Range label="Header height" unit="px" min={24} max={120} value={h.logo_height} onChange={(v) => set("logo_height", v)} />
       </Section>
 
       {h.template === "racing" && (

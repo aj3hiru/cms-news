@@ -382,7 +382,8 @@ a, a:link, a:visited, a:hover, a:active, a:focus, button, .btn {
 .ab-item:hover .ab-arrow { transform: rotate(180deg); opacity: 1; }
 
 .ab-sub {
-  display: none; position: absolute; top: 36px; left: 0; min-width: 170px;
+  /* top: 100% = right under the item (36px left a 1px dead line under the bar, so the menu closed and reopened — a blink) */
+  display: none; position: absolute; top: 100%; left: 0; min-width: 170px;
   background: #ffffff; border: 1px solid #e5e7eb; border-top: 2px solid #7c3aed;
   box-shadow: 0 8px 24px rgba(17,24,39,0.12); z-index: 100000;
   flex-direction: column; border-radius: 0 0 8px 8px; overflow: hidden;

@@ -1,7 +1,7 @@
 import webpush from "web-push";
 import { prisma } from "../db";
 import { getPushSettings } from "./settings";
-import { resolveSiteConfig } from "../config";
+import { getAppConfig, resolveSiteConfig } from "../config";
 import { resolveMediaUrl } from "../urls";
 import { ensurePushSchema } from "./schema";
 import { parseRules, rulesToWhere } from "./segments";
@@ -44,21 +44,24 @@ export async function queueCampaign(input: ComposeInput): Promise<{ campaignId: 
   const total = await prisma.pushSubscription.count({ where });
   if (total === 0) throw new PushSendError(input.segmentId ? "Nobody matches this segment right now." : "There are no subscribers yet.", 409);
 
+  if (input.url.trim().length > 500) throw new PushSendError("The link is too long (max 500 characters).", 400);
+  // a cut-off address would be broken: a too-long image / icon is left out instead
+  const fit = (u?: string | null) => (u && u.length <= 500 ? u : null);
   const scheduled = input.sendAt && input.sendAt.getTime() > Date.now() + 30_000;
   const campaign = await prisma.pushCampaign.create({
     data: {
       postId: input.postId,
       title: input.title.trim().slice(0, 200),
       body: input.body.trim().slice(0, 1000),
-      url: input.url.trim().slice(0, 500),
-      image: input.image?.slice(0, 500) || null,
+      url: input.url.trim(),
+      image: fit(input.image),
       status: scheduled ? "scheduled" : "pending",
       sendAt: scheduled ? input.sendAt : null,
       totalSubscribers: total,
       source: input.source ?? "manual",
       segmentId: input.segmentId ?? null,
       segmentName,
-      icon: input.icon?.slice(0, 500) || null,
+      icon: fit(input.icon?.trim()),
     },
   });
   if (!scheduled) await fillQueue(campaign.id);
@@ -124,7 +127,8 @@ async function processBatch(renew: () => Promise<boolean>): Promise<{ processed:
   }
 
   let icon: string | undefined;
-  const iconSrc = campaign.icon || settings.icon;
+  // no icon chosen: the Push settings icon, else the site icon (favicon)
+  const iconSrc = campaign.icon || settings.icon || (await getAppConfig()).site_favicon?.trim() || "";
   if (iconSrc) {
     const u = resolveMediaUrl(iconSrc);
     icon = /^https?:\/\//.test(u) ? u : `${(await resolveSiteConfig("")).siteUrl}${u}`;
@@ -142,6 +146,15 @@ async function processBatch(renew: () => Promise<boolean>): Promise<{ processed:
   const retries: { id: number; attempts: number; lastError: string }[] = [];
   let sent = 0;
   let failed = 0;
+  const reasons: Record<string, number> = {};
+  const why = (err: unknown, code?: number) =>
+    code === 404 || code === 410
+      ? "expired"
+      : code === 401 || code === 403
+        ? "key"
+        : /time ?out|ETIMEDOUT|ECONNRESET/i.test(err instanceof Error ? err.message : "")
+          ? "timeout"
+          : `other:${(err instanceof Error ? err.message : "error").slice(0, 120)}`;
 
   let next = 0;
   await Promise.all(
@@ -162,9 +175,12 @@ async function processBatch(renew: () => Promise<boolean>): Promise<{ processed:
             deadSubs.push(sub.id);
             done.push(row.id);
             failed++;
+            reasons.expired = (reasons.expired ?? 0) + 1;
           } else if (row.attempts + 1 >= MAX_ATTEMPTS) {
             done.push(row.id);
             failed++;
+            const r = why(err, code);
+            reasons[r] = (reasons[r] ?? 0) + 1;
           } else {
             retries.push({ id: row.id, attempts: row.attempts + 1, lastError: (err instanceof Error ? err.message : "error").slice(0, 500) });
           }
@@ -179,6 +195,16 @@ async function processBatch(renew: () => Promise<boolean>): Promise<{ processed:
     prisma.pushSubscription.deleteMany({ where: { id: { in: deadSubs } } }),
     prisma.pushCampaign.update({ where: { id: campaign.id }, data: { sent: { increment: sent }, failed: { increment: failed } } }),
   ]);
+  if (Object.keys(reasons).length) {
+    // delivery log: why deliveries failed (one sender at a time, so read + write is safe)
+    const cur = await prisma.$queryRawUnsafe<{ f: string | null }[]>("SELECT fail_info AS f FROM push_campaigns WHERE id = ?", campaign.id).catch(() => []);
+    let info: Record<string, number> = {};
+    try {
+      info = JSON.parse(cur[0]?.f || "{}");
+    } catch {}
+    for (const [k, v] of Object.entries(reasons)) info[k] = (info[k] ?? 0) + v;
+    await prisma.$executeRawUnsafe("UPDATE push_campaigns SET fail_info = ? WHERE id = ?", JSON.stringify(info).slice(0, 60000), campaign.id).catch(() => {});
+  }
   await renew();
   const left = await prisma.pushQueue.count({ where: { campaignId: campaign.id } });
   if (!left) await prisma.pushCampaign.update({ where: { id: campaign.id }, data: { status: "completed" } });

@@ -42,7 +42,7 @@ export async function publishTheme(theme: ThemeSettings, identity: IdentityInput
   ]);
 
   await prisma.appConfig.deleteMany({ where: { configKey: THEME_DRAFT_KEY } });
-  for (const tag of ["theme-settings", "app-config", "site-settings", "header-settings", "footer-settings"]) revalidateTag(tag, "max");
+  for (const tag of ["theme-settings", "app-config", "site-settings", "header-settings", "footer-settings"]) revalidateTag(tag, { expire: 0 }); // expire now: the very next page view shows the change
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -112,7 +112,7 @@ export async function getPostTitles(ids: number[]): Promise<Record<number, strin
 
 const THEME_BACKUP_KEY = "theme_backup";
 const refreshTheme = () => {
-  for (const tag of ["theme-settings", "app-config", "site-settings", "header-settings", "footer-settings"]) revalidateTag(tag, "max");
+  for (const tag of ["theme-settings", "app-config", "site-settings", "header-settings", "footer-settings"]) revalidateTag(tag, { expire: 0 }); // expire now: the very next page view shows the change
   revalidatePath("/", "layout");
 };
 

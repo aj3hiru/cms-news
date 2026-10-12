@@ -8,6 +8,7 @@ import { MobileNav } from "./MobileNav";
 import { PushBell } from "./PushBell";
 import { tl } from "@/lib/i18n/public";
 import { getPushPublic } from "@/lib/push/settings";
+import { logoSize } from "@/lib/theme/logo";
 
 const SEARCH_PATH =
   "M208 48c-88.366 0-160 71.634-160 160s71.634 160 160 160 160-71.634 160-160S296.366 48 208 48zM0 208C0 93.125 93.125 0 208 0s208 93.125 208 208c0 48.741-16.765 93.566-44.843 129.024l133.826 134.018c9.366 9.379 9.355 24.575-.025 33.941-9.379 9.366-24.575 9.355-33.941-.025L337.238 370.987C301.747 399.167 256.839 416 208 416 93.125 416 0 322.875 0 208z";
@@ -88,6 +89,7 @@ const DARK_SCRIPT = `!function(){var e="1"===localStorage.dm,a=!1,t=!1,r=functio
 export async function SiteHeader() {
   const [ctx, push] = await Promise.all([getSiteContext(), getPushPublic()]);
   const { theme, siteName, logo, retinaLogo, categories } = ctx;
+  const ls = logo ? await logoSize(theme, ctx.logoRaw) : null;
   const h = theme.header;
   const id = theme.identity;
   const racing = h.template === "racing";
@@ -106,12 +108,13 @@ export async function SiteHeader() {
       {logo && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          className="header-image is-logo-image"
+          className="header-image is-logo-image nb-logo-w"
           src={logo}
           srcSet={retinaLogo ? `${logo} 1x, ${retinaLogo} 2x` : undefined}
           alt={siteName}
-          width={id.logo_width || 146}
-          height={h.logo_height || 50}
+          width={ls?.w || 146}
+          height={ls?.h || h.logo_height || 50}
+          style={{ "--logo-w": `${ls?.w ?? 146}px`, "--logo-wm": `${ls?.wm ?? 117}px`, ...(ls?.h ? { "--logo-h": `${ls.h}px` } : {}) } as React.CSSProperties}
           fetchPriority="high"
         />
       )}

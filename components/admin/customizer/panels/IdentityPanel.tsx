@@ -16,8 +16,7 @@ export function IdentityPanel() {
       <Section title="Logo" defaultOpen>
         <MediaField label="Logo" value={identity.logo} onChange={(v) => setIdentity({ logo: v })} />
         <MediaField label="Retina Logo" value={theme.identity.retina_logo} onChange={(v) => update((t) => void (t.identity.retina_logo = v))} hint="Twice the size of the logo, for sharp display on high-resolution screens." />
-        <Range label="Logo width" unit="px" min={40} max={400} value={theme.identity.logo_width} onChange={(v) => update((t) => void (t.identity.logo_width = v))} />
-        <Range label="Logo height (header)" unit="px" min={24} max={120} value={theme.header.logo_height} onChange={(v) => update((t) => void (t.header.logo_height = v))} />
+        <Range label="Logo width" unit="px" min={40} max={400} value={theme.identity.logo_w || theme.identity.logo_width} onChange={(v) => update((t) => void (t.identity.logo_w = Math.max(40, Math.min(400, Math.round(v) || 40))))} />
       </Section>
       <Section title="Site Icon" defaultOpen>
         <MediaField label="Site Icon" value={identity.favicon} onChange={(v) => setIdentity({ favicon: v })} hint="The Site Icon is what you see in browser tabs, bookmark bars, and within mobile apps. It should be square and at least 512 × 512 pixels." />

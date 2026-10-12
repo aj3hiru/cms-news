@@ -171,3 +171,10 @@ html.nb-push-sub .nb-bell-wrap { display: none !important; }
 @media (min-width: 768px) { .nb-allow-card { left: 110px; } }
 /* Header / menu links without a URL (no "#" in the address bar) still look clickable. */
 #site-navigation a:not([href]), .mnav a:not([href]), .nb-strip a:not([href]), .dark-mode-toggle { cursor: pointer; }
+
+/* Header logo: one width (Customize → Site Identity → Logo width), height follows the image — like WordPress */
+.is-logo-image.nb-logo-w { width: var(--logo-w); height: auto; max-height: none; max-width: 100%; object-fit: contain; }
+/* classic header: the logo stays inside the bar — it gets smaller as a whole (no letterboxing) */
+.navigation-branding .is-logo-image.nb-logo-w { width: auto; height: min(var(--logo-h, var(--hd-h)), var(--hd-h)); max-height: var(--hd-h); }
+@media (max-width: 980px) { .nb-h-racing .is-logo-image.nb-logo-w { width: var(--logo-wm); max-height: none; max-width: 60vw; } }
+@media (max-width: 560px) { .navigation-branding .is-logo-image.nb-logo-w { width: auto; height: auto; max-width: 150px; max-height: calc(var(--hd-h) - 12px); } }
