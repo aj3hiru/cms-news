@@ -16,7 +16,9 @@ const OUTCOME_TEXT: Record<string, string> = { imported: "Imported", replaced: "
  * site): 1 choose file → 2 review slug conflicts → 3 import, with upload
  * progress and a line per imported item.
  */
-export function BulkImportPanel() {
+export function BulkImportPanel({ authors = [] }: { authors?: { id: number; name: string }[] }) {
+  const [authorId, setAuthorId] = useState("0");
+  const [status, setStatus] = useState<"file" | "draft" | "published">("file");
   const [file, setFile] = useState<File | null>(null);
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [decisions, setDecisions] = useState<Record<string, ImportDecision>>({});
@@ -71,7 +73,7 @@ export function BulkImportPanel() {
       if (xhr.status !== 200) throw new Error(await xhrError(xhr, "Failed to read ZIP file."));
       const data = JSON.parse(xhr.responseText) as { scan: ScanResult };
       const s = data.scan;
-      log.step(`Read the archive — ${s.type === "posts_export" ? "a posts export" : "a pages export"}`);
+      log.step(`Checked — a valid export with ${s.total} ${s.type === "posts_export" ? (s.total === 1 ? "post" : "posts") : s.total === 1 ? "page" : "pages"}${s.source?.name || s.source?.url ? ` from ${s.source.name || s.source.url.replace(/^https?:\/\//, "")}` : ""}`);
       log.finish(s.conflicts.length ? `${s.conflicts.length} item(s) already exist here — choose what to do below.` : "No conflicts — everything will be added as new.");
       setScan(s);
       const initial: Record<string, ImportDecision> = {};
@@ -117,7 +119,7 @@ export function BulkImportPanel() {
       seen = Math.max(seen, lines.length - 1);
     };
     try {
-      const xhr = await upload(file, { mode: "commit", decisions: JSON.stringify(decisions) }, (t) => {
+      const xhr = await upload(file, { mode: "commit", decisions: JSON.stringify(decisions), authorId, status }, (t) => {
         if (seen === 0) log.step("Uploaded — reading the archive…");
         handle(t);
       });
@@ -196,6 +198,59 @@ export function BulkImportPanel() {
               <button type="button" className="ie-link" onClick={restart} disabled={busy}>
                 Choose another file
               </button>
+            </div>
+            <div className="ie-sum">
+              <div>
+                <strong>{scan.total}</strong>
+                <span>{scan.type === "posts_export" ? "posts" : "pages"} in the file</span>
+              </div>
+              <div>
+                <strong>{scan.total - scan.conflicts.length}</strong>
+                <span>new here</span>
+              </div>
+              <div>
+                <strong>{scan.conflicts.length}</strong>
+                <span>already here</span>
+              </div>
+            </div>
+            {(scan.source?.name || scan.source?.url) && (
+              <p className="ie-src">
+                From <b>{scan.source.name || scan.source.url}</b>
+                {scan.source.app ? ` (${/edumint/i.test(scan.source.app) ? "EduMint" : "StoryTimes CMS"})` : ""}
+                {scan.source.date ? ` · exported ${new Date(scan.source.date).toLocaleString()}` : ""}
+              </p>
+            )}
+            {scan.titles?.length > 0 && (
+              <ul className="ie-titles">
+                {scan.titles.map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+                {scan.total > scan.titles.length && <li className="ie-more">… and {scan.total - scan.titles.length} more</li>}
+              </ul>
+            )}
+            <div className="ie-opts">
+              {scan.type === "posts_export" && (
+                <label>
+                  <span>Give the posts to</span>
+                  <select className="form-control" value={authorId} disabled={busy} onChange={(e) => setAuthorId(e.target.value)}>
+                    <option value="0">The original author (matched by name)</option>
+                    {authors.map((a) => (
+                      <option key={a.id} value={String(a.id)}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                  {scan.authors?.length > 0 && <small>Authors in the file: {scan.authors.join(", ")}. Names not found here go to you.</small>}
+                </label>
+              )}
+              <label>
+                <span>Status after import</span>
+                <select className="form-control" value={status} disabled={busy} onChange={(e) => setStatus(e.target.value as "file" | "draft" | "published")}>
+                  <option value="file">As in the file</option>
+                  <option value="draft">Drafts (check before publishing)</option>
+                  <option value="published">Published</option>
+                </select>
+              </label>
             </div>
             {scan.conflicts.length > 0 && (
               <>

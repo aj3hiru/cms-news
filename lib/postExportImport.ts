@@ -5,7 +5,7 @@ import { createZipArchive } from "./zipArchive";
 import { prisma } from "./db";
 import { resolveLocalPath, saveImportedFile } from "./localStorage";
 import { POST_META_KEYS } from "./postDetail";
-import { uploadPathFromUrl } from "./urls";
+import { postUrl, staticPagePath, uploadPathFromUrl } from "./urls";
 
 // See lib/zipArchive.ts (archiver 8 exports classes, not a factory).
 const createArchive = (_format: "zip", options: { zlib: { level: number } }) => createZipArchive(options.zlib.level);
@@ -106,6 +106,8 @@ export async function buildPostsExportArchive(categoryIds: number[], meta: SiteM
     const entry: Record<string, unknown> = {
       title: post.title,
       slug: post.slug,
+      // the address without the domain — an import (here, another StoryTimes site or EduMint) keeps it
+      path: postUrl(post.slug),
       content: post.content,
       excerpt: post.excerpt ?? "",
       status: post.status,
@@ -191,6 +193,7 @@ export async function buildPagesExportArchive(meta: SiteMeta) {
     const entry: Record<string, unknown> = {
       title: page.title,
       slug: page.slug,
+      path: staticPagePath(page.slug),
       content: page.content ?? "",
       status: page.status,
       meta_title: page.metaTitle ?? "",
@@ -246,7 +249,25 @@ export interface ImportConflict {
 export interface ScanResult {
   type: "posts_export" | "pages_export";
   conflicts: ImportConflict[];
+  /** How many posts / pages the file holds. */
+  total: number;
+  /** Where the file comes from (manifest). */
+  source: { name: string; url: string; app: string; date: string };
+  /** Author names used in the file (posts). */
+  authors: string[];
+  titles: string[];
 }
+
+/** The slug an item gets here: its original address path ("/slug", "/slug-12", "/page/x") when usable, else its slug. */
+export function importTargetSlug(item: { path?: unknown; slug?: unknown }, type: "posts_export" | "pages_export"): string {
+  let path = String(item.path ?? "").trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+  if (type === "pages_export" && path.startsWith("page/")) path = path.slice(5);
+  if (/^[a-z0-9-]{1,190}$/.test(path)) return path;
+  return String(item.slug ?? "").trim();
+}
+
+/** EduMint names the robots options without "robots_". */
+const EDUMINT_META_ALIASES: Record<string, string> = { nofollow: "robots_nofollow", noarchive: "robots_noarchive", noimageindex: "robots_noimageindex", nosnippet: "robots_nosnippet" };
 
 export async function scanImportZip(buffer: Buffer): Promise<ScanResult> {
   const zip = new AdmZip(buffer);
@@ -260,23 +281,43 @@ export async function scanImportZip(buffer: Buffer): Promise<ScanResult> {
 
   const prefix = type === "posts_export" ? "posts/" : "pages/";
   const conflicts: ImportConflict[] = [];
+  const authors = new Set<string>();
+  const titles: string[] = [];
+  let total = 0;
   for (const zipEntry of zip.getEntries()) {
     if (zipEntry.isDirectory) continue;
     if (!zipEntry.entryName.startsWith(prefix) || !zipEntry.entryName.endsWith(".json")) continue;
-    const item = JSON.parse(zip.readAsText(zipEntry));
-    if (!item?.slug) continue;
+    let item: Record<string, unknown>;
+    try {
+      item = JSON.parse(zip.readAsText(zipEntry));
+    } catch {
+      throw new Error(`${zipEntry.entryName} in the ZIP is damaged.`);
+    }
+    const slug = importTargetSlug(item, type);
+    if (!slug || !item?.title) continue;
+    total++;
+    if (titles.length < 8) titles.push(String(item.title));
+    if (type === "posts_export" && item.author_name) authors.add(String(item.author_name));
 
     const existing =
       type === "posts_export"
-        ? await prisma.post.findUnique({ where: { slug: item.slug }, select: { id: true, title: true } })
-        : await prisma.page.findUnique({ where: { slug: item.slug }, select: { id: true, title: true } });
+        ? await prisma.post.findUnique({ where: { slug }, select: { id: true, title: true } })
+        : await prisma.page.findUnique({ where: { slug }, select: { id: true, title: true } });
 
     if (existing) {
-      conflicts.push({ slug: item.slug, title: item.title, existingId: existing.id, existingTitle: existing.title });
+      conflicts.push({ slug, title: String(item.title), existingId: existing.id, existingTitle: existing.title });
     }
   }
+  if (!total) throw new Error(`The file has no ${type === "posts_export" ? "posts" : "pages"} in it.`);
 
-  return { type: type as "posts_export" | "pages_export", conflicts };
+  return {
+    type: type as "posts_export" | "pages_export",
+    conflicts,
+    total,
+    source: { name: String(manifest.site_name ?? ""), url: String(manifest.site_url ?? ""), app: String(manifest.cms_version ?? ""), date: String(manifest.export_date ?? "") },
+    authors: [...authors],
+    titles,
+  };
 }
 
 // ── Import: commit ───────────────────────────────────────────────────────
@@ -306,12 +347,22 @@ export interface ImportProgress {
   outcome: "imported" | "replaced" | "renamed" | "skipped";
 }
 
+export interface ImportOptions {
+  /** Give every post to this author; 0 / undefined = the original author (matched by name), else the importer. */
+  authorId?: number;
+  /** "file" keeps each item's status from the export. */
+  status?: "file" | "draft" | "published";
+}
+
 export async function commitImportZip(
   buffer: Buffer,
   decisions: Record<string, ImportDecision>,
   userId: number,
-  onProgress?: (p: ImportProgress) => void
+  onProgress?: (p: ImportProgress) => void,
+  options: ImportOptions = {}
 ): Promise<ImportCommitResult & { type: "posts_export" | "pages_export" }> {
+  const statusFor = (s: unknown): "published" | "draft" =>
+    options.status === "published" || options.status === "draft" ? options.status : s === "published" ? "published" : "draft";
   const zip = new AdmZip(buffer);
   const manifestEntry = zip.getEntry("manifest.json");
   if (!manifestEntry) throw new Error("Invalid export file: manifest.json not found.");
@@ -345,7 +396,10 @@ export async function commitImportZip(
   };
 
   if (type === "posts_export") {
-    const fallbackAuthor = await prisma.author.findFirst({ orderBy: { id: "asc" } });
+    const chosenAuthor = options.authorId ? await prisma.author.findUnique({ where: { id: options.authorId }, select: { id: true } }) : null;
+    if (options.authorId && !chosenAuthor) throw new Error("The chosen author no longer exists.");
+    const fallbackAuthor =
+      (await prisma.author.findFirst({ where: { userId }, select: { id: true } })) ?? (await prisma.author.findFirst({ orderBy: { id: "asc" }, select: { id: true } }));
 
     const items = zip.getEntries().filter((e) => !e.isDirectory && e.entryName.startsWith("posts/") && e.entryName.endsWith(".json"));
     let done = 0;
@@ -354,10 +408,10 @@ export async function commitImportZip(
       let itemTitle = zipEntry.entryName.replace(/^posts\/|\.json$/g, "");
       try {
       const post = JSON.parse(zip.readAsText(zipEntry));
-      if (!post?.slug) continue;
+      if (!importTargetSlug(post, "posts_export") || !post?.title) continue;
       itemTitle = String(post.title ?? post.slug);
 
-      let slug = String(post.slug);
+      let slug = importTargetSlug(post, "posts_export");
       const existing = await prisma.post.findUnique({ where: { slug }, select: { id: true } });
       const decision = decisions[slug] ?? "keep_both";
 
@@ -425,8 +479,8 @@ export async function commitImportZip(
       // Author — match by name, else fall back to the site's first author,
       // same as the PHP version (which refuses the import outright if
       // there are no authors at all to fall back to).
-      let authorId: number | null = null;
-      if (post.author_name) {
+      let authorId: number | null = chosenAuthor?.id ?? null;
+      if (!authorId && post.author_name) {
         const author = await prisma.author.findFirst({ where: { name: post.author_name } });
         if (author) authorId = author.id;
       }
@@ -446,8 +500,8 @@ export async function commitImportZip(
             slug,
             categoryId,
             authorId,
-            status: post.status ?? "draft",
-            featuredImageId,
+            status: statusFor(post.status),
+            featuredImageId: featuredImageId ?? undefined,
             lastDate: post.last_date ? new Date(post.last_date) : null,
             faqJson: post.faq_json ?? null,
           },
@@ -463,7 +517,7 @@ export async function commitImportZip(
             slug,
             categoryId,
             authorId,
-            status: post.status ?? "draft",
+            status: statusFor(post.status),
             featuredImageId,
             lastDate: post.last_date ? new Date(post.last_date) : null,
             faqJson: post.faq_json ?? null,
@@ -478,6 +532,7 @@ export async function commitImportZip(
       // (postId, metaKey) in this schema, so upsert manually.
       // All post fields (summary, key points, SEO…); older exports only had keywords + description.
       const metaIn: Record<string, unknown> = { keywords: post.meta_keywords, description: post.meta_description, ...(post.meta && typeof post.meta === "object" ? post.meta : {}) };
+      for (const [from, to] of Object.entries(EDUMINT_META_ALIASES)) if (metaIn[from] != null && metaIn[to] == null) metaIn[to] = metaIn[from];
       for (const [key, raw] of Object.entries(metaIn)) {
         if (!(POST_META_KEYS as readonly string[]).includes(key) || raw == null || raw === "") continue;
         const value = String(raw);
@@ -544,10 +599,10 @@ export async function commitImportZip(
       let itemTitle = zipEntry.entryName.replace(/^pages\/|\.json$/g, "");
       try {
       const page = JSON.parse(zip.readAsText(zipEntry));
-      if (!page?.slug) continue;
+      if (!importTargetSlug(page, "pages_export") || !page?.title) continue;
       itemTitle = String(page.title ?? page.slug);
 
-      let slug = String(page.slug);
+      let slug = importTargetSlug(page, "pages_export");
       const existing = await prisma.page.findUnique({ where: { slug }, select: { id: true } });
       const decision = decisions[slug] ?? "keep_both";
 
@@ -579,7 +634,7 @@ export async function commitImportZip(
             title,
             slug,
             content,
-            status: page.status ?? "draft",
+            status: statusFor(page.status),
             metaTitle: page.meta_title ?? "",
             metaDescription: page.meta_description ?? "",
           },
@@ -591,7 +646,7 @@ export async function commitImportZip(
             title,
             slug,
             content,
-            status: page.status ?? "draft",
+            status: statusFor(page.status),
             metaTitle: page.meta_title ?? "",
             metaDescription: page.meta_description ?? "",
           },

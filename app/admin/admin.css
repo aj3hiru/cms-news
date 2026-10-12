@@ -2521,6 +2521,15 @@ a.pf-st:hover { border-color: var(--primary); }
 .ie-link{border:0;background:none;padding:0;color:var(--primary);font-size:.8rem;font-weight:600;cursor:pointer}
 .ie-link:hover{text-decoration:underline}
 .ie-bulk{display:flex;gap:.75rem;align-items:center;font-size:.78rem;color:var(--gray-500);margin-bottom:.5rem}
+.ie-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:0 0 .75rem}
+.ie-sum div{padding:.6rem;border-radius:10px;background:var(--gray-50,#f8fafc);border:1px solid var(--gray-100,#f1f5f9);text-align:center}
+.ie-sum strong{display:block;font-size:1.25rem;color:var(--gray-900,#0f172a)}.ie-sum span{font-size:.72rem;color:var(--gray-500)}
+.ie-src{font-size:.82rem;color:var(--gray-600,#475569);margin:0 0 .6rem}
+.ie-titles{margin:0 0 .75rem;padding-left:1.1rem;font-size:.82rem;color:var(--gray-700)}.ie-titles .ie-more{list-style:none;color:var(--gray-400)}
+.ie-opts{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:0 0 .9rem}
+.ie-opts label{display:flex;flex-direction:column;gap:.3rem;font-size:.78rem;font-weight:600;color:var(--gray-700)}
+.ie-opts small{font-weight:400;color:var(--gray-500)}
+@media(max-width:640px){.ie-opts{grid-template-columns:1fr}.ie-sum{grid-template-columns:1fr 1fr 1fr}}
 .ie-conflicts{border:1px solid var(--gray-200);border-radius:10px;max-height:300px;overflow-y:auto}
 .ie-conflict{display:flex;gap:.75rem;align-items:center;justify-content:space-between;padding:.6rem .8rem;border-bottom:1px solid var(--gray-100)}
 .ie-conflict:last-child{border-bottom:none}

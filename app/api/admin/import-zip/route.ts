@@ -57,13 +57,20 @@ export async function POST(request: NextRequest) {
       const send = (obj: unknown) => controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
       let started = false;
       try {
-        const result = await commitImportZip(buffer, decisions, user.id, (p) => {
-          if (!started) {
-            started = true;
-            send({ t: "start", total: p.total });
-          }
-          send({ t: "item", ...p });
-        });
+        const st = String(form.get("status") ?? "file");
+        const result = await commitImportZip(
+          buffer,
+          decisions,
+          user.id,
+          (p) => {
+            if (!started) {
+              started = true;
+              send({ t: "start", total: p.total });
+            }
+            send({ t: "item", ...p });
+          },
+          { authorId: Number(form.get("authorId") ?? 0) || undefined, status: st === "draft" || st === "published" ? st : "file" }
+        );
         revalidatePath("/", "layout");
         invalidatePosts();
         send({ t: "done", result });
