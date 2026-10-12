@@ -3,6 +3,8 @@ import { prisma } from "../db";
 import { getPushSettings } from "./settings";
 import { resolveSiteConfig } from "../config";
 import { resolveMediaUrl } from "../urls";
+import { ensurePushSchema } from "./schema";
+import { parseRules, rulesToWhere } from "./segments";
 
 export interface ComposeInput {
   title: string;
@@ -13,6 +15,10 @@ export interface ComposeInput {
   /** Send later (scheduled). */
   sendAt?: Date | null;
   source?: "manual" | "auto" | "bulk";
+  /** Only the subscribers of this segment (null = everyone). */
+  segmentId?: number | null;
+  /** Small icon for this notification (media path or URL); empty = Settings icon. */
+  icon?: string | null;
 }
 
 export class PushSendError extends Error {
@@ -26,8 +32,17 @@ export async function queueCampaign(input: ComposeInput): Promise<{ campaignId: 
   if (!input.title.trim() || !input.url.trim()) throw new PushSendError("Title and link are required.");
   const settings = await getPushSettings();
   if (!settings.configured) throw new PushSendError("Push notifications aren't set up yet — generate the keys in the Settings tab first.");
-  const total = await prisma.pushSubscription.count();
-  if (total === 0) throw new PushSendError("There are no subscribers yet.", 409);
+  await ensurePushSchema();
+  let segmentName: string | null = null;
+  let where = {};
+  if (input.segmentId) {
+    const seg = await prisma.pushSegment.findUnique({ where: { id: input.segmentId } });
+    if (!seg) throw new PushSendError("That segment no longer exists.");
+    segmentName = seg.name;
+    where = rulesToWhere(parseRules(seg.rules));
+  }
+  const total = await prisma.pushSubscription.count({ where });
+  if (total === 0) throw new PushSendError(input.segmentId ? "Nobody matches this segment right now." : "There are no subscribers yet.", 409);
 
   const scheduled = input.sendAt && input.sendAt.getTime() > Date.now() + 30_000;
   const campaign = await prisma.pushCampaign.create({
@@ -41,18 +56,27 @@ export async function queueCampaign(input: ComposeInput): Promise<{ campaignId: 
       sendAt: scheduled ? input.sendAt : null,
       totalSubscribers: total,
       source: input.source ?? "manual",
+      segmentId: input.segmentId ?? null,
+      segmentName,
+      icon: input.icon?.slice(0, 500) || null,
     },
   });
   if (!scheduled) await fillQueue(campaign.id);
   return { campaignId: campaign.id, totalSubscribers: total };
 }
 
-/** Queue rows for every current subscriber. */
+/** Queue rows for every current subscriber (of the campaign's segment). Segments are dynamic: whoever matches now. */
 async function fillQueue(campaignId: number): Promise<void> {
+  const c = await prisma.pushCampaign.findUnique({ where: { id: campaignId }, select: { segmentId: true } });
+  let where = {};
+  if (c?.segmentId) {
+    const seg = await prisma.pushSegment.findUnique({ where: { id: c.segmentId } });
+    where = seg ? rulesToWhere(parseRules(seg.rules)) : { id: -1 }; // segment deleted meanwhile: nobody
+  }
   let lastId = 0;
   let count = 0;
   for (;;) {
-    const subs = await prisma.pushSubscription.findMany({ where: { id: { gt: lastId } }, orderBy: { id: "asc" }, take: 1000, select: { id: true } });
+    const subs = await prisma.pushSubscription.findMany({ where: { AND: [where, { id: { gt: lastId } }] }, orderBy: { id: "asc" }, take: 1000, select: { id: true } });
     if (!subs.length) break;
     await prisma.pushQueue.createMany({ data: subs.map((s) => ({ campaignId, subscriptionId: s.id })) });
     lastId = subs[subs.length - 1].id;
@@ -82,7 +106,12 @@ const LOCK_TTL_MS = 60_000;
 async function processBatch(renew: () => Promise<boolean>): Promise<{ processed: number; campaignId: number | null }> {
   const settings = await getPushSettings();
   if (!settings.configured) return { processed: 0, campaignId: null };
-  webpush.setVapidDetails(settings.subject.startsWith("mailto:") || settings.subject.startsWith("https://") ? settings.subject : `mailto:${settings.subject}`, settings.publicKey, settings.privateKey);
+  await ensurePushSchema();
+  const subjectOf = (s: string) => (s.startsWith("mailto:") || s.startsWith("https://") ? s : `mailto:${s || settings.subject}`);
+  // Each subscriber is sent with the key it subscribed with: the current key, or an imported key set
+  const vapid = new Map<number | null, { subject: string; publicKey: string; privateKey: string }>();
+  vapid.set(null, { subject: subjectOf(settings.subject), publicKey: settings.publicKey, privateKey: settings.privateKey });
+  for (const k of await prisma.pushKey.findMany()) vapid.set(k.id, { subject: subjectOf(k.subject), publicKey: k.publicKey, privateKey: k.privateKey });
 
   const campaign = await prisma.pushCampaign.findFirst({ where: { status: { in: ["pending", "processing"] } }, orderBy: { id: "asc" } });
   if (!campaign) return { processed: 0, campaignId: null };
@@ -95,8 +124,9 @@ async function processBatch(renew: () => Promise<boolean>): Promise<{ processed:
   }
 
   let icon: string | undefined;
-  if (settings.icon) {
-    const u = resolveMediaUrl(settings.icon);
+  const iconSrc = campaign.icon || settings.icon;
+  if (iconSrc) {
+    const u = resolveMediaUrl(iconSrc);
     icon = /^https?:\/\//.test(u) ? u : `${(await resolveSiteConfig("")).siteUrl}${u}`;
   }
   const payload = JSON.stringify({
@@ -120,7 +150,9 @@ async function processBatch(renew: () => Promise<boolean>): Promise<{ processed:
         const row = rows[next++];
         const sub = row.subscription;
         try {
-          await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload, { TTL: 86400, timeout: SEND_TIMEOUT_MS });
+          const vapidDetails = vapid.get(sub.keyId ?? null);
+          if (!vapidDetails) throw Object.assign(new Error("The key this browser subscribed with was erased."), { statusCode: 410 });
+          await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload, { TTL: 86400, timeout: SEND_TIMEOUT_MS, vapidDetails });
           done.push(row.id);
           sent++;
         } catch (err) {

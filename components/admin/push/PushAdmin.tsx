@@ -2,37 +2,60 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  clearPushHistory,
   deletePushCampaign,
   fetchArticleMeta,
-  deletePushSubscriber,
   generatePushKeys,
   getPushCampaigns,
   getPushOverview,
-  getPushSubscribers,
   importPushKeys,
+  listPushKeySets,
+  listPushSegments,
+  resetPushKeys,
   savePushOptions,
   searchPostsForPush,
   sendPushNotification,
+  sendTestPush,
   type CampaignRow,
+  type SegmentRow,
 } from "@/lib/push/admin";
 import { MediaLibraryModal } from "../MediaLibraryModal";
+import { PushAnalyticsTab, PushSegmentsTab } from "./PushV2";
 
 type Overview = Awaited<ReturnType<typeof getPushOverview>>;
-type Tab = "compose" | "history" | "subscribers" | "settings";
+type Tab = "compose" | "analytics" | "segments" | "history" | "settings";
 type PostHit = Awaited<ReturnType<typeof searchPostsForPush>>[number];
 
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }) : "");
 const src = (p: string) => (!p ? "" : /^https?:\/\//.test(p) || p.startsWith("/") ? p : p.startsWith("uploads/") ? `/upload/media/${p.slice(8)}` : `/${p}`);
 
-export function PushAdmin({ overview: initialOverview, campaigns: initialCampaigns, isAdmin, siteName }: { overview: Overview; campaigns: CampaignRow[]; isAdmin: boolean; siteName: string }) {
+export function PushAdmin({
+  overview: initialOverview,
+  campaigns: initialCampaigns,
+  isAdmin,
+  siteName,
+  siteHost = "",
+}: {
+  overview: Overview;
+  campaigns: CampaignRow[];
+  isAdmin: boolean;
+  siteName: string;
+  siteHost?: string;
+}) {
   const [tab, setTab] = useState<Tab>(initialOverview.configured ? "compose" : "settings");
   const [overview, setOverview] = useState(initialOverview);
   const [campaigns, setCampaigns] = useState(initialCampaigns);
+  const [segments, setSegments] = useState<SegmentRow[]>([]);
+  const [segmentId, setSegmentId] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
-    const [o, c] = await Promise.all([getPushOverview(), getPushCampaigns()]);
+    const [o, c, g] = await Promise.all([getPushOverview(), getPushCampaigns(), listPushSegments()]);
     setOverview(o);
     setCampaigns(c);
+    setSegments(g);
+  }, []);
+  useEffect(() => {
+    listPushSegments().then(setSegments).catch(() => {});
   }, []);
 
   // Live progress while something is sending.
@@ -52,6 +75,11 @@ export function PushAdmin({ overview: initialOverview, campaigns: initialCampaig
         <Stat icon="fa-paper-plane" label="Delivered" value={overview.totalSent} tone="amber" />
         <Stat icon="fa-hand-pointer" label="Clicks" value={overview.totalClicks} tone="rose" />
       </div>
+      {overview.configured && !overview.collect && (
+        <div className="pn-alert">
+          <i className="fas fa-circle-pause" /> Collecting new subscribers is turned off — visitors aren&apos;t asked and the bell is hidden.
+        </div>
+      )}
       {!overview.configured && (
         <div className="pn-alert">
           <i className="fas fa-triangle-exclamation" /> Push notifications are not set up yet. Open <b>Settings</b> and press <b>Generate keys</b> — it takes one click.
@@ -61,9 +89,10 @@ export function PushAdmin({ overview: initialOverview, campaigns: initialCampaig
         {(
           [
             ["compose", "fa-pen-to-square", "Send Notification"],
+            ["analytics", "fa-chart-pie", "Analytics"],
+            ["segments", "fa-layer-group", "Segments"],
             ["history", "fa-clock-rotate-left", "History"],
-            ["subscribers", "fa-users", "Subscribers"],
-            ["settings", "fa-gear", "Settings"],
+            ...(isAdmin ? ([["settings", "fa-gear", "Settings"]] as const) : []),
           ] as const
         ).map(([id, icon, label]) => (
           <button type="button" key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
@@ -77,14 +106,27 @@ export function PushAdmin({ overview: initialOverview, campaigns: initialCampaig
           disabled={!overview.configured || overview.subscribers === 0}
           subscribers={overview.subscribers}
           siteName={siteName}
+          segments={segments}
+          segmentId={segmentId}
+          setSegmentId={setSegmentId}
+          defaultIcon={overview.icon}
           onSent={async () => {
             await refresh();
             setTab("history");
           }}
         />
       )}
-      {tab === "history" && <History campaigns={campaigns} onChange={refresh} />}
-      {tab === "subscribers" && <Subscribers isAdmin={isAdmin} />}
+      {tab === "analytics" && <PushAnalyticsTab />}
+      {tab === "segments" && (
+        <PushSegmentsTab
+          onChanged={() => void refresh()}
+          onSendTo={(id) => {
+            setSegmentId(id);
+            setTab("compose");
+          }}
+        />
+      )}
+      {tab === "history" && <History campaigns={campaigns} onChange={refresh} isAdmin={isAdmin} host={siteHost} />}
       {tab === "settings" && <Settings overview={overview} isAdmin={isAdmin} onSaved={refresh} />}
     </div>
   );
@@ -102,7 +144,31 @@ function Stat({ icon, label, value, tone }: { icon: string; label: string; value
   );
 }
 
-function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolean; subscribers: number; siteName: string; onSent: () => void }) {
+function Compose({
+  disabled,
+  subscribers,
+  siteName,
+  onSent,
+  segments,
+  segmentId,
+  setSegmentId,
+  defaultIcon,
+}: {
+  disabled: boolean;
+  subscribers: number;
+  siteName: string;
+  onSent: () => void;
+  segments: SegmentRow[];
+  segmentId: number | null;
+  setSegmentId: (id: number | null) => void;
+  defaultIcon: string;
+}) {
+  const [icon, setIcon] = useState("");
+  const [iconPicker, setIconPicker] = useState(false);
+  const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+  const seg = segments.find((s) => s.id === segmentId) ?? null;
+  const audience = seg ? seg.count : subscribers;
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [url, setUrl] = useState("");
@@ -151,7 +217,7 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
   async function send() {
     setBusy(true);
     setMsg(null);
-    const r = await sendPushNotification({ title, body, url, image, postId, sendAt: when === "later" && sendAt ? new Date(sendAt).toISOString() : "" });
+    const r = await sendPushNotification({ title, body, url, image, postId, sendAt: when === "later" && sendAt ? new Date(sendAt).toISOString() : "", segmentId, icon });
     setBusy(false);
     if (!r.ok) return setMsg({ ok: false, text: r.error ?? "Could not send." });
     setMsg({ ok: true, text: r.scheduled ? "Scheduled." : `Sending to ${r.total?.toLocaleString("en-IN")} subscribers…` });
@@ -161,6 +227,42 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
     setImage("");
     setPostId(null);
     onSent();
+  }
+
+  /** Subscribes this browser (if needed) and sends it a test notification right away. */
+  async function test() {
+    setTesting(true);
+    setTestMsg(null);
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) throw new Error("This browser does not support push notifications.");
+      const cfg = (await fetch("/api/push/subscribe").then((r) => r.json())) as { publicKey?: string };
+      if (!cfg.publicKey) throw new Error("Push is not set up, or collecting subscribers is turned off in Settings.");
+      if ((await Notification.requestPermission()) !== "granted") throw new Error("Notifications are blocked in this browser. Allow them from the lock icon next to the address.");
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      const keyBytes = Uint8Array.from(atob((cfg.publicKey + "=".repeat((4 - (cfg.publicKey.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+      let sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const k = sub.options.applicationServerKey ? new Uint8Array(sub.options.applicationServerKey) : null;
+        if (k && (k.length !== keyBytes.length || k.some((b, i) => b !== keyBytes[i]))) {
+          await sub.unsubscribe();
+          sub = null;
+        }
+      }
+      sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes });
+      const saved = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: sub.toJSON(), key: cfg.publicKey, lang: navigator.language || "" }),
+      });
+      if (!saved.ok) throw new Error("Could not save this browser.");
+      const r = await sendTestPush({ title, body, url, image, icon, endpoint: sub.endpoint });
+      setTestMsg(r.ok ? { ok: true, text: "✓ Test notification sent to this browser." } : { ok: false, text: r.error ?? "Test failed." });
+    } catch (e) {
+      setTestMsg({ ok: false, text: e instanceof Error ? e.message : "Test failed." });
+    } finally {
+      setTesting(false);
+    }
   }
 
   return (
@@ -245,6 +347,32 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
             )}
           </div>
         </div>
+        <div className="pn-field">
+          Icon
+          <div className="pn-img-row">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {icon || defaultIcon ? <img src={src(icon || defaultIcon)} alt="" className="pn-icon-img" /> : <span className="pn-muted">Site icon</span>}
+            <button type="button" className="pn-btn-light" onClick={() => setIconPicker(true)}>
+              Change
+            </button>
+            {icon && (
+              <button type="button" className="pn-link" onClick={() => setIcon("")}>
+                Use default
+              </button>
+            )}
+          </div>
+        </div>
+        <label className="pn-field">
+          Send to
+          <select className="pn-input" value={segmentId ?? ""} onChange={(e) => setSegmentId(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">All subscribers ({subscribers.toLocaleString("en-IN")})</option>
+            {segments.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({g.count.toLocaleString("en-IN")})
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="pn-when">
           <label>
             <input type="radio" checked={when === "now"} onChange={() => setWhen("now")} /> Send now
@@ -256,8 +384,12 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
         </div>
         {msg && <p className={msg.ok ? "pn-ok" : "pn-err"}>{msg.text}</p>}
         <button type="button" className="pn-btn" onClick={send} disabled={busy || disabled || !title.trim() || !url.trim() || (when === "later" && !sendAt)}>
-          <i className="fas fa-paper-plane" /> {busy ? "Sending…" : when === "later" ? "Schedule" : `Send to ${subscribers.toLocaleString("en-IN")} subscribers`}
+          <i className="fas fa-paper-plane" /> {busy ? "Sending…" : when === "later" ? "Schedule" : `Send to ${audience.toLocaleString("en-IN")} subscriber${audience === 1 ? "" : "s"}`}
         </button>
+        <button type="button" className="pn-btn-light pn-test" onClick={test} disabled={testing}>
+          <i className={`fas ${testing ? "fa-spinner fa-spin" : "fa-vial"}`} /> Test push (this browser)
+        </button>
+        {testMsg && <p className={testMsg.ok ? "pn-ok" : "pn-err"}>{testMsg.text}</p>}
         {disabled && <p className="pn-muted">{subscribers === 0 ? "No subscribers yet — visitors subscribe with the bell in the header." : "Set up the keys in Settings first."}</p>}
       </div>
 
@@ -276,11 +408,19 @@ function Compose({ disabled, subscribers, siteName, onSent }: { disabled: boolea
           setPicker(false);
         }}
       />
+      <MediaLibraryModal
+        open={iconPicker}
+        onClose={() => setIconPicker(false)}
+        onSelect={(i) => {
+          setIcon(i.path.replace(/^\/+/, ""));
+          setIconPicker(false);
+        }}
+      />
     </div>
   );
 }
 
-function History({ campaigns, onChange }: { campaigns: CampaignRow[]; onChange: () => void }) {
+function History({ campaigns, onChange, isAdmin, host }: { campaigns: CampaignRow[]; onChange: () => void; isAdmin: boolean; host: string }) {
   if (!campaigns.length)
     return (
       <div className="pn-empty">
@@ -290,6 +430,22 @@ function History({ campaigns, onChange }: { campaigns: CampaignRow[]; onChange: 
     );
   return (
     <div className="pn-history">
+      {isAdmin && (
+        <div className="pn-history-bar">
+          <span className="pn-muted">Clicks are counted when a reader opens the notification&apos;s link on this site.</span>
+          <button
+            type="button"
+            className="pn-btn-light"
+            onClick={async () => {
+              if (!confirm("Clear the whole notification history? Notifications still being delivered or scheduled stay.")) return;
+              await clearPushHistory();
+              onChange();
+            }}
+          >
+            <i className="fas fa-broom" /> Clear history
+          </button>
+        </div>
+      )}
       {campaigns.map((c) => {
         const doneN = c.sent + c.failed;
         const pct = c.total ? Math.min(100, Math.round((doneN / c.total) * 100)) : 0;
@@ -306,7 +462,9 @@ function History({ campaigns, onChange }: { campaigns: CampaignRow[]; onChange: 
             )}
             <div className="pn-camp-main">
               <div className="pn-camp-top">
-                <strong>{c.title}</strong>
+                <strong>
+                  <span className="pn-id">#{c.id}</span> {c.title}
+                </strong>
                 <span className={`pn-badge pn-${c.status}`}>{c.status === "processing" ? "Sending" : c.status}</span>
                 {c.source === "auto" && <span className="pn-badge pn-auto">Auto</span>}
               </div>
@@ -317,6 +475,9 @@ function History({ campaigns, onChange }: { campaigns: CampaignRow[]; onChange: 
                 </div>
               )}
               <div className="pn-camp-meta">
+                <span>
+                  <i className="fas fa-globe" /> {host} · {c.segmentName ?? "All subscribers"}
+                </span>
                 <span>
                   <i className="fas fa-users" /> {c.total.toLocaleString("en-IN")}
                 </span>
@@ -355,71 +516,6 @@ function History({ campaigns, onChange }: { campaigns: CampaignRow[]; onChange: 
   );
 }
 
-function Subscribers({ isAdmin }: { isAdmin: boolean }) {
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<Awaited<ReturnType<typeof getPushSubscribers>> | null>(null);
-  useEffect(() => {
-    getPushSubscribers(page).then(setData);
-  }, [page]);
-  if (!data) return <div className="pn-card pn-muted">Loading subscribers…</div>;
-  return (
-    <div className="pn-card">
-      <h3>
-        <i className="fas fa-users" /> {data.total.toLocaleString("en-IN")} subscribers
-      </h3>
-      <table className="pn-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Browser</th>
-            <th>Country</th>
-            <th>Subscribed</th>
-            {isAdmin && <th />}
-          </tr>
-        </thead>
-        <tbody>
-          {data.rows.map((r) => (
-            <tr key={r.id}>
-              <td>{r.id}</td>
-              <td>{r.browser}</td>
-              <td>{r.country || "—"}</td>
-              <td>{fmt(r.createdAt)}</td>
-              {isAdmin && (
-                <td>
-                  <button
-                    type="button"
-                    className="pn-icon"
-                    onClick={async () => {
-                      if (!confirm("Remove this subscriber?")) return;
-                      await deletePushSubscriber(r.id);
-                      setData(await getPushSubscribers(page));
-                    }}
-                  >
-                    <i className="fas fa-trash" />
-                  </button>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {data.pages > 1 && (
-        <div className="pn-pages">
-          <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            ‹
-          </button>
-          <span>
-            {page} / {data.pages}
-          </span>
-          <button type="button" disabled={page >= data.pages} onClick={() => setPage((p) => p + 1)}>
-            ›
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Settings({ overview, isAdmin, onSaved }: { overview: Overview; isAdmin: boolean; onSaved: () => void }) {
   const [subject, setSubject] = useState(overview.subject);
   const [autoPrompt, setAutoPrompt] = useState(overview.autoPrompt);
@@ -427,6 +523,12 @@ function Settings({ overview, isAdmin, onSaved }: { overview: Overview; isAdmin:
   const [showBell, setShowBell] = useState(overview.showBell);
   const [autoSend, setAutoSend] = useState(overview.autoSendOnPublish);
   const [icon, setIcon] = useState(overview.icon);
+  const [collect, setCollect] = useState(overview.collect);
+  const [keySets, setKeySets] = useState<Awaited<ReturnType<typeof listPushKeySets>>>([]);
+  const [imp, setImp] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    if (isAdmin) listPushKeySets().then(setKeySets).catch(() => {});
+  }, [isAdmin, overview.publicFingerprint]);
   const [pub, setPub] = useState("");
   const [priv, setPriv] = useState("");
   const [picker, setPicker] = useState(false);
@@ -481,11 +583,91 @@ function Settings({ overview, isAdmin, onSaved }: { overview: Overview; isAdmin:
             Save keys
           </button>
         </details>
+        {keySets.length > 1 && (
+          <table className="pn-table" style={{ marginTop: 10 }}>
+            <thead>
+              <tr>
+                <th>Key set</th>
+                <th className="num">Subscribers</th>
+              </tr>
+            </thead>
+            <tbody>
+              {keySets.map((k) => (
+                <tr key={String(k.id)}>
+                  <td>
+                    <code>{k.fingerprint}</code> {k.current ? <span className="pn-badge pn-completed">Current</span> : <small className="pn-muted">imported</small>}
+                  </td>
+                  <td className="num">{k.subscribers.toLocaleString("en-IN")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {overview.configured && (
+          <>
+            <p className="pn-muted" style={{ margin: "12px 0" }}>
+              Reset creates a new key and completely erases the old key{keySets.length > 1 ? "s" : ""} and all {overview.subscribers.toLocaleString("en-IN")} subscribers linked to{" "}
+              {keySets.length > 1 ? "them" : "it"}. Readers who allowed notifications are subscribed again with the new key on their next visit. Export first if you want a backup.
+            </p>
+            <button
+              type="button"
+              className="pn-btn pn-btn-danger"
+              onClick={() => {
+                if (!confirm(`Reset push keys?\n\nThis erases the old key(s) and all ${overview.subscribers} subscribers. Readers who allowed notifications re-subscribe on their next visit.`)) return;
+                const t = prompt("Type RESET to erase the old keys and subscribers");
+                if (t === null) return;
+                void run(() => resetPushKeys(t, subject), "New keys are ready — the old keys and subscribers were erased.");
+              }}
+            >
+              <i className="fas fa-rotate" /> Reset keys
+            </button>
+          </>
+        )}
+      </div>
+      <div className="pn-card">
+        <h3>
+          <i className="fas fa-file-export" /> Export / Import
+        </h3>
+        <p className="pn-muted">
+          The export holds every key set and every subscriber (with device and country), so push can move to another site or be restored. Import accepts files with one or
+          many key sets (also from EduMint); subscribers keep their own key and ones already here are updated, not doubled.
+        </p>
+        <a className="pn-btn-light" href="/api/admin/push-transfer">
+          <i className="fas fa-download" /> Export keys + subscribers
+        </a>
+        <label className="pn-field" style={{ marginTop: 14 }}>
+          Import a file
+          <input
+            type="file"
+            accept=".json,application/json"
+            className="pn-input"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              if (!f) return;
+              setImp({ ok: true, text: "Importing…" });
+              const fd = new FormData();
+              fd.set("file", f);
+              const r = await fetch("/api/admin/push-transfer", { method: "POST", body: fd }).then((x) => x.json()).catch(() => ({ error: "Import failed." }));
+              e.target.value = "";
+              if (r.error) return setImp({ ok: false, text: r.error });
+              setImp({ ok: true, text: `✓ Imported: ${r.keys} new key set${r.keys === 1 ? "" : "s"}, ${r.added} new subscriber${r.added === 1 ? "" : "s"}, ${r.updated} updated${r.skipped ? `, ${r.skipped} skipped (no key or broken)` : ""}.` });
+              onSaved();
+              listPushKeySets().then(setKeySets).catch(() => {});
+            }}
+          />
+        </label>
+        {imp && <p className={imp.ok ? "pn-ok" : "pn-err"}>{imp.text}</p>}
       </div>
       <div className="pn-card">
         <h3>
           <i className="fas fa-sliders" /> Behaviour
         </h3>
+        <label className="pn-check">
+          <input type="checkbox" checked={collect} onChange={(e) => setCollect(e.target.checked)} />{" "}
+          <span>
+            <b>Collect subscribers</b> — off: no prompt and no bell; people who already subscribed still get your notifications
+          </span>
+        </label>
         <label className="pn-check">
           <input type="checkbox" checked={showBell} onChange={(e) => setShowBell(e.target.checked)} /> Bell icon in the header (hidden once a reader subscribes)
         </label>
@@ -511,7 +693,7 @@ function Settings({ overview, isAdmin, onSaved }: { overview: Overview; isAdmin:
             </button>
           </div>
         </div>
-        <button type="button" className="pn-btn" onClick={() => run(() => savePushOptions({ subject, autoPrompt, promptDelay: delay, showBell, autoSendOnPublish: autoSend, icon }), "Settings saved.")}>
+        <button type="button" className="pn-btn" onClick={() => run(() => savePushOptions({ subject, autoPrompt, promptDelay: delay, showBell, autoSendOnPublish: autoSend, icon, collect }), "Settings saved.")}>
           Save settings
         </button>
         {msg && <p className={msg.ok ? "pn-ok" : "pn-err"}>{msg.text}</p>}

@@ -18,6 +18,8 @@ export interface PushSettings {
   autoSendOnPublish: boolean;
   /** Small icon shown in notifications (media path); empty = site icon. */
   icon: string;
+  /** Collect new subscribers. Off = no prompt and no bell (people already subscribed still get notifications). */
+  collect: boolean;
 }
 
 export const PUSH_DEFAULTS: PushSettings = {
@@ -29,6 +31,7 @@ export const PUSH_DEFAULTS: PushSettings = {
   showBell: true,
   autoSendOnPublish: false,
   icon: "",
+  collect: true,
 };
 
 export async function getPushSettings(): Promise<PushSettings & { configured: boolean }> {
@@ -46,14 +49,15 @@ export async function savePushSettings(patch: Partial<PushSettings>): Promise<vo
   const { configured: _c, ...rest } = current;
   const next = { ...rest, ...patch };
   await prisma.appConfig.upsert({ where: { configKey: KEY }, create: { configKey: KEY, configValue: JSON.stringify(next) }, update: { configValue: JSON.stringify(next) } });
-  revalidateTag("push-settings", "max");
+  // expire at once: switching "Collect subscribers" off must stop the prompt on the very next page view
+  revalidateTag("push-settings", { expire: 0 });
 }
 
 /** Whether the header should draw the bell (cached; no secrets). */
 export const getPushPublic = unstable_cache(
   async () => {
     const s = await getPushSettings();
-    return { bell: s.configured && s.showBell };
+    return { bell: s.configured && s.showBell && s.collect !== false };
   },
   ["push-public"],
   { revalidate: 300, tags: ["push-settings"] }
@@ -63,7 +67,8 @@ export const getPushPublic = unstable_cache(
 export const getPushClientConfig = unstable_cache(
   async () => {
     const s = await getPushSettings();
-    return { publicKey: s.configured ? s.publicKey : "", autoPrompt: s.autoPrompt, promptDelay: s.promptDelay, showBell: s.showBell };
+    // collecting switched off: the browser gets no key, so it neither asks nor shows the bell
+    return { publicKey: s.configured && s.collect !== false ? s.publicKey : "", autoPrompt: s.autoPrompt, promptDelay: s.promptDelay, showBell: s.showBell };
   },
   ["push-client-config"],
   { revalidate: 300, tags: ["push-settings"] }

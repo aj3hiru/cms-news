@@ -34,7 +34,7 @@ function b64ToBytes(s: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-async function subscribeBrowser(reg: ServiceWorkerRegistration, publicKey: string): Promise<boolean> {
+async function subscribeBrowser(reg: ServiceWorkerRegistration, publicKey: string, retried = false): Promise<boolean> {
   let sub = await reg.pushManager.getSubscription();
   if (sub && store.get(K_KEY) !== publicKey) {
     // Made with an old key — replace it.
@@ -46,11 +46,24 @@ async function subscribeBrowser(reg: ServiceWorkerRegistration, publicKey: strin
       userVisibleOnly: true,
       applicationServerKey: b64ToBytes(publicKey),
     });
+  let tz = "";
+  try {
+    tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {}
   const res = await fetch("/api/push/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(sub.toJSON()),
+    body: JSON.stringify({ subscription: sub.toJSON(), key: publicKey, tz, lang: navigator.language || "", touch: navigator.maxTouchPoints > 1 ? 1 : 0 }),
   }).catch(() => null);
+  if (res?.status === 409 && !retried) {
+    // This page knew an older key (the keys were reset): subscribe again with the current one.
+    const d = (await res.json().catch(() => null)) as { key?: string } | null;
+    if (d?.key) {
+      await sub.unsubscribe().catch(() => {});
+      store.set(K_KEY, "");
+      return subscribeBrowser(reg, d.key, true);
+    }
+  }
   if (!res?.ok) return false;
   store.set(K_KEY, publicKey);
   store.set(K_SYNC, String(Date.now()));

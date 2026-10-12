@@ -10,5 +10,9 @@ export default async function PushNotificationsPage() {
   const user = await requireUser();
   if (!user || (user.role !== "admin" && user.role !== "editor")) redirect("/admin/dashboard");
   const [overview, campaigns, cfg] = await Promise.all([getPushOverview(), getPushCampaigns(), resolveSiteConfig("")]);
-  return <PushAdmin overview={overview} campaigns={campaigns} isAdmin={user.role === "admin"} siteName={cfg.siteName} />;
+  let siteHost = "";
+  try {
+    siteHost = new URL(cfg.siteUrl).host.replace(/^www\./, "");
+  } catch {}
+  return <PushAdmin overview={overview} campaigns={campaigns} isAdmin={user.role === "admin"} siteName={cfg.siteName} siteHost={siteHost} />;
 }

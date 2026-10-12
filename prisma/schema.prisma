@@ -702,10 +702,44 @@ model PushSubscription {
   userAgent String?  @map("user_agent") @db.VarChar(255)
   country   String?  @db.VarChar(8)
   createdAt DateTime @default(now()) @map("created_at")
+  /// Imported key set this browser subscribed with; null = the site's current key (Settings).
+  keyId     Int?     @map("key_id")
+  /// mobile | desktop (from the user agent)
+  device    String   @default("") @db.VarChar(20)
+  os        String   @default("") @db.VarChar(30)
+  browser   String   @default("") @db.VarChar(30)
+  /// State / region and city — sent by Cloudflare when "Add visitor location headers" is on.
+  region    String   @default("") @db.VarChar(80)
+  city      String   @default("") @db.VarChar(80)
+  lang      String   @default("") @db.VarChar(20)
+  tz        String   @default("") @db.VarChar(60)
+  updatedAt DateTime? @map("updated_at")
 
   queue PushQueue[]
 
+  @@index([country, region], name: "idx_push_geo")
   @@map("push_subscriptions")
+}
+
+/// Extra VAPID key sets (imported from another site) — their subscribers keep receiving notifications.
+model PushKey {
+  id         Int      @id @default(autoincrement())
+  publicKey  String   @unique @map("public_key") @db.VarChar(255)
+  privateKey String   @map("private_key") @db.VarChar(255)
+  subject    String   @default("") @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("push_keys")
+}
+
+/// A group of subscribers (country / state / device / OS / browser rules); new subscribers who match join it.
+model PushSegment {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120)
+  rules     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("push_segments")
 }
 
 model PushCampaign {
@@ -723,6 +757,10 @@ model PushCampaign {
   failed           Int       @default(0)
   clicks           Int       @default(0)
   source           String    @default("manual") @db.VarChar(20)
+  segmentId        Int?      @map("segment_id")
+  segmentName      String?   @map("segment_name") @db.VarChar(120)
+  /// Small icon for this notification; empty = Settings icon / site icon.
+  icon             String?   @db.VarChar(500)
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime? @updatedAt @map("updated_at")
 
