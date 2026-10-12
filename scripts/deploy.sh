@@ -4,17 +4,20 @@
 # CSS/JS files are kept so pages already open in browsers keep working.
 # Never deletes uploads, backups or database data.
 #   bash scripts/deploy.sh            (after git pull + any prisma db push)
+# Another site on the same code (own pm2 app and port):
+#   DEPLOY_APP=fast2tricks DEPLOY_PORT=3009 bash scripts/deploy.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export PORT NODE_OPTIONS=--max_old_space_size=4096
-APP=cms-storytimes
-PORT=3006
+APP="${DEPLOY_APP:-cms-storytimes}"
+PORT="${DEPLOY_PORT:-3006}"
+BUILD_LOG="/tmp/cms-build-${APP}.log"
 npx prisma generate > /dev/null 2>&1
 rm -rf .next-build .next/types .next/dev/types
-if ! NEXT_DIST_DIR=.next-build NODE_OPTIONS=--max-old-space-size=4096 npx next build > /tmp/cms-build.log 2>&1; then
-  tail -30 /tmp/cms-build.log; echo "BUILD FAILED — live site untouched"; rm -rf .next-build; exit 1
+if ! NEXT_DIST_DIR=.next-build NODE_OPTIONS=--max-old-space-size=4096 npx next build > "$BUILD_LOG" 2>&1; then
+  tail -30 "$BUILD_LOG"; echo "BUILD FAILED — live site untouched"; rm -rf .next-build; exit 1
 fi
-grep -E "Compiled|Generating static" /tmp/cms-build.log | tail -2 || true
+grep -E "Compiled|Generating static" "$BUILD_LOG" | tail -2 || true
 if [ ! -f .next-build/BUILD_ID ]; then
   echo "Build folder has no BUILD_ID — live site untouched"; ls .next-build | head; exit 1
 fi
