@@ -125,7 +125,7 @@ export async function resolveSiteConfig(currentDomain: string): Promise<Resolved
     ? /^https?:\/\//i.test(resolveMediaUrl(rawLogo))
       ? resolveMediaUrl(rawLogo)
       : `${siteUrl}${resolveMediaUrl(rawLogo)}`
-    : `${siteUrl}/assets/img/seo_og_default.png`;
+    : ""; // nothing set: no share image (rather than a link to a missing file)
   const siteTagline = appConfig.site_tagline?.trim() || "";
   const contactEmail =
     appConfig.admin_email?.trim() || `contact@${safeHost(siteUrl)}`;
@@ -206,13 +206,13 @@ export function buildListingMetadata(
       description,
       url: canonicalPath,
       siteName: siteConfig.siteName,
-      images: [{ url: siteConfig.seoDefaultImage, width: 1200, height: 630, alt: siteConfig.siteName }],
+      images: siteConfig.seoDefaultImage ? [{ url: siteConfig.seoDefaultImage, width: 1200, height: 630, alt: siteConfig.siteName }] : undefined,
     },
     twitter: {
       card: "summary_large_image" as const,
       title,
       description,
-      images: [siteConfig.seoDefaultImage],
+      images: siteConfig.seoDefaultImage ? [siteConfig.seoDefaultImage] : undefined,
     },
   };
 }

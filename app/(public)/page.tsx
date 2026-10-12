@@ -37,8 +37,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     description,
     alternates: alternatesWithFeed(url, ctx.siteName),
     robots: robotsMeta(seo, page > 1 && seo.noindex_paginated),
-    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title: ogTitle, description: ogDescription, url, siteName: ctx.siteName, images: [{ url: image, width: 1200, height: 630, alt: ctx.siteName }] },
-    twitter: { card: seo.twitter_card, title: ogTitle, description: ogDescription, images: [image] },
+    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title: ogTitle, description: ogDescription, url, siteName: ctx.siteName, images: image ? [{ url: image, width: 1200, height: 630, alt: ctx.siteName }] : undefined },
+    twitter: { card: seo.twitter_card, title: ogTitle, description: ogDescription, images: image ? [image] : undefined },
   };
 }
 

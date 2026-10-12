@@ -1665,6 +1665,7 @@ html.is-loading * {
 .an-table tbody tr:hover{background:var(--gray-50);}
 .an-post-cell{display:flex;align-items:center;gap:.75rem;min-width:260px;}
 .an-post-thumb{width:56px;height:40px;object-fit:cover;border-radius:var(--radius);flex-shrink:0;background:var(--gray-100);}
+span.an-post-thumb{display:block}
 .an-post-title{font-weight:600;color:var(--gray-900);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.8125rem;line-height:1.35;}
 .an-bar-cell{width:140px;}
 .an-mini-bar{width:100%;height:6px;background:var(--gray-100);border-radius:9999px;overflow:hidden;}

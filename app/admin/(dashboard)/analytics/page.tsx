@@ -273,12 +273,12 @@ export default async function AnalyticsPage({
                       </td>
                       <td>
                         <div className="an-post-cell">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={post.bannerImage ? resolveMediaUrl(post.bannerImage) : "/assets/img/seo_og_default.png"}
-                            alt=""
-                            className="an-post-thumb"
-                          />
+                          {post.bannerImage ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={resolveMediaUrl(post.bannerImage)} alt="" className="an-post-thumb" />
+                          ) : (
+                            <span className="an-post-thumb" aria-hidden />
+                          )}
                           <span className="an-post-title">{post.title}</span>
                         </div>
                       </td>

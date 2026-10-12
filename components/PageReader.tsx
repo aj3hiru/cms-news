@@ -31,8 +31,8 @@ export async function buildPageMetadata(slug: string): Promise<Metadata> {
     description,
     alternates: alternatesWithFeed(url, siteConfig.siteName),
     robots: robotsMeta(seo),
-    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: siteConfig.siteName, images: [{ url: image }] },
-    twitter: { card: seo.twitter_card, title, description, images: [image] },
+    openGraph: { type: "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: siteConfig.siteName, images: image ? [{ url: image }] : undefined },
+    twitter: { card: seo.twitter_card, title, description, images: image ? [image] : undefined },
   };
 }
 

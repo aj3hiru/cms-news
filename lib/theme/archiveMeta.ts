@@ -38,7 +38,7 @@ export async function archiveMetadata(opts: {
     description,
     alternates: alternatesWithFeed(url, ctx.siteName),
     robots: robotsMeta(seo, Boolean(opts.noindex || typeNoindex || (opts.page > 1 && seo.noindex_paginated))),
-    openGraph: { type: opts.kind === "author" ? "profile" : "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: ctx.siteName, images: [{ url: image }] },
-    twitter: { card: seo.twitter_card, title, description, images: [image] },
+    openGraph: { type: opts.kind === "author" ? "profile" : "website", locale: LOCALE[ctx.lang].og, title, description, url, siteName: ctx.siteName, images: image ? [{ url: image }] : undefined },
+    twitter: { card: seo.twitter_card, title, description, images: image ? [image] : undefined },
   };
 }
