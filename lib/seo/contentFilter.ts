@@ -14,7 +14,8 @@ export function applySeoContentFilter(html: string, seo: SeoSettings, opts: { ti
     .map((p) => p.trim())
     .filter(Boolean);
   const linkRules = seo.nofollow_external || seo.external_blank || seo.nofollow_image_links || prefixes.length > 0;
-  let out = html;
+  // The page already has its title as the one H1 — headings written as H1 inside the content show as H2.
+  let out = html.replace(/<(\/?)h1(?=[\s>])/gi, "<$1h2");
 
   if (linkRules) {
     out = out.replace(/<a\b([^>]*?)\bhref=(["'])([^"']+)\2([^>]*)>/gi, (tag, pre: string, q: string, href: string, post: string) => {
