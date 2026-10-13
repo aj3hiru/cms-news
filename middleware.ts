@@ -24,6 +24,11 @@ const LOGIN_DECOY_PATHS = new Set([
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // 0. One host only: example.com ↔ www.example.com → the host in APP_URL (301), so search engines
+  //    never see two copies of the site. Only when the two differ by "www." — any other host is left alone.
+  const canonical = canonicalHostRedirect(request);
+  if (canonical) return new NextResponse(null, { status: 301, headers: { Location: canonical } });
+
   // 1. Decoy login paths → real login page
   if (LOGIN_DECOY_PATHS.has(pathname.replace(/\/$/, ""))) {
     return NextResponse.redirect(publicRedirectUrl(request, "/admin-login"), 301);
@@ -163,6 +168,20 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+function canonicalHostRedirect(request: NextRequest): string | null {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  let site: URL;
+  try {
+    site = new URL(process.env.APP_URL?.trim() || "");
+  } catch {
+    return null;
+  }
+  const host = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "").split(",")[0].trim().toLowerCase();
+  const want = site.host.toLowerCase();
+  if (!host || host === want || (host !== `www.${want}` && `www.${host}` !== want)) return null;
+  return `${site.protocol}//${site.host}${request.nextUrl.pathname}${request.nextUrl.search}`;
 }
 
 function isPublicCacheablePath(pathname: string): boolean {
