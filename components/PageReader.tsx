@@ -15,6 +15,7 @@ import { resolveSiteConfig } from "@/lib/config";
 import { staticPagePath } from "@/lib/urls";
 import { ListingAds } from "@/components/shared/ListingAds";
 import { injectParagraphAds } from "@/lib/adRendering";
+import { PageSchema } from "@/components/seo/PageSchema";
 
 export async function buildPageMetadata(slug: string): Promise<Metadata> {
   const page = await getPublishedPageBySlug(slug);
@@ -47,6 +48,14 @@ export async function PageReader({ slug, preview = false }: { slug: string; prev
       <ListingAds page="page" position="before_post" />
       {preview && (
         <div className="nb-preview-bar">Preview — this page is not live yet</div>
+      )}
+      {!preview && (
+        <PageSchema
+          type={slug === "about-us" ? "AboutPage" : slug === "contact-us" ? "ContactPage" : "WebPage"}
+          name={page.title}
+          path={staticPagePath(slug)}
+          description={page.metaDescription || page.content}
+        />
       )}
       <h1 className="nb-page-title">{page.title}</h1>
 

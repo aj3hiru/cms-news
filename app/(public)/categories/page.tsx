@@ -4,6 +4,7 @@ import { categoryUrl } from "@/lib/urls";
 import { getSiteContext } from "@/lib/theme/site";
 import { getSeoSettings, formatTitle } from "@/lib/seo/settings";
 import { robotsMeta, alternatesWithFeed } from "@/lib/seo/meta";
+import { PageSchema } from "@/components/seo/PageSchema";
 
 export const revalidate = 120;
 
@@ -25,6 +26,7 @@ export default async function CategoriesPage() {
   });
   return (
     <main className="nb-archive">
+      <PageSchema type="CollectionPage" name={t.allCategories} path="/categories" />
       <header className="nb-archive-head">
         <span className="nb-archive-kicker">
           {categories.length} · {t.categories}

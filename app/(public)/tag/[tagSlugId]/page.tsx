@@ -9,6 +9,7 @@ import { archiveMetadata } from "@/lib/theme/archiveMeta";
 import { getSeoSettings } from "@/lib/seo/settings";
 import { tagUrl } from "@/lib/urls";
 import { ArchiveView } from "@/components/theme/ArchiveView";
+import { PageSchema } from "@/components/seo/PageSchema";
 
 export const revalidate = 60;
 
@@ -42,6 +43,8 @@ export default async function TagPage({ params, searchParams }: Props) {
   const base = tagUrl(tag.slug, Number(tag.id));
   const { posts, total, totalPages } = await getCardPosts({ kind: "tag", id: Number(tag.id) }, page, Math.max(2, Math.min(50, theme.archive.per_page)));
   return (
+    <>
+    <PageSchema type="CollectionPage" name={`#${tag.name}`} path={page > 1 ? `${base}?page=${page}` : base} />
     <ArchiveView
         sidebarOn="tag"
       adPage="tag"
@@ -58,5 +61,6 @@ export default async function TagPage({ params, searchParams }: Props) {
         </header>
       }
     />
+    </>
   );
 }

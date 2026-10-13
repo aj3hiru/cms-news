@@ -9,6 +9,7 @@ import { archiveMetadata } from "@/lib/theme/archiveMeta";
 import { getSeoSettings } from "@/lib/seo/settings";
 import { categoryUrl } from "@/lib/urls";
 import { ArchiveView } from "@/components/theme/ArchiveView";
+import { PageSchema } from "@/components/seo/PageSchema";
 
 export const revalidate = 60;
 
@@ -33,7 +34,10 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   prisma.category.update({ where: { id: cat.id }, data: { views: { increment: 1 } } }).catch(() => {});
   const { theme, t } = await getSiteContext();
   const { posts, total, totalPages } = await getCardPosts({ kind: "category", id: cat.id }, page, Math.max(2, Math.min(50, theme.archive.per_page)));
+  const path = page > 1 ? `${categoryUrl(slug)}?page=${page}` : categoryUrl(slug);
   return (
+    <>
+    <PageSchema type="CollectionPage" name={cat.name} path={path} description={cat.metaDescription} crumbs={[{ name: t.categories, path: "/categories" }]} />
     <ArchiveView
         sidebarOn="category"
       adPage="category"
@@ -52,5 +56,6 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         </header>
       }
     />
+    </>
   );
 }
