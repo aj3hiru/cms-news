@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend, ArcElement } from "chart.js";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend, ArcElement, LineController, BarController, DoughnutController } from "chart.js";
 import { Chart, Doughnut } from "react-chartjs-2";
 import { getPushAnalytics, type PushAnalytics } from "@/lib/push/admin";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend, ArcElement);
+// the mixed line + bar chart (generic <Chart>) needs its chart types registered here, not only on other admin pages
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend, ArcElement, LineController, BarController, DoughnutController);
 
 const PLATFORM_COLORS: Record<string, string> = { Android: "#16a34a", "iOS (iPhone / iPad)": "#0ea5e9", Desktop: "#7c3aed", Other: "#cbd5e1" };
 
